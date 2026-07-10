@@ -143,10 +143,26 @@
  ];
  if(!ProjsSauves) localStorage.setItem("classeur_maitre_projets_lee", JSON.stringify(listeProjetsGlobal));
  listeProjetsGlobal.forEach(p => { if(p.type === 'PAPA') { etatsAccordéonAdmin[p.id] = true; etatsAccordéonMatrixAssign[p.id] = true; } });
+ 
+ // Récupération stricte de ta base
  let usersSauves = localStorage.getItem("matrice_utilisateurs_rbac_gc");
  listeUtilisateursRBAC = usersSauves ? JSON.parse(usersSauves) : [{ id: 1, login: "admin", pass: "mada2026", role: "admin", lots: ["101", "102", "103"] }];
- renderAccordéonSidebarSelection(); afficherTableauProjets(); afficherTableauUtilisateurs(); genererCheckboxesLotsArbreAccordéon(); gererAffichageSelectParent(); basculerDonneesVersProjetSelectionne(idProjetSelectionneAdmin);
+ 
+ // ON DESSINE D'ABORD LES COMPTES AGENTS POUR SÉCURISER L'AFFICHAGE
+ afficherTableauUtilisateurs();
+ renderAccordéonSidebarSelection(); 
+ afficherTableauProjets(); 
+ genererCheckboxesLotsArbreAccordéon(); 
+ gererAffichageSelectParent(); 
+ 
+ // On charge la charte contractuelle à la toute fin
+ try {
+     basculerDonneesVersProjetSelectionne(idProjetSelectionneAdmin);
+ } catch(e) {
+     console.warn("Erreur d'initialisation de la charte :", e.message);
  }
+}
+
  function renderAccordéonSidebarSelection() {
  let container = document.getElementById('accordeonProjetsAdmin'); if(!container) return; container.innerHTML = "";
  listeProjetsGlobal.filter(p => p.type === 'PAPA').forEach(r => {
