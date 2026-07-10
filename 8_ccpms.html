@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Génie Civil Pro - Archive CCPMS Isolé</title>
+    <style>
+        :root {
+            --primary-color: #0f172a;
+            --sidebar-bg: #1e293b;
+            --accent-blue: #2563eb;
+            --success-color: #10b981;
+            --danger-color: #ef4444;
+            --warning-color: #f59e0b;
+            --bg-color: #f8fafc;
+            --text-color: #334155;
+            --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
+        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 20px; }
+        .container { max-width: 100%; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        h1 { color: var(--primary-color); border-bottom: 3px solid var(--accent-blue); padding-bottom: 10px; margin-top: 0; }
+        .form-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; background: #f1f5f9; padding: 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #cbd5e1; }
+        .form-field { display: flex; flex-direction: column; }
+        .form-field label { font-size: 12px; font-weight: bold; margin-bottom: 5px; color: var(--primary-color); }
+        .form-field input, .form-field select, .form-field textarea { padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 14px; outline: none; }
+        .btn { padding: 10px 15px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; color: white; transition: background 0.2s; text-decoration: none; display: inline-block; text-align: center; font-size: 12px; }
+        .btn-primary { background-color: var(--accent-blue); }
+        .btn-primary:hover { background-color: #1d4ed8; }
+        .btn-success { background-color: var(--success-color); }
+        .btn-secondary { background-color: #64748b; }
+        .btn-danger { background-color: var(--danger-color); }
+        .btn-warning { background-color: var(--warning-color); color: #0f172a; }
+        .filter-section { background: #eff6ff; padding: 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #bfdbfe; }
+        .filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; }
+        .archive-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; margin-top: 20px; }
+        .archive-card { background: white; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; box-shadow: var(--card-shadow); display: flex; flex-direction: column; }
+        .archive-header { background: #0f172a; color: white; padding: 10px; font-size: 12px; font-weight: bold; display: flex; justify-content: space-between; }
+        .archive-body { padding: 15px; flex-grow: 1; }
+        .archive-title { font-size: 15px; font-weight: bold; color: var(--primary-color); margin-bottom: 8px; }
+        .archive-text { font-size: 13px; color: #475569; margin-bottom: 15px; white-space: pre-line; }
+        .archive-img-container { width: 100%; height: 180px; background: #f1f5f9; overflow: hidden; display: flex; align-items: center; justify-content: center; border-radius: 4px; margin-bottom: 10px; border: 1px solid #e2e8f0; cursor: pointer; position: relative; }
+        .archive-img { width: 100%; height: 100%; object-fit: cover; }
+        .archive-pdf-placeholder { text-align: center; color: #dc2626; font-size: 13px; font-weight: bold; padding: 20px; }
+        .archive-footer { padding: 10px 15px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+        
+        .visionneuse-modal { display: none; position: fixed; z-index: 9999; padding-top: 50px; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.9); }
+        .modal-contenu { margin: auto; display: block; max-width: 85%; max-height: 80vh; object-fit: contain; border-radius: 4px; }
+        .close-modal { position: absolute; top: 15px; right: 35px; color: #f1f5f9; font-size: 40px; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+        <h1 style="margin:0;">📂 Module 8 : Armoire CCPMS Étanche</h1>
+        <button class="btn btn-secondary" onclick="window.location.href='3_accueil.html'">« Retour Accueil</button>
+    </div>
+    <div style="font-weight:bold; margin-bottom:5px; color:var(--primary-color); font-size:13px;">🗄️ Archiver une nouvelle pièce dans ce projet actif :</div>
+    <div class="form-group">
+        <div class="form-field">
+            <label>Structure / Catégorie</label>
+            <select id="categorieDoc">
+                <option value="Administratif">📄 Document administratif</option>
+                <option value="Technique">🛠️ Document technique</option>
+                <option value="PV_CR">📝 PV et CR (Procès-Verbaux)</option>
+                <option value="Photos">📸 Photos de Chantier</option>
+            </select>
+        </div>
+        <div class="form-field"><label>Date du document</label><input type="date" id="dateDoc"></div>
+        <div class="form-field"><label>Titre / Objet</label><input type="text" id="titreDoc" placeholder="ex: Rapport bétonnage"></div>
+        <div class="form-field" style="grid-column: span 2;"><label>Résumé textuel (S'affichera sur le livrable)</label><textarea id="descriptionDoc" rows="2" placeholder="Description sommaire..."></textarea></div>
+        <div class="form-field"><label>Sélectionner le fichier</label><input type="file" id="fichierAttache"></div>
+        <div class="form-field" style="justify-content: flex-end;"><button class="btn btn-warning" onclick="archiverNouvellePiece()">🗄️ Archiver dans le CCPMS</button></div>
+    </div>
+
+    <div class="filter-section">
+        <div class="filter-title">🔍 Moteur de recherche et Tris de l'Armoire</div>
+        <div class="filter-grid">
+            <div class="form-field"><label>Recherche par mot-clé</label><input type="text" id="searchTexte" placeholder="Taper un mot..." oninput="filtrerLeClasseur()"></div>
+            <div class="form-field"><label>Filtrer par Catégorie</label><select id="searchCategorie" onchange="filtrerLeClasseur()"><option value="TOUS">-- Toutes les Catégories --</option><option value="Administratif">📄 Documents administratifs</option><option value="Technique">🛠️ Documents techniques</option><option value="PV_CR">📝 PV et CR</option><option value="Photos">📸 Photos de Chantier</option></select></div>
+            <div class="form-field"><label>Filtrer par Mois</label><input type="month" id="searchMois" onchange="filtrerLeClasseur()"></div>
+            <div class="form-field" style="justify-content: flex-end;"><button class="btn btn-danger" style="padding:8px;" onclick="reinitialiserFiltresVisuels()">🔄 Effacer les filtres</button></div>
+        </div>
+    </div>
+
+    <div class="archive-grid" id="grilleCCPMS"></div>
+</div>
+
+<div id="maVisionneuse" class="visionneuse-modal">
+    <span class="close-modal" onclick="fermerVisionneuse()">&times;</span>
+    <img class="modal-contenu" id="imgPleinEcran">
+</div>
+<script>
+    let listeCCPMS = [];
+
+    // --- CONNECTEUR D'IDENTITÉ ID PROJET ---
+    let idProjetCourant = localStorage.getItem("id_projet_en_cours_de_saisie_temporaire") || "101";
+    let cleStockageCCPMS = `ccpms_${idProjetCourant}`;
+
+    window.onload = function() {
+        let baseSauvee = localStorage.getItem(cleStockageCCPMS);
+        if (baseSauvee) { listeCCPMS = JSON.parse(baseSauvee); afficherLeClasseur(listeCCPMS); }
+        document.getElementById('dateDoc').valueAsDate = new Date();
+    };
+
+    function sauvegarderDonnees() { localStorage.setItem(cleStockageCCPMS, JSON.stringify(listeCCPMS)); afficherLeClasseur(listeCCPMS); }
+
+    function archiverNouvellePiece() {
+        let categorie = document.getElementById('categorieDoc').value;
+        let dateDoc = document.getElementById('dateDoc').value;
+        let titre = document.getElementById('titreDoc').value.trim();
+        let description = document.getElementById('descriptionDoc').value.trim();
+        let fileInput = document.getElementById('fichierAttache');
+
+        if(!dateDoc || !titre) { alert("Veuillez remplir au moins la date et le titre du document !"); return; }
+        let nouvelElement = { id: Date.now(), categorie, dateDoc, titre, description, fichierBrut: "", nomFichier: "", typeMime: "" };
+
+        // --- CORRECTION ET PROTECTION DE L'INDEX NATIF DU FICHIER ---
+        if (fileInput.files && fileInput.files.length > 0) {
+            let leFichierSéléctionné = fileInput.files[0]; // Correction ici de l'index du tableau [0]
+            nouvelElement.nomFichier = leFichierSéléctionné.name; 
+            nouvelElement.typeMime = leFichierSéléctionné.type;
+            
+            let reader = new FileReader();
+            reader.onload = function(e) {
+                if (leFichierSéléctionné.type.startsWith("image/")) {
+                    compresserPhotoMada(e.target.result, function(imageCompresseeText) {
+                        nouvelElement.fichierBrut = imageCompresseeText; 
+                        listeCCPMS.unshift(nouvelElement); 
+                        sauvegarderDonnees(); 
+                        reinitialiserFormulaire();
+                    });
+                } else {
+                    nouvelElement.fichierBrut = e.target.result; 
+                    listeCCPMS.unshift(nouvelElement); 
+                    sauvegarderDonnees(); 
+                    reinitialiserFormulaire();
+                }
+            };
+            reader.readAsDataURL(leFichierSéléctionné);
+        } else { 
+            listeCCPMS.unshift(nouvelElement); 
+            sauvegarderDonnees(); 
+            reinitialiserFormulaire(); 
+        }
+    }
+
+    function compresserPhotoMada(base64Str, callback) {
+        let img = new Image(); img.src = base64Str;
+        img.onload = function() {
+            let canvas = document.createElement('canvas'); let ctx = canvas.getContext('2d');
+            let max_width = 1000; let width = img.width; let height = img.height;
+            if (width > max_width) { height *= max_width / width; width = max_width; }
+            canvas.width = width; canvas.height = height; ctx.drawImage(img, 0, 0, width, height);
+            callback(canvas.toDataURL('image/jpeg', 0.7));
+        };
+    }
+    function reinitialiserFormulaire() { document.getElementById('titreDoc').value = ""; document.getElementById('descriptionDoc').value = ""; document.getElementById('fichierAttache').value = ""; document.getElementById('dateDoc').valueAsDate = new Date(); }
+</script>
+<script>
+    function afficherLeClasseur(listeAffichee) {
+        let grille = document.getElementById('grilleCCPMS'); grille.innerHTML = "";
+        if(listeAffichee.length === 0) {
+            grille.innerHTML = `<div style="grid-column:1/-1; text-align:center; color:grey; padding:40px; border:2px dashed #cbd5e1; border-radius:6px;">🗄️ Aucun document dans l'armoire CCPMS pour ce projet.</div>`; return;
+        }
+        listeAffichee.forEach(item => {
+            let dateFormatee = new Date(item.dateDoc).toLocaleDateString('fr-FR');
+            let icone = item.categorie === "Administratif" ? "📄" : item.categorie === "Technique" ? "🛠️" : item.categorie === "PV_CR" ? "📝" : "📸";
+            let apercuHTML = ""; let boutonsActions = "";
+
+            if (item.fichierBrut) {
+                boutonsActions = `<a href="${item.fichierBrut}" download="${item.nomFichier}" class="btn btn-success" style="padding:4px 8px;">📥 Télécharger</a> `;
+                if (item.typeMime && item.typeMime.startsWith("image/")) {
+                    apercuHTML = `<div class="archive-img-container" onclick="ouvrirVisionneusePhoto('${item.fichierBrut}')"><img src="${item.fichierBrut}" class="archive-img" alt="Photo"></div>`;
+                } else {
+                    apercuHTML = `<div class="archive-img-container" style="background:#fff1f2;"><div class="archive-pdf-placeholder">📕 DOCUMENT ARCHIVÉ</div></div>`;
+                    if (item.typeMime === "application/pdf") {
+                        boutonsActions += `<button class="btn btn-primary" style="padding:4px 8px;" onclick="ouvrirPDFEnDirect('${item.fichierBrut}')">👁️ Lire PDF</button>`;
+                    }
+                }
+            } else { apercuHTML = `<div class="archive-img-container" style="background:#f8fafc; color:#94a3b8; font-size:12px;">Texte seul</div>`; }
+
+            let card = document.createElement('div'); card.className = "archive-card";
+            card.innerHTML = `
+                <div class="archive-header"><span>${icone} ${item.categorie}</span><span>📅 ${dateFormatee}</span></div>
+                <div class="archive-body"><div class="archive-title">${item.titre}</div>${apercuHTML}<div class="archive-text">${item.description || '<i>Aucune description rédigée.</i>'}</div></div>
+                <div class="archive-footer">${boutonsActions}<button class="btn btn-danger" style="padding:4px 8px;" onclick="supprimerPiece(${item.id})">🗑️ Retirer</button></div>
+            `;
+            grille.appendChild(card);
+        });
+    }
+
+    function ouvrirVisionneusePhoto(srcBase64) { document.getElementById("maVisionneuse").style.display = "block"; document.getElementById("imgPleinEcran").src = srcBase64; }
+    function fermerVisionneuse() { document.getElementById("maVisionneuse").style.display = "none"; }
+    
+    function ouvrirPDFEnDirect(base64PDF) {
+        let base64Donnees = base64PDF.split(',');
+        let blob = base64ToBlob(base64Donnees[1], "application/pdf");
+        let urlBlob = URL.createObjectURL(blob);
+        window.open(urlBlob, '_blank');
+    }
+    function base64ToBlob(base64, type) {
+        let bin = atob(base64); let len = bin.length; let arr = new Uint8Array(len);
+        for (let i = 0; i < len; i++) { arr[i] = bin.charCodeAt(i); }
+        return new Blob([arr], {type: type});
+    }
+
+    function filtrerLeClasseur() {
+        let txtInput = document.getElementById('searchTexte').value.toLowerCase().trim(); let catInput = document.getElementById('searchCategorie').value; let moisInput = document.getElementById('searchMois').value;
+        let resultat = listeCCPMS.filter(item => {
+            let matchTexte = !txtInput || item.titre.toLowerCase().includes(txtInput) || item.description.toLowerCase().includes(txtInput);
+            let matchCategorie = catInput === "TOUS" || item.categorie === catInput;
+            let matchMois = !moisInput || item.dateDoc.substring(0, 7) === moisInput;
+            return matchTexte && matchCategorie && matchMois;
+        });
+        afficherLeClasseur(resultat);
+    }
+    function reinitialiserFiltresVisuels() { document.getElementById('searchTexte').value = ""; document.getElementById('searchCategorie').value = "TOUS"; document.getElementById('searchMois').value = ""; afficherLeClasseur(listeCCPMS); }
+    function supprimerPiece(id) { if(confirm("Voulez-vous retirer ce document de l'armoire ?")) { listeCCPMS = listeCCPMS.filter(i => i.id !== id); sauvegarderDonnees(); } }
+</script>
+</body>
+</html>

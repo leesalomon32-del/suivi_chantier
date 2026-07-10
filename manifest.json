@@ -1,0 +1,19 @@
+{
+  "id": "genie-civil-pro-app",
+  "name": "Génie Civil Pro",
+  "short_name": "GC Pro",
+  "description": "Suivi et contrôle des infrastructures de Génie Civil à Madagascar",
+  "start_url": "1_Login.html",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#7c3aed",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "https://flaticon.com",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

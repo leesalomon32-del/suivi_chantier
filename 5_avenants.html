@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Génie Civil Pro - Avenants Isolés</title>
+    <style>
+        :root {
+            --primary-color: #0f172a;
+            --secondary-color: #f59e0b;
+            --success-color: #10b981;
+            --danger-color: #ef4444;
+            --bg-color: #f8fafc;
+            --text-color: #334155;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        h1 {
+            color: var(--primary-color);
+            border-bottom: 3px solid var(--secondary-color);
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+        .form-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 12px;
+            background: #f1f5f9;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border: 1px solid #cbd5e1;
+        }
+        .form-field { display: flex; flex-direction: column; }
+        .form-field label { font-size: 12px; font-weight: bold; margin-bottom: 5px; color: var(--primary-color); }
+        .form-field input { padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 14px; }
+        .btn { padding: 10px 15px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; color: white; transition: background 0.2s; }
+        .btn-primary { background-color: var(--secondary-color); color: #0f172a; }
+        .btn-primary:hover { background-color: #d97706; }
+        .btn-secondary { background-color: #64748b; }
+        .btn-danger { background-color: var(--danger-color); }
+        .actions-bar { display: flex; gap: 10px; margin-bottom: 20px; align-items: center; }
+        .filter-section { background: #fef3c7; padding: 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #fcd34d; }
+        .filter-title { font-weight: bold; color: var(--primary-color); margin-bottom: 10px; font-size: 14px; }
+        .segment-container { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+        .segment-btn { background: white; border: 1px solid #f59e0b; color: #b45309; padding: 6px 12px; border-radius: 20px; cursor: pointer; font-size: 13px; }
+        .segment-btn.active { background: #f59e0b; color: white; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th, td { border: 1px solid #e2e8f0; padding: 10px; text-align: left; font-size: 14px; }
+        th { background-color: var(--primary-color); color: white; }
+        tr:nth-child(even) { background-color: #f8fafc; }
+        .input-inline { width: 90px; padding: 5px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 13px; text-align: right; }
+        .recap-box { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 30px; }
+        .recap-card { background: #f1f5f9; border: 1px solid #e2e8f0; padding: 15px; border-radius: 6px; }
+        .total-block { padding: 15px; background: #fee2e2; border-radius: 6px; border: 1px solid #fca5a5; font-size: 16px; font-weight: bold; margin-bottom: 10px; }
+        .total-block.success { background: #dcfce7; border-color: #86efac; color: #16a34a; }
+        .total-block.neutral { background: #fef3c7; border-color: #fcd34d; color: #b45309; font-size: 19px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+        <h1 style="margin:0;">➕ Module 5 : Saisie des Avenants Étanche (Ariary)</h1>
+        <button class="btn btn-secondary" onclick="window.location.href='3_accueil.html'">« Retour Accueil</button>
+    </div>
+    <div class="actions-bar">
+        <button class="btn btn-danger" onclick="reinitialiserAvenantsOnly()">⚠️ Effacer uniquement les modifications d'Avenants</button>
+    </div>
+    <div class="filter-title" style="margin-bottom:5px; color:var(--primary-color);">✨ Formulaire de saisie : Uniquement pour les nouveaux codes hors-marché initial</div>
+    <div class="form-group" id="formAvenantLigne">
+        <div class="form-field">
+            <label>Ouvrage</label>
+            <input type="text" id="ouvrage" placeholder="ex: Terrassement" list="listeSuggestionsOuvrages">
+            <datalist id="listeSuggestionsOuvrages"></datalist>
+        </div>
+        <div class="form-field"><label>Code BDQE</label><input type="text" id="code_bdqe" placeholder="ex: AV-1.1" oninput="formatCodePoint()"></div>
+        <div class="form-field"><label>Structure</label><input type="text" id="structure" placeholder="ex: Infrastructures"></div>
+        <div class="form-field"><label>Désignation</label><input type="text" id="designation" placeholder="Description de l'avenant"></div>
+        <div class="form-field"><label>Unité</label><input type="text" id="unite" placeholder="ex: ens"></div>
+        <div class="form-field" style="justify-content: flex-end;"><button class="btn btn-primary" onclick="ajouterNouveauCodeAvenant()">Créer le code</button></div>
+    </div>
+
+    <div class="filter-section">
+        <div class="filter-title">🔍 Segment : Filtrer les Avenants par Ouvrage</div><div class="segment-container" id="segmentOuvrages"></div>
+        <div class="filter-title">🔍 Segment : Filtrer les Avenants par Structure</div><div class="segment-container" id="segmentStructures"></div>
+    </div>
+
+    <table id="tableAvenants">
+        <thead>
+            <tr>
+                <th>Ouvrage</th>
+                <th>Code BDQE</th>
+                <th>Structure</th>
+                <th>Désignation</th>
+                <th>Unité</th>
+                <th>Qté Initial</th>
+                <th>P.U Initial</th>
+                <th>Total Initial</th>
+                <th style="background-color:#d97706; color:white;">Qté Avenant</th>
+                <th style="background-color:#d97706; color:white;">P.U Avenant (Ar)</th>
+                <th style="background-color:#b45309; color:white;">Montant Avenant</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="tbodyAvenants"></tbody>
+    </table>
+
+    <div class="recap-box">
+        <div class="recap-card">
+            <h3>📈 Bilan par Ouvrage (Cumul Marché + Avenants)</h3>
+            <table>
+                <thead><tr><th>Ouvrage</th><th>Total Initial</th><th>Total Avenants</th><th>Total Ajusté</th></tr></thead>
+                <tbody id="tbodyRecapOuvrage"></tbody>
+            </table>
+        </div>
+        <div class="recap-card" style="display: flex; flex-direction: column; justify-content: center;">
+            <div class="total-block success" id="bilanInitial">Total Initial : 0,00 Ar</div>
+            <div class="total-block" id="bilanAvenants">Bilan Total Avenants : 0,00 Ar</div>
+            <div class="total-block neutral" id="bilanFinal">Nouveau Budget Projet : 0,00 Ar</div>
+        </div>
+    </div>
+</div>
+<script>
+    let listeAvenants = [];
+    let filtreOuvrageActif = "TOUS";
+    let filtreStructureActif = "TOUS";
+
+    // --- LE CONNECTEUR PROJET ACTIF ---
+    let idProjetCourant = localStorage.getItem("id_projet_en_cours_de_saisie_temporaire") || "generique";
+    let cleStockageAvenants = `avenants_${idProjetCourant}`;
+    let cleStockageBDQE = `bdqe_${idProjetCourant}`;
+
+    window.onload = function() {
+                // --- CONNECTEUR DE SÉCURITÉ ET PROTECTION RBAC MULTI-RÔLES ---
+        let userRoleActuel = localStorage.getItem("session_user_role") || "agents";
+        let userLotsAutorises = [];
+        try { userLotsAutorises = JSON.parse(localStorage.getItem("session_user_lots")) || []; } catch(e) {}
+
+        // 1. Expulsion immédiate vers l'accueil si un agent tente de forcer l'URL
+        if (userRoleActuel === "agents") {
+            alert("🔒 Accès Refusé : Vous n'avez pas les privilèges requis pour modifier l'enveloppe budgétaire.");
+            window.location.href = "3_accueil.html"; return;
+        }
+
+        // 2. Passage en mode lecture seule pour les cadres ou les ingénieurs non assignés à ce lot
+        if (userRoleActuel === "cadres" || (userRoleActuel === "controle" && !userLotsAutorises.includes(String(idProjetCourant)))) {
+            // Masquage du formulaire de saisie d'avenant
+            let formSaisie = document.getElementById('formSaisieAvenant') || document.querySelector('.form-group');
+            if (formSaisie) formSaisie.style.display = 'none';
+            
+            // Affichage du bandeau d'avertissement réglementaire
+            let alerte = document.createElement('div');
+            alerte.style.cssText = "background:#eff6ff; color:#1e40af; padding:10px; border-radius:6px; font-weight:bold; margin-bottom:15px; border:1px solid #bfdbfe; font-size:13px;";
+            alerte.innerText = "🔒 Mode Consultation Uniquement (Lecture Seule Direction / Périmètre non affecté)";
+            if (formSaisie) formSaisie.parentNode.insertBefore(alerte, formSaisie);
+
+            // Masquage de la colonne d'action pour empêcher toute suppression
+            let ths = document.querySelectorAll('table th');
+            if(ths.length > 0 && ths[ths.length - 1].innerText.includes('Actions')) {
+                ths[ths.length - 1].style.display = 'none';
+            }
+        }
+
+        let avenantsSauves = localStorage.getItem(cleStockageAvenants);
+        let bdqeInitial = localStorage.getItem(cleStockageBDQE);
+        let listeBaseBDQE = bdqeInitial ? JSON.parse(bdqeInitial) : [];
+
+        if (avenantsSauves) {
+            listeAvenants = JSON.parse(avenantsSauves);
+            listeBaseBDQE.forEach(baseItem => {
+                let existe = listeAvenants.find(avItem => avItem.code_bdqe === baseItem.code_bdqe && avItem.designation === baseItem.designation);
+                if(!existe) {
+                    listeAvenants.push({ ...baseItem, qte_av: null, pu_av: null, total_av: null, est_nouveau: false });
+                }
+            });
+        } else {
+            listeAvenants = listeBaseBDQE.map(item => {
+                return { ...item, qte_av: null, pu_av: null, total_av: null, est_nouveau: false };
+            });
+        }
+        rechargerTout();
+    };
+
+    function formatArgent(nombre) {
+        if (nombre === null || nombre === undefined || isNaN(nombre)) return "0,00";
+        let signe = nombre < 0 ? "-" : "";
+        return signe + Math.abs(nombre).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function formatCodePoint() {
+        let input = document.getElementById('code_bdqe'); input.value = input.value.replace(',', '.');
+    }
+
+    function trierDonnees() {
+        listeAvenants.sort((a, b) => {
+            let compOuvrage = a.ouvrage.localeCompare(b.ouvrage, 'fr', {sensitivity: 'base'});
+            if (compOuvrage !== 0) return compOuvrage;
+            let partsA = a.code_bdqe.split(/[\.,]/).map(Number);
+            let partsB = b.code_bdqe.split(/[\.,]/).map(Number);
+            for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
+                let numA = partsA[i] || 0; let numB = partsB[i] || 0;
+                if (numA !== numB) return numA - numB;
+            }
+            return 0;
+        });
+    }
+
+    function répercuterValeursLigne(indexModifié, code, champ, valeur) {
+        let parsedVal = valeur.trim() === "" ? null : parseFloat(valeur.replace(/\s/g, '').replace(',', '.')) || 0;
+        if(isNaN(parsedVal)) parsedVal = null;
+
+        let itemSaisi = listeAvenants[indexModifié];
+        if(champ === 'qte') itemSaisi.qte_av = parsedVal;
+        if(champ === 'pu') itemSaisi.pu_av = parsedVal;
+
+        listeAvenants.forEach((item, idx) => {
+            if(item.code_bdqe === code) {
+                if(champ === 'pu' && idx !== indexModifié) { item.pu_av = parsedVal; }
+
+                let qEffective = item.qte_av;
+                let pEffectif = item.pu_av;
+
+                if (item.qte_av !== null && item.pu_av === null) { pEffectif = item.prix_unitaire; } 
+                else if (item.qte_av === null && item.pu_av !== null) { qEffective = item.quantite; }
+
+                if (item.qte_av === null && item.pu_av === null) { item.total_av = null; } 
+                else {
+                    let totalInitialLigne = item.total || 0;
+                    let totalAjusteLigne = (qEffective || 0) * (pEffectif || 0);
+                    item.total_av = totalAjusteLigne - totalInitialLigne;
+                }
+            }
+        });
+        rechargerTout();
+    }
+</script>
+<script>
+    function ajouterNouveauCodeAvenant() {
+        let ouvrage = document.getElementById('ouvrage').value.trim();
+        let code_bdqe = document.getElementById('code_bdqe').value.trim();
+        let structure = document.getElementById('structure').value.trim();
+        let designation = document.getElementById('designation').value.trim();
+        let unite = document.getElementById('unite').value.trim();
+        if(!ouvrage || !code_bdqe || !designation) { alert("Champs manquants !"); return; }
+
+        let nouveauCode = { ouvrage, code_bdqe, structure, designation, unite, quantite: 0, prix_unitaire: 0, total: 0, qte_av: null, pu_av: null, total_av: null, est_nouveau: true };
+        listeAvenants.push(nouveauCode);
+        rechargerTout();
+        document.getElementById('code_bdqe').value = ""; document.getElementById('structure').value = ""; document.getElementById('designation').value = ""; document.getElementById('unite').value = "";
+    }
+
+    function rechargerTout() {
+        trierDonnees(); genererSegments(); afficherTableauAvenants(); calculerBilansFinanciers(); actualiserSuggestionsOuvrages();
+        localStorage.setItem(cleStockageAvenants, JSON.stringify(listeAvenants));
+    }
+
+    function actualiserSuggestionsOuvrages() {
+        let uniqueOuvrages = [...new Set(listeAvenants.map(item => item.ouvrage).filter(Boolean))];
+        let datalist = document.getElementById('listeSuggestionsOuvrages'); datalist.innerHTML = "";
+        uniqueOuvrages.forEach(ouv => { let option = document.createElement('option'); option.value = ouv; datalist.appendChild(option); });
+    }
+
+    function afficherTableauAvenants() {
+        let tbody = document.getElementById('tbodyAvenants'); tbody.innerHTML = "";
+        listeAvenants.forEach((item, index) => {
+            if (filtreOuvrageActif !== "TOUS" && item.ouvrage !== filtreOuvrageActif) return;
+            if (filtreStructureActif !== "TOUS" && item.structure !== filtreStructureActif) return;
+
+            let txtQteInit = item.quantite !== null ? item.quantite.toLocaleString('fr-FR', { minimumFractionDigits: 2 }) : "";
+            let txtPUInit = item.prix_unitaire !== null ? item.prix_unitaire.toLocaleString('fr-FR', { minimumFractionDigits: 2 }) + " Ar" : "";
+            let txtTotInit = item.total !== null ? item.total.toLocaleString('fr-FR', { minimumFractionDigits: 2 }) + " Ar" : "";
+
+            let valQteAv = item.qte_av !== null ? item.qte_av : "";
+            let valPUAv = item.pu_av !== null ? item.pu_av : "";
+            let txtTotalAv = ""; let couleurTotalAv = "inherit";
+            if (item.total_av !== null) {
+                txtTotalAv = formatArgent(item.total_av) + " Ar";
+                couleurTotalAv = item.total_av < 0 ? "red" : item.total_av > 0 ? "green" : "inherit";
+            }
+            let btnActions = item.est_nouveau ? `<button class="btn btn-danger" style="padding:4px 8px; font-size:12px;" onclick="supprimerNouveauCode(${index})">🗑️</button>` : `<span style="font-size:11px;color:grey;">Marché</span>`;
+
+            let tr = document.createElement('tr');
+            tr.innerHTML = `<td><b>${item.ouvrage}</b></td><td>${item.code_bdqe}</td><td>${item.structure}</td><td>${item.designation}</td><td>${item.unite}</td><td>${txtQteInit}</td><td>${txtPUInit}</td><td><b>${txtTotInit}</b></td><td><input type="text" class="input-inline" value="${valQteAv}" onchange="répercuterValeursLigne(${index}, '${item.code_bdqe}', 'qte', this.value)"></td><td><input type="text" class="input-inline" value="${valPUAv}" onchange="répercuterValeursLigne(${index}, '${item.code_bdqe}', 'pu', this.value)"></td><td style="color:${couleurTotalAv}; font-weight:bold;">${txtTotalAv}</td><td>${btnActions}</td>`;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function supprimerNouveauCode(index) { if(confirm("Supprimer ?")) { listeAvenants.splice(index, 1); rechargerTout(); } }
+
+    function reinitialiserAvenantsOnly() {
+        if(confirm("⚠️ Tout effacer pour CE projet ?")) {
+            listeAvenants.forEach(item => { item.qte_av = null; item.pu_av = null; item.total_av = null; });
+            listeAvenants = listeAvenants.filter(item => !item.est_nouveau); rechargerTout();
+        }
+    }
+
+    function genererSegments() {
+        let uniqueOuvrages = ["TOUS", ...new Set(listeAvenants.map(item => item.ouvrage).filter(Boolean))];
+        let uniqueStructures = ["TOUS", ...new Set(listeAvenants.map(item => item.structure).filter(Boolean))];
+        let containerOuvrage = document.getElementById('segmentOuvrages'); containerOuvrage.innerHTML = "";
+        uniqueOuvrages.forEach(ouv => { let btn = document.createElement('button'); btn.className = `segment-btn ${filtreOuvrageActif === ouv ? 'active' : ''}`; btn.innerText = ouv; btn.onclick = () => { filtreOuvrageActif = ouv; rechargerTout(); }; containerOuvrage.appendChild(btn); });
+        let containerStructure = document.getElementById('segmentStructures'); containerStructure.innerHTML = "";
+        uniqueStructures.forEach(str => { let btn = document.createElement('button'); btn.className = `segment-btn ${filtreStructureActif === str ? 'active' : ''}`; btn.innerText = str; btn.onclick = () => { filtreStructureActif = str; rechargerTout(); }; containerStructure.appendChild(btn); });
+    }
+
+    function calculerBilansFinanciers() {
+        let recapOuvrages = {}; let globalInitial = 0; let globalAvenants = 0;
+        listeAvenants.forEach(item => {
+            let init = item.total || 0; let av = item.total_av || 0;
+            globalInitial += init; globalAvenants += av;
+            if(!recapOuvrages[item.ouvrage]) recapOuvrages[item.ouvrage] = { initial: 0, avenant: 0 };
+            recapOuvrages[item.ouvrage].initial += init; recapOuvrages[item.ouvrage].avenant += av;
+        });
+        let tbodyRecap = document.getElementById('tbodyRecapOuvrage'); tbodyRecap.innerHTML = "";
+        for(let ouv in recapOuvrages) {
+            let oInit = recapOuvrages[ouv].initial; let oAv = recapOuvrages[ouv].avenant;
+            let tr = document.createElement('tr'); tr.innerHTML = `<td>${ouv}</td><td>${formatArgent(oInit)} Ar</td><td style="color:${oAv < 0 ? 'red' : oAv > 0 ? 'green' : 'inherit'}; font-weight:bold;">${formatArgent(oAv)} Ar</td><td><b>${formatArgent(oInit + oAv)} Ar</b></td>`; tbodyRecap.appendChild(tr);
+        }
+        document.getElementById('bilanInitial').innerText = `Total Initial : ${formatArgent(globalInitial)} Ar`;
+        document.getElementById('bilanAvenants').innerText = `Total Avenants : ${formatArgent(globalAvenants)} Ar`;
+        document.getElementById('bilanFinal').innerText = `Budget Ajusté : ${formatArgent(globalInitial + globalAvenants)} Ar`;
+    }
+</script>
+</body>
+</html>

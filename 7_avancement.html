@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Génie Civil Pro - Suivi Avancement Isolé</title>
+    <style>
+        :root {
+            --primary-color: #1e3a8a;
+            --secondary-color: #3b82f6;
+            --success-color: #10b981;
+            --danger-color: #ef4444;
+            --bg-color: #f3f4f6;
+            --text-color: #1f2937;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: var(--primary-color);
+            border-bottom: 3px solid var(--secondary-color);
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+        .dashboard-header {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+        .kpi-card {
+            background: #f8fafc;
+            border: 2px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+        }
+        .kpi-title { font-size: 14px; font-weight: bold; color: #64748b; text-transform: uppercase; margin-bottom: 10px; }
+        .kpi-value { font-size: 32px; font-weight: bold; color: var(--primary-color); margin-bottom: 15px; }
+        .progress-bar-container { background: #e2e8f0; border-radius: 12px; height: 16px; overflow: hidden; width: 100%; }
+        .progress-bar-fill { height: 100%; background: var(--success-color); width: 0%; transition: width 0.4s ease; }
+        
+        .filter-section { background: #eff6ff; padding: 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #bfdbfe; }
+        .filter-title { font-weight: bold; color: var(--primary-color); margin-bottom: 10px; font-size: 14px; }
+        .segment-container { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+        .segment-btn { background: white; border: 1px solid #3b82f6; color: #3b82f6; padding: 6px 12px; border-radius: 20px; cursor: pointer; font-size: 13px; }
+        .segment-btn.active { background: #3b82f6; color: white; }
+        
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th, td { border: 1px solid #e5e7eb; padding: 10px; text-align: left; font-size: 13px; }
+        th { background-color: var(--primary-color); color: white; }
+        tr:nth-child(even) { background-color: #f9fafb; }
+        
+        tr.ligne-depassement { background-color: #f3e8ff !important; border-left: 4px solid #7c3aed; }
+        .input-inline { width: 85px; padding: 5px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 13px; text-align: right; }
+        
+        .badge-percent { padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; }
+        .bg-red-light { background: #fee2e2; color: #dc2626; }
+        .bg-orange-light { background: #fef3c7; color: #d97706; }
+        .bg-green-light { background: #dcfce7; color: #16a34a; }
+        .bg-purple-light { background: #e9d5ff; color: #6b21a8; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+        <h1 style="margin:0;">📈 Module 7 : Suivi d'Avancement Réel Isolé</h1>
+        <button class="btn btn-primary" onclick="window.location.href='3_accueil.html'" style="background:#475569;">« Retour Accueil</button>
+    </div>
+    <div class="dashboard-header">
+        <div class="kpi-card" style="border-color:#bfdbfe;">
+            <div class="kpi-title">🏗️ Taux d'Avancement Physique Global (Max 100%)</div>
+            <div class="kpi-value" id="valPhysique">0,00 %</div>
+            <div class="progress-bar-container"><div class="progress-bar-fill" id="barPhysique" style="background-color:#3b82f6;"></div></div>
+        </div>
+        <div class="kpi-card" style="border-color:#bbf7d0;">
+            <div class="kpi-title">💰 Taux d'Avancement Financier du Projet (Max 100%)</div>
+            <div class="kpi-value" id="valFinancier">0,00 %</div>
+            <div class="progress-bar-container"><div class="progress-bar-fill" id="barFinancier" style="background-color:#10b981;"></div></div>
+        </div>
+    </div>
+
+    <div class="filter-section">
+        <div class="filter-title">🔍 Segment : Filtrer par Ouvrage</div><div class="segment-container" id="segmentOuvrages"></div>
+        <div class="filter-title">🔍 Segment : Filtrer par Structure</div><div class="segment-container" id="segmentStructures"></div>
+    </div>
+
+    <table id="tableAvancement">
+        <thead>
+            <tr>
+                <th>Ouvrage</th><th>Code</th><th>Structure</th><th>Désignation</th><th>Unité</th>
+                <th>P.U Contrat</th><th>Quantité Contrat</th><th>Total Contrat</th>
+                <th style="background-color:#3b82f6; color:white; width:110px;">Qté Réalisée</th>
+                <th>Montant Consommé</th><th>Avancement</th>
+            </tr>
+        </thead>
+        <tbody id="tbodyAvancement"></tbody>
+    </table>
+</div>
+<script>
+    let listeAvancement = [];
+    let filtreOuvrageActif = "TOUS";
+    let filtreStructureActif = "TOUS";
+
+    // --- LE CONNECTEUR PROJET ACTIF POUR SEPARER CHAQUE TIROIR DE CHANTIER ---
+    let idProjetCourant = localStorage.getItem("id_projet_en_cours_de_saisie_temporaire") || "generique";
+    let cleStockageSuivi = `suivi_${idProjetCourant}`;
+    let cleStockageAvenants = `avenants_${idProjetCourant}`;
+    let cleStockageBDQE = `bdqe_${idProjetCourant}`;
+
+    window.onload = function() {
+        let suiviSauve = localStorage.getItem(cleStockageSuivi);
+        let bdqeInitial = localStorage.getItem(cleStockageBDQE);
+        let avenantsSauves = localStorage.getItem(cleStockageAvenants);
+
+        let listeBDQE = bdqeInitial ? JSON.parse(bdqeInitial) : [];
+        let listeAvenants = avenantsSauves ? JSON.parse(avenantsSauves) : [];
+        let listeFusionnee = [];
+        
+        listeBDQE.forEach(baseItem => {
+            let avenantAssocie = listeAvenants.find(av => av.code_bdqe === baseItem.code_bdqe && av.designation === baseItem.designation);
+            let qteContrat = baseItem.quantite;
+            let puContrat = baseItem.prix_unitaire;
+
+            if (avenantAssocie) {
+                let qEffective = avenantAssocie.qte_av !== null ? avenantAssocie.qte_av : baseItem.quantite;
+                let pEffectif = avenantAssocie.pu_av !== null ? avenantAssocie.pu_av : baseItem.prix_unitaire;
+                qteContrat = qEffective;
+                puContrat = pEffectif;
+            }
+            let totalContrat = (qteContrat !== null && puContrat !== null) ? qteContrat * puContrat : null;
+
+            listeFusionnee.push({
+                ouvrage: baseItem.ouvrage, code_bdqe: baseItem.code_bdqe, structure: baseItem.structure,
+                designation: baseItem.designation, unite: baseItem.unite, prix_unitaire: puContrat,
+                quantite_contrat: qteContrat, total_contrat: totalContrat, qte_realisee: 0
+            });
+        });
+
+        listeAvenants.forEach(avItem => {
+            if(avItem.est_nouveau) {
+                let qteContrat = avItem.qte_av !== null ? avItem.qte_av : 0;
+                let puContrat = avItem.pu_av !== null ? avItem.pu_av : 0;
+                let totalContrat = qteContrat * puContrat;
+
+                listeFusionnee.push({
+                    ouvrage: avItem.ouvrage, code_bdqe: avItem.code_bdqe, structure: avItem.structure,
+                    designation: avItem.designation, unite: avItem.unite, prix_unitaire: puContrat,
+                    quantite_contrat: qteContrat, total_contrat: totalContrat, qte_realisee: 0
+                });
+            }
+        });
+
+        if (suiviSauve) {
+            let historique = JSON.parse(suiviSauve);
+            listeFusionnee.forEach(item => {
+                let exLigne = historique.find(h => h.code_bdqe === item.code_bdqe && h.designation === item.designation);
+                if(exLigne) item.qte_realisee = exLigne.qte_realisee;
+            });
+        }
+        listeAvancement = listeFusionnee;
+        rechargerTout();
+    };
+
+    function formatArgent(nombre) {
+        if (nombre === null || nombre === undefined || isNaN(nombre)) return "";
+        return nombre.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function trierDonnees() {
+        listeAvancement.sort((a, b) => {
+            let compOuvrage = a.ouvrage.localeCompare(b.ouvrage, 'fr', {sensitivity: 'base'});
+            if (compOuvrage !== 0) return compOuvrage;
+            let partsA = a.code_bdqe.split(/[\.,]/).map(Number);
+            let partsB = b.code_bdqe.split(/[\.,]/).map(Number);
+            for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
+                let numA = partsA[i] || 0; let numB = partsB[i] || 0;
+                if (numA !== numB) return numA - numB;
+            }
+            return 0;
+        });
+    }
+</script>
+<script>
+    function modifierQuantiteRealisee(index, valeur) {
+        let item = listeAvancement[index];
+        let valNettoyee = valeur.trim() === "" ? 0 : parseFloat(valeur.replace(/\s/g, '').replace(',', '.')) || 0;
+        if(valNettoyee < 0) valNettoyee = 0;
+        
+        item.qte_realisee = valNettoyee;
+        rechargerTout();
+    }
+
+    function rechargerTout() {
+        trierDonnees(); genererSegments(); afficherTableauSuivi(); calculerTauxGlobauxDashboard();
+        localStorage.setItem(cleStockageSuivi, JSON.stringify(listeAvancement));
+    }
+
+    function genererSegments() {
+        let uniqueOuvrages = ["TOUS", ...new Set(listeAvancement.map(item => item.ouvrage).filter(Boolean))];
+        let uniqueStructures = ["TOUS", ...new Set(listeAvancement.map(item => item.structure).filter(Boolean))];
+        let containerOuvrage = document.getElementById('segmentOuvrages'); containerOuvrage.innerHTML = "";
+        uniqueOuvrages.forEach(ouv => { let btn = document.createElement('button'); btn.className = `segment-btn ${filtreOuvrageActif === ouv ? 'active' : ''}`; btn.innerText = ouv; btn.onclick = () => { filtreOuvrageActif = ouv; rechargerTout(); }; containerOuvrage.appendChild(btn); });
+        let containerStructure = document.getElementById('segmentStructures'); containerStructure.innerHTML = "";
+        uniqueStructures.forEach(str => { let btn = document.createElement('button'); btn.className = `segment-btn ${filtreStructureActif === str ? 'active' : ''}`; btn.innerText = str; btn.onclick = () => { filtreStructureActif = str; rechargerTout(); }; containerStructure.appendChild(btn); });
+    }
+
+    function afficherTableauSuivi() {
+        let tbody = document.getElementById('tbodyAvancement'); tbody.innerHTML = "";
+        listeAvancement.forEach((item, index) => {
+            if (filtreOuvrageActif !== "TOUS" && item.ouvrage !== filtreOuvrageActif) return;
+            if (filtreStructureActif !== "TOUS" && item.structure !== filtreStructureActif) return;
+
+            let txtPU = item.prix_unitaire !== null ? formatArgent(item.prix_unitaire) + " Ar" : "";
+            let txtQteContrat = item.quantite_contrat !== null ? item.quantite_contrat.toLocaleString('fr-FR', { minimumFractionDigits: 2 }) : "";
+            let txtTotalContrat = item.total_contrat !== null ? formatArgent(item.total_contrat) + " Ar" : "";
+
+            let zoneSaisie = `<input type="text" class="input-inline" value="${item.qte_realisee || ''}" onchange="modifierQuantiteRealisee(${index}, this.value)">`;
+            if (item.quantite_contrat === null) { zoneSaisie = ""; }
+
+            let mntConsomme = (item.qte_realisee && item.prix_unitaire) ? item.qte_realisee * item.prix_unitaire : 0;
+            let txtConsomme = item.quantite_contrat !== null ? formatArgent(mntConsomme) + " Ar" : "";
+
+            let pourcentLigne = 0; let badgeHTML = ""; let classeTrDépassement = "";
+            if (item.quantite_contrat > 0) {
+                pourcentLigne = (item.qte_realisee / item.quantite_contrat) * 100;
+                if (pourcentLigne > 100) {
+                    classeTrDépassement = "ligne-depassement";
+                    badgeHTML = `<span class="badge-percent bg-purple-light">⚠️ ${pourcentLigne.toFixed(2)} %</span>`;
+                } else {
+                    let classeColor = pourcentLigne === 100 ? "bg-green-light" : pourcentLigne > 0 ? "bg-orange-light" : "bg-red-light";
+                    badgeHTML = `<span class="badge-percent ${classeColor}">${pourcentLigne.toFixed(2)} %</span>`;
+                }
+            }
+
+            let tr = document.createElement('tr');
+            if(classeTrDépassement) tr.className = classeTrDépassement;
+            tr.innerHTML = `<td><b>${item.ouvrage}</b></td><td>${item.code_bdqe}</td><td>${item.structure}</td><td>${item.designation}</td><td>${item.unite}</td><td>${txtPU}</td><td>${txtQteContrat}</td><td><b>${txtTotalContrat}</b></td><td>${zoneSaisie}</td><td style="font-weight:bold; color:var(--primary-color);">${txtConsomme}</td><td style="text-align:center;">${badgeHTML}</td>`;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function calculerTauxGlobauxDashboard() {
+        let totalLignesPlanifiees = 0; let sommePourcentagesPhysiques = 0;
+        let enveloppeFinanciereTotaleMarché = 0; let enveloppeFinanciereConsommeeTerrain = 0;
+
+        listeAvancement.forEach(item => {
+            if (item.quantite_contrat !== null && item.quantite_contrat > 0) {
+                totalLignesPlanifiees++;
+                let pourcentLigneBrut = (item.qte_realisee / item.quantite_contrat) * 100;
+                let pourcentLigneBride = Math.min(pourcentLigneBrut, 100);
+                sommePourcentagesPhysiques += pourcentLigneBride;
+
+                let ligneMarchatTotal = item.total_contrat || 0;
+                let ratioLigneBride = pourcentLigneBride / 100;
+                let ligneConsommeeBride = ligneMarchatTotal * ratioLigneBride;
+                
+                enveloppeFinanciereTotaleMarché += ligneMarchatTotal;
+                enveloppeFinanciereConsommeeTerrain += ligneConsommeeBride;
+            }
+        });
+
+        let tauxPhysiqueGlobal = totalLignesPlanifiees > 0 ? (sommePourcentagesPhysiques / totalLignesPlanifiees) : 0;
+        document.getElementById('valPhysique').innerText = tauxPhysiqueGlobal.toFixed(2) + " %";
+        document.getElementById('barPhysique').style.width = tauxPhysiqueGlobal + "%";
+
+        let pourcentFinancier = enveloppeFinanciereTotaleMarché > 0 ? (enveloppeFinanciereConsommeeTerrain / enveloppeFinanciereTotaleMarché) * 100 : 0;
+        document.getElementById('valFinancier').innerText = pourcentFinancier.toFixed(2) + " %";
+        document.getElementById('barFinancier').style.width = pourcentFinancier + "%";
+    }
+  // Propulsion instantanée de la mise à jour d'avancement de l'agent vers le cloud central
+if (typeof parent.pousserDonneesAutomatiqueVersDrive === 'function') {
+    parent.pousserDonneesAutomatiqueVersDrive();
+} else if (typeof parent.pousserModificationTerrainVersCloudMiroir === 'function') {
+    parent.parent.pousserModificationTerrainVersCloudMiroir();
+} else {
+    let baseProjets = localStorage.getItem("classeur_maitre_projets_lee") || "[]";
+    let baseUsers = localStorage.getItem("matrice_utilisateurs_rbac_gc") || "[]";
+    let masterFiche = localStorage.getItem("base_donnees_fiche_projet_maitre") || "{}";
+    let baseSuivi = localStorage.getItem("base_donnees_suivi_avancement_travaux") || "{}";
+    let paquetGlobalData = { dateExport: new Date().toISOString(), projets: JSON.parse(baseProjets), utilisateurs: JSON.parse(baseUsers), ficheMaitrePapa: JSON.parse(masterFiche), suiviAvancement: JSON.parse(baseSuivi) };
+    localStorage.setItem("CLOUD_MIRROR_SNAPSHOT", JSON.stringify(paquetGlobalData));
+}
+  
+</script>
+</body>
+</html>
