@@ -96,6 +96,7 @@
  <select id="projType" class="input-control" onchange="gererAffichageSelectParent()">
  <option value="PAPA">Projet Père</option>
  <option value="ENFANT">↳ Projet Enfant</option>
+ <option value="CLASSIQUE">Projet Classique (Chantier Autonome Isolé)</option>
  </select>
  </div>
  <div class="form-group" id="rowSelectParent" style="display:none;"><label>Rattachement Hiérarchique</label><select id="projParentId" class="input-control"></select></div>
@@ -180,25 +181,78 @@
  function toggleDossierAdmin(pId, ev) { ev.stopPropagation(); etatsAccordéonAdmin[pId] = !etatsAccordéonAdmin[pId]; renderAccordéonSidebarSelection(); }
  function selectionnerProjetEnLigneAdmin(id) { idProjetSelectionneAdmin = id; renderAccordéonSidebarSelection(); basculerDonneesVersProjetSelectionne(id); }
  function basculerDonneesVersProjetSelectionne(id) {
- let p = listeProjetsGlobal.find(i => i.id == id); if(!p) return;
- document.getElementById('titreCharteActive').innerText = `I. Charte Contractuelle (${p.nom})`;
- document.getElementById('cfgObjet').value = p.nom || "";
- let charteSpecifique = localStorage.getItem(`charte_administrative_${id}`);
- let d = charteSpecifique ? JSON.parse(charteSpecifique) : {};
- let m = p.type === 'ENFANT' && p.parentId ? JSON.parse(localStorage.getItem(`charte_administrative_${p.parentId}`) || "{}") : {};
- document.getElementById('cfgFinancement').value = d.financement || m.financement || "";
- document.getElementById('cfgMO').value = d.mo || m.mo || "";
- document.getElementById('cfgMOE').value = d.moe || m.moe || "";
- document.getElementById('cfgEnterprise').value = d.entreprise || m.entreprise || "";
- document.getElementById('cfgNumContrat').value = d.numContrat || m.numContrat || "";
- }
- function sauvegarderDonneesProjetSelectionne() {
- let nomSaisi = document.getElementById('cfgObjet').value.trim(); if(!nomSaisi) return alert("Nom manquant");
- let p = listeProjetsGlobal.find(i => i.id == idProjetSelectionneAdmin); if(p) { p.nom = nomSaisi; localStorage.setItem("classeur_maitre_projets_lee", JSON.stringify(listeProjetsGlobal)); }
- let charteData = { financement: document.getElementById('cfgFinancement').value.trim(), mo: document.getElementById('cfgMO').value.trim(), moe: document.getElementById('cfgMOE').value.trim(), entreprise: document.getElementById('cfgEnterprise').value.trim(), numContrat: document.getElementById('cfgNumContrat').value.trim() };
- localStorage.setItem(`charte_administrative_${idProjetSelectionneAdmin}`, JSON.stringify(charteData));
- alert("✅ Charte enregistrée."); chargerArbreProjetsEtUtilisateurs();
- }
+    let p = listeProjetsGlobal.find(i => i.id == id); if(!p) return;
+    document.getElementById('titreCharteActive').innerText = `I. Charte Contractuelle (Lot : ${p.nom.toUpperCase()})`;
+    document.getElementById('cfgObjet').value = p.nom || "";
+    
+    let charteSpecifique = localStorage.getItem(`charte_administrative_${id}`);
+    let d = charteSpecifique ? JSON.parse(charteSpecifique) : {};
+    let m = {};
+    
+    // Système d'héritage automatique : si c'est un enfant, on cherche la charte du père
+    if (p.type === 'ENFANT' && p.parentId) {
+        let parentSauve = localStorage.getItem(`charte_administrative_${p.parentId}`);
+        if (parentSauve) m = JSON.parse(parentSauve);
+    }
+    
+    document.getElementById('cfgFinancement').value = d.financement || m.financement || "";
+    document.getElementById('cfgMO').value = d.mo || m.mo || "";
+    document.getElementById('cfgMOE').value = d.moe || m.moe || "";
+    document.getElementById('cfgEnterprise').value = d.entreprise || m.entreprise || "";
+    document.getElementById('cfgNumContrat').value = d.numContrat || m.numContrat || "";
+    
+    // Les boutons d'upload ne s'affichent que sur le Projet Père (PAPA) ou Classique
+    let displayUploader = p.type === 'ENFANT' ? 'none' : 'inline-flex';
+    document.getElementById('btnUploadMO').style.display = displayUploader;
+    document.getElementById('btnUploadFin').style.display = displayUploader;
+    document.getElementById('btnUploadMOE').style.display = displayUploader;
+    document.getElementById('btnUploadEnt').style.display = displayUploader;
+    
+    // Sélection de la source des logos (Héritée si Enfant, Propre si Père)
+    let sourceLogos = p.type === 'ENFANT' ? m : d;
+    document.getElementById('preview_logoMO').innerHTML = sourceLogos.logoMO_html || "";
+    document.getElementById('preview_logoFin').innerHTML = sourceLogos.logoFin_html || "";
+    document.getElementById('preview_logoMOE').innerHTML = sourceLogos.logoMOE_html || "";
+    document.getElementById('preview_logoEntreprise').innerHTML = sourceLogos.logoEntreprise_html || "";
+}
+
+function sauvegarderDonneesProjetSelectionne() {
+    let nomSaisi = document.getElementById('cfgObjet').value.trim();
+    if(!nomSaisi) return alert("Désignation manquante !");
+    
+    let p = listeProjetsGlobal.find(i => i.id == idProjetSelectionneAdmin);
+    if(p) { 
+        p.nom = nomSaisi; 
+        localStorage.setItem("classeur_maitre_projets_lee", JSON.stringify(listeProjetsGlobal)); 
+    }
+    
+    let charteData = {
+        financement: document.getElementById('cfgFinancement').value.trim(),
+        mo: document.getElementById('cfgMO').value.trim(), 
+        moe: document.getElementById('cfgMOE').value.trim(), 
+        entreprise: document.getElementById('cfgEnterprise').value.trim(), 
+        numContrat: document.getElementById('cfgNumContrat').value.trim(),
+        logoMO_html: document.getElementById('preview_logoMO').innerHTML, 
+        logoFin_html: document.getElementById('preview_logoFin').innerHTML, 
+        logoMOE_html: document.getElementById('preview_logoMOE').innerHTML, 
+        logoEntreprise_html: document.getElementById('preview_logoEntreprise').innerHTML
+    };
+    
+    localStorage.setItem(`charte_administrative_${idProjetSelectionneAdmin}`, JSON.stringify(charteData));
+    
+    // Si c'est le projet maître historique, on met à jour la fiche globale
+    if (idProjetSelectionneAdmin == 101) {
+        localStorage.setItem("base_donnees_fiche_projet_maitre", JSON.stringify({ 
+            objet: nomSaisi, financement: charteData.financement, mo: charteData.mo, 
+            moe: charteData.moe, entreprise: charteData.entreprise, numContrat: charteData.numContrat, 
+            logoMO_html: charteData.logoMO_html, logoFin_html: charteData.logoFin_html, 
+            logoMOE_html: charteData.logoMOE_html, logoEntreprise_html: charteData.logoEntreprise_html 
+        }));
+    }
+    alert("✅ Paramètres et logos contractuels enregistrés.");
+    chargerArbreProjetsEtUtilisateurs();
+}
+
  function genererCheckboxesLotsArbreAccordéon() {
  let box = document.getElementById('boxCheckboxesLotsAssignes'); if(!box) return; box.innerHTML = "";
  listeProjetsGlobal.filter(p => p.type === 'PAPA').forEach(r => {
@@ -213,7 +267,17 @@
  function basculerToutCocherLots(statut) { document.querySelectorAll('#boxCheckboxesLotsAssignes input[type="checkbox"]').forEach(cb => cb.checked = statut); }
  function filtrerArbreCheckboxesLots() { let motCle = document.getElementById('searchFilterLots').value.toLowerCase().trim(); document.querySelectorAll('#boxCheckboxesLotsAssignes div').forEach(lbl => { lbl.style.display = !motCle || lbl.innerText.toLowerCase().includes(motCle) ? "flex" : "none"; }); }
  function gererAffichageSelectParent() { let type = document.getElementById('projType').value; let row = document.getElementById('rowSelectParent'); if(type === 'ENFANT') { row.style.display = 'flex'; let select = document.getElementById('projParentId'); select.innerHTML = ""; listeProjetsGlobal.filter(p => p.type === 'PAPA').forEach(p => { select.innerHTML += `<option value="${p.id}">${p.nom}</option>`; }); } else { row.style.display = 'none'; } }
- function afficherTableauProjets() { let tbody = document.getElementById('tbodyProjetsAdminList'); if(!tbody) return; tbody.innerHTML = ""; listeProjetsGlobal.forEach(p => { let tr = document.createElement('tr'); tr.innerHTML = `<td><b>${p.nom}</b></td><td>${p.type}</td><td><button class="btn btn-danger" onclick="supprimerProjetFerme(${p.id})">❌</button></td>`; tbody.appendChild(tr); }); }
+ function afficherTableauProjets() { 
+    let tbody = document.getElementById('tbodyProjetsAdminList'); if(!tbody) return; 
+    tbody.innerHTML = ""; 
+    listeProjetsGlobal.forEach(p => { 
+        let tr = document.createElement('tr'); 
+        let txtType = p.type === 'PAPA' ? 'Père' : p.type === 'ENFANT' ? 'Enfant' : 'Classique'; 
+        tr.innerHTML = `<td><b>${p.nom}</b></td><td>${txtType}</td><td><button class="btn btn-danger" onclick="supprimerProjetFerme(${p.id})">❌</button></td>`; 
+        tbody.appendChild(tr); 
+    }); 
+}
+
  function enregistrerOuModifierProjetFerme() { let nom = document.getElementById('projNom').value.trim(); let type = document.getElementById('projType').value; let parentId = type === 'ENFANT' ? parseInt(document.getElementById('projParentId').value) : null; if(!nom) return alert("Désignation manquante"); listeProjetsGlobal.push({ id: Date.now(), nom, type, parentId }); localStorage.setItem("classeur_maitre_projets_lee", JSON.stringify(listeProjetsGlobal)); document.getElementById('projNom').value = ""; chargerArbreProjetsEtUtilisateurs(); }
  function supprimerProjetFerme(id) { if(confirm("Supprimer ?")) { listeProjetsGlobal = listeProjetsGlobal.filter(p => p.id !== id); localStorage.setItem("classeur_maitre_projets_lee", JSON.stringify(listeProjetsGlobal)); chargerArbreProjetsEtUtilisateurs(); } }
  function ajouterNouvelUtilisateurRbac() { let login = document.getElementById('usrLogin').value.trim(); let pass = document.getElementById('usrPass').value.trim(); let role = document.getElementById('usrRole').value; let checkboxes = document.querySelectorAll('input[name="assignationLot"]:checked'); let lots = []; checkboxes.forEach(cb => lots.push(cb.value)); if(!login || !pass || lots.length === 0) return alert("Remplissez tout !"); listeUtilisateursRBAC.push({ id: Date.now(), login, pass, role, lots }); localStorage.setItem("matrice_utilisateurs_rbac_gc", JSON.stringify(listeUtilisateursRBAC)); document.getElementById('usrLogin').value = ""; document.getElementById('usrPass').value = ""; document.querySelectorAll('input[name="assignationLot"]:checked').forEach(cb => cb.checked = false); afficherTableauUtilisateurs(); }
