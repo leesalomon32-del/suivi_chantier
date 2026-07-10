@@ -40,196 +40,117 @@
         .input-control { width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; outline: none; box-sizing: border-box; color: var(--primary-dark); }
         .input-control:focus { border-color: var(--accent-blue); }
         .toggle-password-btn { position: absolute; right: 12px; top: 26px; background: none; border: none; cursor: pointer; font-size: 15px; padding: 0; color: var(--text-gray); outline: none; }
-        
         .btn-submit { width: 100%; padding: 12px; background-color: var(--primary-dark); color: white; border: none; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer; transition: background 0.2s; margin-top: 10px; text-transform: uppercase; }
         .btn-submit:hover { background-color: #1e293b; }
-        
         .error-message { color: #ef4444; font-size: 12px; font-weight: bold; text-align: center; display: none; background: #fee2e2; padding: 8px; border-radius: 4px; border: 1px solid #fca5a5; }
     </style>
 </head>
 <body>
-
 <div class="login-wrapper">
     <div class="login-header">
         <h1>Génie Civil Pro</h1>
         <p>Console de Gestion & Suivi National</p>
     </div>
-    
     <div id="errorBox" class="error-message">Identifiants incorrects. Accès refusé.</div>
-
     <div class="form-group">
         <label for="txtUser">Identifiant Agent</label>
         <input type="text" id="txtUser" class="input-control" placeholder="Entrez votre identifiant">
     </div>
-
     <div class="form-group">
         <label for="txtPassword">Mot de passe de Sécurité</label>
         <input type="password" id="txtPassword" class="input-control" placeholder="••••••••">
         <button type="button" class="toggle-password-btn" onclick="basculerAffichageMotDePasse()">👁️</button>
     </div>
-
-    <!-- UN SEUL BOUTON SÉCURISÉ PROPREMENT ENCASTRÉ -->
     <button class="btn-submit" onclick="verifierAuthentificationAgent()">Se connecter à la console</button>
-<!-- PASSERELLE DE SECOURS : IMPORTATION DIRECTE AU LOGIN -->
-<div style="margin-top: 15px; border-top: 1px dashed #cbd5e1; padding-top: 15px; text-align: center;">
-    <p style="font-size: 11px; color: #64748b; margin: 0 0 8px 0; font-weight: bold; text-transform: uppercase;">
-        Restauration de secours (Fichier JSON)
-    </p>
-    <label class="btn-submit" style="background-color: #16a34a; display: block; text-align: center; text-decoration: none; padding: 10px; font-size: 12px; margin-top: 5px;">
-        Importer une sauvegarde JSON 📥
-        <input type="file" style="display: none;" onchange="importerFichierClasseurJsonManuel(this)">
-    </label>
-</div>
-
+    
+    <div style="margin-top: 15px; border-top: 1px dashed #cbd5e1; padding-top: 15px; text-align: center;">
+        <p style="font-size: 11px; color: #64748b; margin: 0 0 8px 0; font-weight: bold; text-transform: uppercase;">Restauration de secours</p>
+        <label class="btn-submit" style="background-color: #16a34a; display: block; text-align: center; text-decoration: none; padding: 10px; font-size: 11px; margin-top: 5px; cursor: pointer; color: white;">
+            Importer Sauvegarde JSON 📥
+            <input type="file" style="display: none;" onchange="importerFichierClasseurJsonManuel(this)">
+        </label>
+    </div>
 </div>
 <script>
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Enter') { verifierAuthentificationAgent(); }
     });
-
     function basculerAffichageMotDePasse() {
         let inputPass = document.getElementById('txtPassword');
         inputPass.type = inputPass.type === "password" ? "text" : "password";
     }
-
     function verifierAuthentificationAgent() {
         let userSaisi = document.getElementById('txtUser').value.trim().toLowerCase();
         let passSaisi = document.getElementById('txtPassword').value;
         let errorBox = document.getElementById('errorBox');
-
-            // Passe-partout d'urgence aligné avec tes variables de session
-    if (userSaisi === 'lee' && passSaisi === 'SEAP2026') {
-        localStorage.setItem("matrice_utilisateurs_rbac_gc", JSON.stringify([{id: 1, login: "lee", pass: "SEAP2026", role: "admin", lots: []}]));
-        window.location.href = "2_admin.html";
-        return;
-    }
-
+        if (userSaisi === 'lee' && passSaisi === 'SEAP2026') {
+            localStorage.setItem("matrice_utilisateurs_rbac_gc", JSON.stringify([{id: 1, login: "lee", pass: "SEAP2026", role: "admin", lots: []}]));
+            localStorage.setItem("session_securisee_active_gc", "VALIDE");
+            localStorage.setItem("session_user_login", "lee");
+            localStorage.setItem("session_user_role", "admin");
+            localStorage.setItem("session_user_lots", JSON.stringify([]));
+            window.location.replace("3_accueil.html");
+            return;
+        }
         let baseSauvee = localStorage.getItem("matrice_utilisateurs_rbac_gc");
         let listeComptes = baseSauvee ? JSON.parse(baseSauvee) : [
             { id: 1, login: "lee", pass: "SEAP2026", role: "admin", lots: ["101", "102", "103"] }
         ];
-
         let compteTrouve = listeComptes.find(u => u.login.toLowerCase() === userSaisi && u.pass === passSaisi);
-
         if (compteTrouve) {
             errorBox.style.display = "none";
             localStorage.setItem("session_securisee_active_gc", "VALIDE");
             localStorage.setItem("session_user_login", compteTrouve.login);
             localStorage.setItem("session_user_role", compteTrouve.role);
             localStorage.setItem("session_user_lots", JSON.stringify(compteTrouve.lots));
-
-            window.location.replace = "3_accueil.html";
+            window.location.replace("3_accueil.html");
         } else {
             errorBox.style.display = "block";
             document.getElementById('txtPassword').value = "";
             document.getElementById('txtPassword').focus();
         }
     }
-    // --- SYNCHRONISATION DU PORTAIL DE SÉCURITÉ AVEC LE FLUX CLOUD ---
-// --- DEPLOYEMENT DE L'INFRASTRUCTURE ET DE LA SYNCHRONISATION CLOUD ---
-window.addEventListener('DOMContentLoaded', () => {
-    // 1. Chargement et mise à jour de la base globale
-    if (typeof aspirerDonneesCloudUniversel === 'function') {
-        aspirerDonneesCloudUniversel();
-    }
-    
-    // 2. Activation du moteur d'application mobile installable
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js')
-        .then(() => console.log("Moteur d'application mobile activé. Appli installable !"))
-        .catch(err => console.error("Erreur SW", err));
-    }
-});
-
-function aspirerDonneesCloudUniversel() {
- // Si l'appareil n'a pas encore de mémoire locale ou pour forcer la mise à jour des agents en direct
- const idDossierPartage = "1hdqB1QJWSt6_Oz9GIHXiQUTk9D5d3KoI";
- const nomFichier = "GENIE_CIVIL_PRO_DATABASE_MASTER.json";
- const apiKey = "AIzaSyDU6tNf5V_QKzDRf5Xv95VrvQwA4jJLRmc"; // Ta clé API Google
- 
- console.log(" Interrogations des serveurs Cloud ⏳ Google Drive...");
- 
- // CORRIGÉ : Ajout des '/' et des '$' manquants pour que Google comprenne l'adresse
- fetch(`https://googleapis.com{idDossierPartage}'+in+parents+and+name+='${nomFichier}'+and+trashed=false&key=${apiKey}`)
- .then(res => res.json())
- .then(data => {
- if (data && data.files && data.files.length > 0) {
- let fileId = data.files[0].id; // Extraction du premier identifiant de fichier trouvé
- // CORRIGÉ : Ajout du '/' et du '$' ici aussi
- return fetch(`https://googleapis.com{fileId}?alt=media&key=${apiKey}`);
- } else {
- throw new Error("Fichier central non trouvé sur le Drive.");
- }
- })
- .then(res => res.json())
- .then(paquet => {
- if (paquet && paquet.utilisateurs) {
- // Injection automatique en mémoire pour synchroniser l'appareil de l'agent
- localStorage.setItem("CLOUD_MIRROR_SNAPSHOT", JSON.stringify(paquet));
- localStorage.setItem("matrice_utilisateurs_rbac_gc", JSON.stringify(paquet.utilisateurs));
- localStorage.setItem("classeur_maitre_projets_lee", JSON.stringify(paquet.projets));
- localStorage.setItem("base_donnees_fiche_projet_maitre", JSON.stringify(paquet.ficheMaitrePapa));
- 
- if (paquet.bdqe) localStorage.setItem("base_donnees_bdqe_global", JSON.stringify(paquet.bdqe));
- if (paquet.ccpms) localStorage.setItem("base_donnees_ccpms_global", JSON.stringify(paquet.ccpms));
- if (paquet.avenants) localStorage.setItem("base_donnees_avenants_global", JSON.stringify(paquet.avenants));
- if (paquet.planning) localStorage.setItem("base_donnees_planning_gantt", JSON.stringify(paquet.planning));
- if (paquet.suiviAvancement) localStorage.setItem("base_donnees_suivi_avancement_travaux", JSON.stringify(paquet.suiviAvancement));
- 
- console.log(" Appareil synchronisé avec ✅ succès via Google API !");
- }
- })
- .catch(err => {
- console.warn("Mode local ou attente d'initialisation :", err.message);
- });
-}
-function importerFichierClasseurJsonManuel(input) {
-    if (input.files && input.files[0]) {
-        let reader = new FileReader();
-        reader.onload = function(e) {
-            try {
-                let paquet = JSON.parse(e.target.result);
-                if (!paquet.projets || !paquet.utilisateurs) {
-                    return alert("⚠️ Fichier invalide ou corrompu.");
-                }
-                
-                if (confirm("⚠️ ATTENTION : Cela va écraser TOUTES les données locales de cet appareil (Projets, Utilisateurs et Études techniques). Confirmer ?")) {
-                    // 1. Structure de base
-                    localStorage.setItem("classeur_maitre_projets_lee", JSON.stringify(paquet.projets || []));
-                    localStorage.setItem("matrice_utilisateurs_rbac_gc", JSON.stringify(paquet.utilisateurs || []));
-                    localStorage.setItem("base_donnees_fiche_projet_maitre", JSON.stringify(paquet.ficheMaitrePapa || {}));
-                    
-                    // 2. Restauration des Chartes Isolées
-                    if (paquet.chartesIsolees) {
-                        for (let idLot in paquet.chartesIsolees) {
-                            localStorage.setItem(`charte_administrative_${idLot}`, JSON.stringify(paquet.chartesIsolees[idLot]));
+    window.addEventListener('DOMContentLoaded', () => {
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+            .then(() => console.log("Moteur mobile activé."))
+            .catch(err => console.error("Erreur SW", err));
+        }
+    });
+    function importerFichierClasseurJsonManuel(input) {
+        if (input.files && input.files[0]) {
+            let reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    let paquet = JSON.parse(e.target.result);
+                    if (!paquet.projets || !paquet.utilisateurs) return alert("⚠️ Fichier invalide.");
+                    if (confirm("⚠️ Écraser les données locales de cet appareil ?")) {
+                        localStorage.setItem("classeur_maitre_projets_lee", JSON.stringify(paquet.projets || []));
+                        localStorage.setItem("matrice_utilisateurs_rbac_gc", JSON.stringify(paquet.utilisateurs || []));
+                        localStorage.setItem("base_donnees_fiche_projet_maitre", JSON.stringify(paquet.ficheMaitrePapa || {}));
+                        if (paquet.chartesIsolees) {
+                            for (let idLot in paquet.chartesIsolees) {
+                                localStorage.setItem(`charte_administrative_${idLot}`, JSON.stringify(paquet.chartesIsolees[idLot]));
+                            }
                         }
-                    }
-                    
-                    // 3. Restauration complète de TOUS les modules techniques demandés
-                    localStorage.setItem("base_donnees_bdqe_global", JSON.stringify(paquet.bdqe || {}));
-                    localStorage.setItem("base_donnees_ccpms_global", JSON.stringify(paquet.ccpms || {}));
-                    localStorage.setItem("base_donnees_avenants_global", JSON.stringify(paquet.avenants || []));
-                    localStorage.setItem("base_donnees_planning_gantt", JSON.stringify(paquet.planning || {}));
-                    localStorage.setItem("base_donnees_suivi_avancement_travaux", JSON.stringify(paquet.suiviAvancement || {}));
-                    
-                    // Restauration des données spécifiques par projet (si existantes dans l'export)
-                    if (paquet.donneesParProjet) {
-                        for (let cle in paquet.donneesParProjet) {
-                            localStorage.setItem(cle, JSON.stringify(paquet.donneesParProjet[cle]));
+                        localStorage.setItem("base_donnees_bdqe_global", JSON.stringify(paquet.bdqe || {}));
+                        localStorage.setItem("base_donnees_ccpms_global", JSON.stringify(paquet.ccpms || {}));
+                        localStorage.setItem("base_donnees_avenants_global", JSON.stringify(paquet.avenants || []));
+                        localStorage.setItem("base_donnees_planning_gantt", JSON.stringify(paquet.planning || {}));
+                        localStorage.setItem("base_donnees_suivi_avancement_travaux", JSON.stringify(paquet.suiviAvancement || {}));
+                        if (paquet.donneesParProjet) {
+                            for (let cle in paquet.donneesParProjet) {
+                                localStorage.setItem(cle, JSON.stringify(paquet.donneesParProjet[cle]));
+                            }
                         }
+                        alert("✅ Importation réussie !");
+                        window.location.reload();
                     }
-
-                    alert("✅ Importation réussie ! Base de données intégralement restaurée.");
-                    window.location.reload();
-                }
-            } catch (err) { 
-                alert("❌ Erreur de lecture du fichier JSON."); 
-                console.error(err);
-            }
-        };
-        reader.readAsText(input.files[0]);
+                } catch (err) { alert("❌ Erreur de lecture."); }
+            };
+            reader.readAsText(input.files[0]);
+        }
     }
-}
-
 </script>
+</body>
+</html>
