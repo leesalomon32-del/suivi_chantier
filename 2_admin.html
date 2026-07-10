@@ -294,8 +294,13 @@ function importerFichierClasseurJsonCloud(input) {
         });
         
         let usersSauves = localStorage.getItem("matrice_utilisateurs_rbac_gc");
-        listeUtilisateursRBAC = usersSauves ? JSON.parse(usersSauves) : [{ id: 1, login: "admin", pass: "mada2026", role: "admin", lots: ["101", "102", "103"] }];
-        
+if (usersSauves) {
+    listeUtilisateursRBAC = JSON.parse(usersSauves);
+} else {
+    listeUtilisateursRBAC = [{ id: 1, login: "admin", pass: "mada2026", role: "admin", lots: ["101", "102", "103"] }];
+    localStorage.setItem("matrice_utilisateurs_rbac_gc", JSON.stringify(listeUtilisateursRBAC));
+}
+
         renderAccordéonSidebarSelection(); 
         afficherTableauProjets(); 
         afficherTableauUtilisateurs();

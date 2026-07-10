@@ -376,51 +376,10 @@
 const CONFIG_NOM_FICHIER_DRIVE = "GENIE_CIVIL_PRO_DATABASE_MASTER.json";
 
 window.addEventListener('DOMContentLoaded', () => {
-    aspirerDonneesCloudUniversel();
+    //aspirerDonneesCloudUniversel();
 });
 
-function aspirerDonneesCloudUniversel() {
- // Si l'appareil n'a pas encore de mémoire locale ou pour forcer la mise à jour des agents en direct
- const idDossierPartage = "1hdqB1QJWSt6_Oz9GIHXiQUTk9D5d3KoI";
- const nomFichier = "GENIE_CIVIL_PRO_DATABASE_MASTER.json";
- const apiKey = "AIzaSyDU6tNf5V_QKzDRf5Xv95VrvQwA4jJLRmc"; // Ta clé API Google
- 
- console.log(" Interrogations des serveurs Cloud ⏳ Google Drive...");
- 
- // CORRIGÉ : Ajout des '/' et des '$' manquants pour que Google comprenne l'adresse
- fetch(`https://googleapis.com{idDossierPartage}'+in+parents+and+name+='${nomFichier}'+and+trashed=false&key=${apiKey}`)
- .then(res => res.json())
- .then(data => {
- if (data && data.files && data.files.length > 0) {
- let fileId = data.files[0].id; // Extraction du premier identifiant de fichier trouvé
- // CORRIGÉ : Ajout du '/' et du '$' ici aussi
- return fetch(`https://googleapis.com{fileId}?alt=media&key=${apiKey}`);
- } else {
- throw new Error("Fichier central non trouvé sur le Drive.");
- }
- })
- .then(res => res.json())
- .then(paquet => {
- if (paquet && paquet.utilisateurs) {
- // Injection automatique en mémoire pour synchroniser l'appareil de l'agent
- localStorage.setItem("CLOUD_MIRROR_SNAPSHOT", JSON.stringify(paquet));
- localStorage.setItem("matrice_utilisateurs_rbac_gc", JSON.stringify(paquet.utilisateurs));
- localStorage.setItem("classeur_maitre_projets_lee", JSON.stringify(paquet.projets));
- localStorage.setItem("base_donnees_fiche_projet_maitre", JSON.stringify(paquet.ficheMaitrePapa));
- 
- if (paquet.bdqe) localStorage.setItem("base_donnees_bdqe_global", JSON.stringify(paquet.bdqe));
- if (paquet.ccpms) localStorage.setItem("base_donnees_ccpms_global", JSON.stringify(paquet.ccpms));
- if (paquet.avenants) localStorage.setItem("base_donnees_avenants_global", JSON.stringify(paquet.avenants));
- if (paquet.planning) localStorage.setItem("base_donnees_planning_gantt", JSON.stringify(paquet.planning));
- if (paquet.suiviAvancement) localStorage.setItem("base_donnees_suivi_avancement_travaux", JSON.stringify(paquet.suiviAvancement));
- 
- console.log(" Appareil synchronisé avec ✅ succès via Google API !");
- }
- })
- .catch(err => {
- console.warn("Mode local ou attente d'initialisation :", err.message);
- });
-}
+
 function exporterFichierClasseurJsonManuel() {
     // 1. Récupération des structures de base
     let baseProjets = localStorage.getItem("classeur_maitre_projets_lee") || "[]";
