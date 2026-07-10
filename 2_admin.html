@@ -283,7 +283,22 @@ function sauvegarderDonneesProjetSelectionne() {
  function ajouterNouvelUtilisateurRbac() { let login = document.getElementById('usrLogin').value.trim(); let pass = document.getElementById('usrPass').value.trim(); let role = document.getElementById('usrRole').value; let checkboxes = document.querySelectorAll('input[name="assignationLot"]:checked'); let lots = []; checkboxes.forEach(cb => lots.push(cb.value)); if(!login || !pass || lots.length === 0) return alert("Remplissez tout !"); listeUtilisateursRBAC.push({ id: Date.now(), login, pass, role, lots }); localStorage.setItem("matrice_utilisateurs_rbac_gc", JSON.stringify(listeUtilisateursRBAC)); document.getElementById('usrLogin').value = ""; document.getElementById('usrPass').value = ""; document.querySelectorAll('input[name="assignationLot"]:checked').forEach(cb => cb.checked = false); afficherTableauUtilisateurs(); }
  function afficherTableauUtilisateurs() { let tbody = document.getElementById('tbodyUsersAdmin'); if(!tbody) return; tbody.innerHTML = ""; listeUtilisateursRBAC.forEach(u => { let btn = u.login === 'admin' ? '<i>Maitre</i>' : `<button class="btn btn-danger" onclick="supprimerUser(${u.id})">❌</button>`; tbody.innerHTML += `<tr><td><b>${u.login}</b></td><td><span class="badge-role">${u.role}</span></td><td>${u.lots.join(", ")}</td><td>${btn}</td></tr>`; }); }
  function supprimerUser(id) { if(confirm("Supprimer ?")) { listeUtilisateursRBAC = listeUtilisateursRBAC.filter(u => u.id !== id); localStorage.setItem("matrice_utilisateurs_rbac_gc", JSON.stringify(listeUtilisateursRBAC)); afficherTableauUtilisateurs(); } }
- function convertirLogoBinaire(input, cibleId) { if (input.files && input.files) { let reader = new FileReader(); reader.onload = function(e) { document.getElementById(`preview_${cibleId}`).innerHTML = `<img src="${e.target.result}" style="max-height:20px;">`; }; reader.readAsDataURL(input.files); } }
+ function convertirLogoBinaire(input, cibleId) { 
+    // SÉCURITÉ : On vérifie que l'utilisateur a bien sélectionné au moins un fichier
+    if (input.files && input.files[0]) { 
+        let reader = new FileReader(); 
+        
+        // Dès que le fichier est lu par le système, on l'injecte dynamiquement sous forme de balise IMG
+        reader.onload = function(e) { 
+            document.getElementById(`preview_${cibleId}`).innerHTML = 
+                `<img src="${e.target.result}" style="max-height:24px; max-width:100%; object-fit:contain;">`; 
+        }; 
+        
+        // Déclenchement de la lecture binaire du premier fichier
+        reader.readAsDataURL(input.files[0]); 
+    } 
+}
+
 </script>
 </body>
 </html>
