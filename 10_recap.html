@@ -245,22 +245,22 @@
 <script>
    function calculerEtTracerCourbeSMathématiqueSVG() {
  function extraire(key, id) { return localStorage.getItem(`${key}_${id}`) ? JSON.parse(localStorage.getItem(`${key}_${id}`)) : []; }
+ 
+ // 1. Extraction et fusion complète (PAPA + ENFANTS)
  let listB = extraire("bdqe", idProjetActif);
  let listPl = extraire("planning", idProjetActif);
  let listS = extraire("suivi", idProjetActif);
  
- // 1. Map des montants du BDQE indexés par le couple unique "ouvrage_code"
- let dictionnaireFinancier = {};
- let budgetTotalCalcule = 0;
- listB.forEach(item => {
-     if (!item.ouvrage || !item.code_bdqe) return;
-     let cleUnique = `${item.ouvrage.trim().toLowerCase()}_${item.code_bdqe.trim().toLowerCase()}`;
-     let montantTache = parseFloat(item.total) || 0;
-     dictionnaireFinancier[cleUnique] = montantTache;
-     budgetTotalCalcule += montantTache;
- });
-
- // 2. Détermination des bornes temporelles globales du chantier
+ if (typeProjetActuel === "PAPA") {
+     let enfants = (localStorage.getItem("classeur_maitre_projets_lee") ? JSON.parse(localStorage.getItem("classeur_maitre_projets_lee")) : []).filter(item => item.type === "ENFANT" && item.parentId == idProjetActif);
+     enfants.forEach(enf => {
+         listB = listB.concat(extraire("bdqe", enf.id));
+         listPl = listPl.concat(extraire("planning", enf.id));
+         listS = listS.concat(extraire("suivi", enf.id));
+     });
+ }
+ 
+ // 2. Détermination des bornes temporelles globales de référence du chantier
  let dMin = null, dMax = null;
  listPl.forEach(i => { 
      if(!i.date_debut || !i.date_fin) return; 
@@ -268,19 +268,38 @@
      if(!dMin || d1 < dMin) dMin = d1; 
      if(!dMax || d2 > dMax) dMax = d2; 
  });
- if(!dMin || !dMax || budgetTotalCalcule === 0) return;
-
+ if(!dMin || !dMax) return;
  dMin.setHours(0,0,0,0); dMax.setHours(0,0,0,0);
+
+ // 3. Construction du dictionnaire financier et blindage anti-oubli de planning
+ let dictionnaireFinancier = {};
+ let budgetTotalCalcule = 0;
+ listB.forEach(item => {
+     if (!item.ouvrage || !item.code_bdqe) return;
+     let cleUnique = `${item.ouvrage.trim().toLowerCase()}_${item.code_bdqe.trim().toLowerCase()}`;
+     let montantTache = parseFloat(item.total) || 0;
+     
+     // Accumulation en cas de doublon de clé composite involontaire
+     dictionnaireFinancier[cleUnique] = (dictionnaireFinancier[cleUnique] || 0) + montantTache;
+     budgetTotalCalcule += montantTache;
+     
+     // Sécurité anti-tâche orpheline (s'applique au PAPA et aux Enfants)
+     let aUnPlanning = listPl.some(p => p.ouvrage.trim().toLowerCase() === item.ouvrage.trim().toLowerCase() && p.code_bdqe.trim().toLowerCase() === item.code_bdqe.trim().toLowerCase());
+     if (!aUnPlanning && montantTache > 0) {
+         listPl.push({ ouvrage: item.ouvrage, code_bdqe: item.code_bdqe, date_debut: dMin.toISOString().substring(0,10), date_fin: dMax.toISOString().substring(0,10) });
+     }
+ });
+ if(budgetTotalCalcule === 0) return;
+
  let dMinStr = dMin.toLocaleDateString('fr-FR'), dMaxStr = dMax.toLocaleDateString('fr-FR');
  let totalJrs = Math.round((dMax - dMin) / (1000*60*60*24)) + 1;
  let auj = new Date(); auj.setHours(0,0,0,0);
  let jrsEcoules = Math.round((auj - dMin) / (1000*60*60*24));
  jrsEcoules = jrsEcoules < 0 ? 0 : (jrsEcoules > totalJrs ? totalJrs : jrsEcoules);
- let pctTemps = totalJrs > 0 ? Math.round((jrsEcoules / totalJrs)*100) : 0;
- document.getElementById('valTempsPct').innerText = pctTemps + " %";
+ document.getElementById('valTempsPct').innerText = totalJrs > 0 ? Math.round((jrsEcoules / totalJrs)*100) + " %" : "0 %";
  document.getElementById('valJrsRestants').innerText = Math.max(0, totalJrs - jrsEcoules) + " J";
 
- // 3. Fonction interne pour calculer l'avancement théorique à une date T donnée
+ // 4. Fonction interne de calcul de l'avancement théorique à l'instant T
  function calculerPrevuALaDate(dateCible) {
      let totalCumulePrevuAr = 0;
      listPl.forEach(tache => {
@@ -288,22 +307,18 @@
          let cle = `${tache.ouvrage.trim().toLowerCase()}_${tache.code_bdqe.trim().toLowerCase()}`;
          let budgetTache = dictionnaireFinancier[cle] || 0;
          if (budgetTache === 0) return;
-         
          let tDebut = new Date(tache.date_debut), tFin = new Date(tache.date_fin);
          tDebut.setHours(0,0,0,0); tFin.setHours(0,0,0,0);
-         
-         if (dateCible >= tFin) {
-             totalCumulePrevuAr += budgetTache;
-         } else if (dateCible >= tDebut) {
+         if (dateCible >= tFin) { totalCumulePrevuAr += budgetTache; } 
+         else if (dateCible >= tDebut) {
              let joursTache = Math.round((tFin - tDebut) / (1000*60*60*24)) + 1;
              let jEcoulesTache = Math.round((dateCible - tDebut) / (1000*60*60*24)) + 1;
-             let ratio = joursTache > 0 ? (jEcoulesTache / joursTache) : 0;
-             totalCumulePrevuAr += budgetTache * Math.min(Math.max(ratio, 0), 1);
+             totalCumulePrevuAr += budgetTache * Math.min(Math.max(joursTache > 0 ? (jEcoulesTache / joursTache) : 0, 0), 1);
          }
      });
      return (totalCumulePrevuAr / budgetTotalCalcule) * 100;
  }
-  // 4. Calcul du Réel et du Prévu à la date d'aujourd'hui
+ // 4. Calcul du Réel et du Prévu à la date d'aujourd'hui
  let tPhyPrevu = calculerPrevuALaDate(auj);
  let tFinPrevu = tPhyPrevu * 0.9; // Modélisation financière corrélée
  
