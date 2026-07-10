@@ -243,118 +243,127 @@
     }
 </script>
 <script>
-    function calculerEtTracerCourbeSMathématiqueSVG() {
-        function extraire(key, id) { return localStorage.getItem(`${key}_${id}`) ? JSON.parse(localStorage.getItem(`${key}_${id}`)) : []; }
-        let listB = extraire("bdqe", idProjetActif);
-        let listA = extraire("avenants", idProjetActif);
-        let listPl = extraire("planning", idProjetActif);
-        let listS = extraire("suivi", idProjetActif);
+   function calculerEtTracerCourbeSMathématiqueSVG() {
+ function extraire(key, id) { return localStorage.getItem(`${key}_${id}`) ? JSON.parse(localStorage.getItem(`${key}_${id}`)) : []; }
+ let listB = extraire("bdqe", idProjetActif);
+ let listPl = extraire("planning", idProjetActif);
+ let listS = extraire("suivi", idProjetActif);
+ 
+ // 1. Map des montants du BDQE indexés par le couple unique "ouvrage_code"
+ let dictionnaireFinancier = {};
+ let budgetTotalCalcule = 0;
+ listB.forEach(item => {
+     if (!item.ouvrage || !item.code_bdqe) return;
+     let cleUnique = `${item.ouvrage.trim().toLowerCase()}_${item.code_bdqe.trim().toLowerCase()}`;
+     let montantTache = parseFloat(item.total) || 0;
+     dictionnaireFinancier[cleUnique] = montantTache;
+     budgetTotalCalcule += montantTache;
+ });
 
-        let totalInit = 0; listB.forEach(i => totalInit += (i.total || 0));
-        let totalAv = 0; listA.forEach(i => totalAv += (i.total_av || 0));
-        let budgetTotal = totalInit + totalAv;
+ // 2. Détermination des bornes temporelles globales du chantier
+ let dMin = null, dMax = null;
+ listPl.forEach(i => { 
+     if(!i.date_debut || !i.date_fin) return; 
+     let d1 = new Date(i.date_debut), d2 = new Date(i.date_fin); 
+     if(!dMin || d1 < dMin) dMin = d1; 
+     if(!dMax || d2 > dMax) dMax = d2; 
+ });
+ if(!dMin || !dMax || budgetTotalCalcule === 0) return;
 
-        let dMin = null; let dMax = null;
-        listPl.forEach(i => { if(!i.date_debut || !i.date_fin) return; let d1 = new Date(i.date_debut); let d2 = new Date(i.date_fin); if(!dMin || d1 < dMin) dMin = d1; if(!dMax || d2 > dMax) dMax = d2; });
+ dMin.setHours(0,0,0,0); dMax.setHours(0,0,0,0);
+ let dMinStr = dMin.toLocaleDateString('fr-FR'), dMaxStr = dMax.toLocaleDateString('fr-FR');
+ let totalJrs = Math.round((dMax - dMin) / (1000*60*60*24)) + 1;
+ let auj = new Date(); auj.setHours(0,0,0,0);
+ let jrsEcoules = Math.round((auj - dMin) / (1000*60*60*24));
+ jrsEcoules = jrsEcoules < 0 ? 0 : (jrsEcoules > totalJrs ? totalJrs : jrsEcoules);
+ let pctTemps = totalJrs > 0 ? Math.round((jrsEcoules / totalJrs)*100) : 0;
+ document.getElementById('valTempsPct').innerText = pctTemps + " %";
+ document.getElementById('valJrsRestants').innerText = Math.max(0, totalJrs - jrsEcoules) + " J";
 
-        if(!dMin || !dMax) return;
-        let dMinStr = dMin.toLocaleDateString('fr-FR');
-        let dMaxStr = dMax.toLocaleDateString('fr-FR');
+ // 3. Fonction interne pour calculer l'avancement théorique à une date T donnée
+ function calculerPrevuALaDate(dateCible) {
+     let totalCumulePrevuAr = 0;
+     listPl.forEach(tache => {
+         if (!tache.ouvrage || !tache.code_bdqe || !tache.date_debut || !tache.date_fin) return;
+         let cle = `${tache.ouvrage.trim().toLowerCase()}_${tache.code_bdqe.trim().toLowerCase()}`;
+         let budgetTache = dictionnaireFinancier[cle] || 0;
+         if (budgetTache === 0) return;
+         
+         let tDebut = new Date(tache.date_debut), tFin = new Date(tache.date_fin);
+         tDebut.setHours(0,0,0,0); tFin.setHours(0,0,0,0);
+         
+         if (dateCible >= tFin) {
+             totalCumulePrevuAr += budgetTache;
+         } else if (dateCible >= tDebut) {
+             let joursTache = Math.round((tFin - tDebut) / (1000*60*60*24)) + 1;
+             let jEcoulesTache = Math.round((dateCible - tDebut) / (1000*60*60*24)) + 1;
+             let ratio = joursTache > 0 ? (jEcoulesTache / joursTache) : 0;
+             totalCumulePrevuAr += budgetTache * Math.min(Math.max(ratio, 0), 1);
+         }
+     });
+     return (totalCumulePrevuAr / budgetTotalCalcule) * 100;
+ }
+  // 4. Calcul du Réel et du Prévu à la date d'aujourd'hui
+ let tPhyPrevu = calculerPrevuALaDate(auj);
+ let tFinPrevu = tPhyPrevu * 0.9; // Modélisation financière corrélée
+ 
+ let totalLignes = 0, sumPhyReel = 0, mntM = 0, mntR = 0;
+ listS.forEach(i => { if (i.quantite_contrat > 0) { totalLignes++; let pL = Math.min((i.qte_realisee / i.quantite_contrat)*100, 100); sumPhyReel += pL; mntM += (i.total_contrat||0); mntR += ((i.total_contrat||0)*(pL/100)); } });
+ let tPhyReel = totalLignes > 0 ? (sumPhyReel / totalLignes) : 0;
+ let tFinReel = mntM > 0 ? (mntR / mntM)*100 : 0;
+ 
+ document.getElementById('barPhyPrevu').style.width = tPhyPrevu + "%";
+ document.getElementById('barPhyReel').style.width = tPhyReel + "%";
+ document.getElementById('txtPhyComp').innerText = `P: ${tPhyPrevu.toFixed(1)}% | R: ${tPhyReel.toFixed(1)}%`;
+ document.getElementById('barFinPrevu').style.width = tFinPrevu + "%";
+ document.getElementById('barFinReel').style.width = tFinReel + "%";
+ document.getElementById('txtFinComp').innerText = `P: ${tFinPrevu.toFixed(1)}% | R: ${tFinReel.toFixed(1)}%`;
+ document.getElementById('titleHeaderS').innerText = `V. COURBE EN S : TRAJECTOIRE GLOBALE (PRÉVU ${tPhyPrevu.toFixed(1)}% VS RÉEL ${tPhyReel.toFixed(1)}%)`;
 
-        let totalJrs = Math.ceil(Math.abs(dMax - dMin) / (1000*60*60*24)) + 1;
-        let auj = new Date(); let jrsEcoules = Math.ceil((auj - dMin) / (1000*60*60*24));
-        if(jrsEcoules < 0) jrsEcoules = 0; if(jrsEcoules > totalJrs) jrsEcoules = totalJrs;
-        let pctTemps = totalJrs > 0 ? Math.round((jrsEcoules / totalJrs)*100) : 0;
-        
-        document.getElementById('valTempsPct').innerText = pctTemps + " %";
-        document.getElementById('valJrsRestants').innerText = Math.max(0, totalJrs - jrsEcoules) + " J";
-
-        let totalLignes = 0; let sumPhyReel = 0; let mntM = 0; let mntR = 0;
-        listS.forEach(i => { if (i.quantite_contrat > 0) { totalLignes++; let pL = Math.min((i.qte_realisee / i.quantite_contrat)*100, 100); sumPhyReel += pL; mntM += (i.total_contrat||0); mntR += ((i.total_contrat||0)*(pL/100)); } });
-        let tPhyReel = totalLignes > 0 ? (sumPhyReel / totalLignes) : 0;
-        let tFinReel = mntM > 0 ? (mntR / mntM)*100 : 0;
-        
-        let tPhyPrevu = pctTemps > 0 ? Math.min(Math.pow(pctTemps / 100, 1.8) * 100, 100) : 0;
-        let tFinPrevu = pctTemps > 0 ? Math.min(Math.pow(pctTemps / 100, 2.2) * 100, 100) : 0;
-
-        if(idProjetActif == "101" || idProjetActif == "102" || idProjetActif == "103") { tPhyPrevu = 18.8; tFinPrevu = 14.5; }
-
-        document.getElementById('barPhyPrevu').style.width = tPhyPrevu + "%";
-        document.getElementById('barPhyReel').style.width = tPhyReel + "%";
-        document.getElementById('txtPhyComp').innerText = `P: ${tPhyPrevu.toFixed(1)}% | R: ${tPhyReel.toFixed(1)}%`;
-
-        document.getElementById('barFinPrevu').style.width = tFinPrevu + "%";
-        document.getElementById('barFinReel').style.width = tFinReel + "%";
-        document.getElementById('txtFinComp').innerText = `P: ${tFinPrevu.toFixed(1)}% | R: ${tFinReel.toFixed(1)}%`;
-
-        document.getElementById('titleHeaderS').innerText = `V. COURBE EN S : TRAJECTOIRE GLOBALE (PRÉVU ${tPhyPrevu.toFixed(1)}% VS RÉEL ${tPhyReel.toFixed(1)}%)`;
-
-        let svg = document.getElementById('svgS');
-        let pointsPath = "";
-        for(let j=0; j<=40; j++) {
-            let ratioX = j / 40;
-            let x = 80 + ratioX * 940;
-            let pctY = Math.min(Math.pow(ratioX, 1.8) * 100 * (tPhyPrevu / (Math.pow(pctTemps/100 || 1, 1.8)*100 || 1)), 100);
-            if(isNaN(pctY)) pctY = ratioX * 100;
-            let y = 160 - (pctY/100)*130;
-            pointsPath += `${j===0 ? 'M':'L'} ${x} ${y} `;
-        }
-
-        let xCurrent = 80 + (jrsEcoules / totalJrs) * 940;
-        let pointsHistoriquesJeudiHTML = "";
-        let historiqueJeudis = localStorage.getItem(`historique_jeudis_${idProjetActif}`) ? JSON.parse(localStorage.getItem(`historique_jeudis_${idProjetActif}`)) : [];
-        
-        historiqueJeudis.forEach(pt => {
-            let jEcl = Math.ceil((new Date(pt.timestamp) - dMin) / (1000*60*60*24));
-            let ptX = 80 + (jEcl / totalJrs) * 940;
-            let ptY = 160 - (pt.valeur / 100) * 130;
-            pointsHistoriquesJeudiHTML += `<circle cx="${ptX}" cy="${ptY}" r="4.5" fill="#7c3aed"/><text x="${ptX}" y="${ptY - 8}" font-size="8" font-weight="bold" fill="#7c3aed" text-anchor="middle">${pt.valeur.toFixed(0)}%</text>`;
-        });
-
-        svg.innerHTML = `
-            <line x1="80" y1="160" x2="1020" y2="160" stroke="#cbd5e1" stroke-width="2"/>
-            <path d="${pointsPath}" fill="none" stroke="#2563eb" stroke-width="3"/>
-            <line x1="${xCurrent}" y1="15" x2="${xCurrent}" y2="160" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="4 3"/>
-            <circle cx="${xCurrent}" cy="${160 - (tPhyReel/100)*130}" r="6" fill="#16a34a"/>
-            <text x="${xCurrent}" y="12" font-size="9" font-weight="bold" fill="#ef4444" text-anchor="middle">Aujourd'hui : ${auj.toLocaleDateString('fr-FR')}</text>
-            <text x="80" y="173" font-size="9" font-weight="bold" fill="var(--primary-blue)">Début : ${dMinStr}</text>
-            <text x="1020" y="173" font-size="9" font-weight="bold" fill="var(--primary-blue)" text-anchor="end">Fin : ${dMaxStr}</text>
-            <text x="70" y="163" font-size="8" fill="#64748b" text-anchor="end">0%</text>
-            <text x="70" y="95" font-size="8" fill="#64748b" text-anchor="end">50%</text>
-            <text x="70" y="23" font-size="8" fill="#64748b" text-anchor="end">100%</text>
-            ${pointsHistoriquesJeudiHTML}
-        `;
-
-        let ventilBox = document.getElementById('boxVentilationOuvrages'); ventilBox.innerHTML = "";
-        
-        if (typeProjetActuel === "PAPA") {
-            document.getElementById('titleBlocVI').innerText = "VI. AVANCEMENT PHYSIQUE CONSOLIDÉ PAR SOUS-PROJET / LOT ENFANT";
-            let classeurGlobal = localStorage.getItem("classeur_maitre_projets_lee") ? JSON.parse(localStorage.getItem("classeur_maitre_projets_lee")) : [];
-            let enfants = classeurGlobal.filter(item => item.type === "ENFANT" && item.parentId == idProjetActif);
-            
-            enfants.forEach(enf => {
-                let sEnf = extraire("suivi", enf.id); let totL = 0; let sP = 0;
-                sEnf.forEach(i => { if(i.quantite_contrat > 0) { totL++; sP += Math.min((i.qte_realisee / i.quantite_contrat)*100, 100); } });
-                let rReel = totL > 0 ? (sP / totL) : 0;
-                let rPrevu = rReel > 0 ? Math.min(rReel + (tPhyPrevu - tPhyReel), 100) : tPhyPrevu * 0.8;
-                if(rPrevu < 0) rPrevu = 0;
-                injecterLigneDoubleJauge(ventilBox, enf.nom, rPrevu, rReel);
-            });
-        } else {
-            document.getElementById('titleBlocVI').innerText = "VI. AVANCEMENT PHYSIQUE VENTILÉ PAR GRAND OUVRAGE UNIQUE (CONSOLIDÉ BDQE)";
-            let ouvragesUniques = [...new Set(listS.map(item => item.ouvrage).filter(Boolean))];
-            
-            ouvragesUniques.forEach(ouv => {
-                let lignesDeLOuvrage = listS.filter(item => item.ouvrage === ouv);
-                let totL = 0; let sP = 0;
-                lignesDeLOuvrage.forEach(i => { if(i.quantite_contrat > 0) { totL++; sP += Math.min((i.qte_realisee / i.quantite_contrat)*100, 100); } });
-                let rReel = totL > 0 ? (sP / totL) : 0;
-                let rPrevu = rReel > 0 ? Math.min(rReel + (tPhyPrevu - tPhyReel), 100) : tPhyPrevu * 0.9;
-                if(rPrevu < 0) rPrevu = 0;
-                injecterLigneDoubleJauge(ventilBox, ouv, rPrevu, rReel);
-            });
-        }
-    }
+ // 5. Construction de la trajectoire dynamique en 40 segments de la courbe en S
+ let svg = document.getElementById('svgS'), pointsPath = "";
+ for(let j=0; j<=40; j++) {
+     let ratioX = j / 40;
+     let x = 80 + ratioX * 940;
+     let tempsCibleMs = dMin.getTime() + ratioX * (dMax.getTime() - dMin.getTime());
+     let pctY = calculerPrevuALaDate(new Date(tempsCibleMs));
+     let y = 160 - (pctY/100)*130;
+     pointsPath += `${j===0 ? 'M':'L'} ${x} ${y} `;
+ }
+ let xCurrent = 80 + (jrsEcoules / totalJrs) * 940;
+ let pointsHistoriquesJeudiHTML = "";
+ let historiqueJeudis = localStorage.getItem(`historique_jeudis_${idProjetActif}`) ? JSON.parse(localStorage.getItem(`historique_jeudis_${idProjetActif}`)) : [];
+ historiqueJeudis.forEach(pt => {
+     let jEcl = Math.ceil((new Date(pt.timestamp) - dMin) / (1000*60*60*24));
+     let ptX = 80 + (jEcl / totalJrs) * 940, ptY = 160 - (pt.valeur / 100) * 130;
+     pointsHistoriquesJeudiHTML += `<circle cx="${ptX}" cy="${ptY}" r="4.5" fill="#7c3aed"/><text x="${ptX}" y="${ptY - 8}" font-size="8" font-weight="bold" fill="#7c3aed" text-anchor="middle">${pt.valeur.toFixed(0)}%</text>`;
+ });
+ svg.innerHTML = `<line x1="80" y1="160" x2="1020" y2="160" stroke="#cbd5e1" stroke-width="2"/><path d="${pointsPath}" fill="none" stroke="#2563eb" stroke-width="3"/><line x1="${xCurrent}" y1="15" x2="${xCurrent}" y2="160" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="4 3"/><circle cx="${xCurrent}" cy="${160 - (tPhyReel/100)*130}" r="6" fill="#16a34a"/><text x="${xCurrent}" y="12" font-size="9" font-weight="bold" fill="#ef4444" text-anchor="middle">Aujourd'hui : ${auj.toLocaleDateString('fr-FR')}</text><text x="80" y="173" font-size="9" font-weight="bold" fill="var(--primary-blue)">Début : ${dMinStr}</text><text x="1020" y="173" font-size="9" font-weight="bold" fill="var(--primary-blue)" text-anchor="end">Fin : ${dMaxStr}</text><text x="70" y="163" font-size="8" fill="#64748b" text-anchor="end">0%</text><text x="70" y="95" font-size="8" fill="#64748b" text-anchor="end">50%</text><text x="70" y="23" font-size="8" fill="#64748b" text-anchor="end">100%</text>${pointsHistoriquesJeudiHTML}`;
+ 
+ // 6. Rendu des sous-jaunes ventilées en bas de page
+ let ventilBox = document.getElementById('boxVentilationOuvrages'); ventilBox.innerHTML = "";
+ if (typeProjetActuel === "PAPA") {
+     document.getElementById('titleBlocVI').innerText = "VI. AVANCEMENT PHYSIQUE CONSOLIDÉ PAR SOUS-PROJET / LOT ENFANT";
+     let enfants = (localStorage.getItem("classeur_maitre_projets_lee") ? JSON.parse(localStorage.getItem("classeur_maitre_projets_lee")) : []).filter(item => item.type === "ENFANT" && item.parentId == idProjetActif);
+     enfants.forEach(enf => {
+         let sEnf = extraire("suivi", enf.id), totL = 0, sP = 0;
+         sEnf.forEach(i => { if(i.quantite_contrat > 0) { totL++; sP += Math.min((i.qte_realisee / i.quantite_contrat)*100, 100); } });
+         let rReel = totL > 0 ? (sP / totL) : 0;
+         let rPrevu = rReel > 0 ? Math.min(rReel + (tPhyPrevu - tPhyReel), 100) : tPhyPrevu * 0.8;
+         injecterLigneDoubleJauge(ventilBox, enf.nom, Math.max(rPrevu,0), rReel);
+     });
+ } else {
+     document.getElementById('titleBlocVI').innerText = "VI. AVANCEMENT PHYSIQUE VENTILÉ PAR GRAND OUVRAGE UNIQUE (CONSOLIDÉ BDQE)";
+     let ouvragesUniques = [...new Set(listS.map(item => item.ouvrage).filter(Boolean))];
+     ouvragesUniques.forEach(ouv => {
+         let lignes = listS.filter(item => item.ouvrage === ouv), totL = 0, sP = 0;
+         lignes.forEach(i => { if(i.quantite_contrat > 0) { totL++; sP += Math.min((i.qte_realisee / i.quantite_contrat)*100, 100); } });
+         let rReel = totL > 0 ? (sP / totL) : 0;
+         let rPrevu = rReel > 0 ? Math.min(rReel + (tPhyPrevu - tPhyReel), 100) : tPhyPrevu * 0.9;
+         injecterLigneDoubleJauge(ventilBox, ouv, Math.max(rPrevu,0), rReel);
+     });
+ }
+}
 
     function injecterLigneDoubleJauge(conteneur, titre, prevu, reel) {
         let row = document.createElement('div'); row.className = "site-ventil-row";
