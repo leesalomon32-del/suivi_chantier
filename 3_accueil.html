@@ -111,14 +111,18 @@
     <div class="col-content-wrapper">
         <div class="navbar-top-actions">
             <button class="btn" style="background:var(--danger-red);" onclick="deconnecterSessionConsole()">🚪 Déconnexion</button>
+            <!-- NOUVEAUX BOUTONS DE SAUVEGARDE INTEGRALE -->
+<div style="display: flex; gap: 8px;">
+    <button class="btn" style="background: #0284c7;" onclick="exporterFichierCompletJsonAccueil()">Exporter TOUT (.json)</button>
+    <label class="btn" style="background: #16a34a; margin: 0; cursor: pointer; color: white;">
+        Importer TOUT (.json)
+        <input type="file" id="importJsonAccueilInput" style="display: none;" onchange="importerFichierCompletJsonAccueil(this)">
+    </label>
+</div>
+
 
             <div style="font-weight:bold; font-size:14px; color:var(--primary-dark);" id="txtModuleActuelCentral">Fiche Synthétique du Projet</div>
             <div style="font-size:12px; color:var(--accent-blue); font-weight:bold;" id="txtProjetActifLabelTop">PROJET SELECTIONNÉ : Aucun</div>
-        <!-- BOUTON EXPORT GLOBAL INTÉGRÉ À LA NAVBAR -->
-<button class="btn" style="background-color: #0284c7;" onclick="exporterFichierClasseurJsonManuel()">
-    Exporter Sauvegarde JSON 📤
-</button>
-
         </div>
         
         <div class="col-content">
@@ -366,7 +370,7 @@
             localStorage.removeItem("session_user_login");
             localStorage.removeItem("session_user_role");
             localStorage.removeItem("session_user_lots");
-            window.location.replace = "1_login.html";
+            window.location.href = "1_login.html";
         }
     }
 
@@ -376,79 +380,196 @@
 const CONFIG_NOM_FICHIER_DRIVE = "GENIE_CIVIL_PRO_DATABASE_MASTER.json";
 
 window.addEventListener('DOMContentLoaded', () => {
-    //aspirerDonneesCloudUniversel();
+    aspirerDonneesCloudUniversel();
 });
 
+function aspirerDonneesCloudUniversel() {
+    let sauvegardeMiroir = localStorage.getItem("CLOUD_MIRROR_SNAPSHOT");
+    
+    // BLINDAGE : Si le cloud est vide mais qu'on a déjà des projets importés, on ne détruit rien !
+    if (!sauvegardeMiroir || sauvegardeMiroir === "{}") {
+        let projetsLocauxExistants = localStorage.getItem("classeur_maitre_projets_lee");
+        if (projetsLocauxExistants && projetsLocauxExistants !== "[]") {
+            console.log("⚠️ Cloud vide détecté, mais données locales présentes. Création du flux miroir...");
+            pousserModificationTerrainVersCloudMiroir();
+        }
+        return; 
+    }
 
-function exporterFichierClasseurJsonManuel() {
-    // 1. Récupération des structures de base
+    try {
+        let paquet = JSON.parse(sauvegardeMiroir);
+        if (paquet && paquet.utilisateurs) {
+            localStorage.setItem("matrice_utilisateurs_rbac_gc", JSON.stringify(paquet.utilisateurs));
+            localStorage.setItem("classeur_maitre_projets_lee", JSON.stringify(paquet.projets));
+            localStorage.setItem("base_donnees_fiche_projet_maitre", JSON.stringify(paquet.ficheMaitrePapa));
+            
+            if (paquet.bdqe) localStorage.setItem("base_donnees_bdqe_global", JSON.stringify(paquet.bdqe));
+            if (paquet.ccpms) localStorage.setItem("base_donnees_ccpms_global", JSON.stringify(paquet.ccpms));
+            if (paquet.avenants) localStorage.setItem("base_donnees_avenants_global", JSON.stringify(paquet.avenants));
+            if (paquet.planning) localStorage.setItem("base_donnees_planning_gantt", JSON.stringify(paquet.planning));
+            if (paquet.suiviAvancement) localStorage.setItem("base_donnees_suivi_avancement_travaux", JSON.stringify(paquet.suiviAvancement));
+            
+            console.log("☁️ Accueil agent synchronisé avec succès sans perte.");
+            if (typeof chargerDonneesSessionAiguillage === 'function') chargerDonneesSessionAiguillage();
+        }
+    } catch (e) {
+        console.error("Erreur de dépaquetage sécurisé", e);
+    }
+}
+
+function pousserModificationTerrainVersCloudMiroir() {
     let baseProjets = localStorage.getItem("classeur_maitre_projets_lee") || "[]";
     let baseUsers = localStorage.getItem("matrice_utilisateurs_rbac_gc") || "[]";
     let masterFiche = localStorage.getItem("base_donnees_fiche_projet_maitre") || "{}";
-    
-    // 2. Récupération des modules globaux
-    let baseBDQE = localStorage.getItem("base_donnees_bdqe_global") || "{}";
+    let baseBDQE = localStorage.getItem("base_donnees_bdqe_global") || "{}"; 
     let baseCCPMS = localStorage.getItem("base_donnees_ccpms_global") || "{}";
     let baseAvenants = localStorage.getItem("base_donnees_avenants_global") || "[]";
     let basePlanning = localStorage.getItem("base_donnees_planning_gantt") || "{}";
-    let baseSuiviAvancement = localStorage.getItem("base_donnees_suivi_avancement_travaux") || "{}";
+    let baseSuivi = localStorage.getItem("base_donnees_suivi_avancement_travaux") || "{}";
 
-    // 3. Capture dynamique des sous-clés isolées (Chartes et données spécifiques de projets comme bdqe_101, suivi_101, etc.)
-    let toutesLesChartes = {};
-    let donneesParProjet = {};
-    
-    try {
-        let projets = JSON.parse(baseProjets);
-        projets.forEach(p => {
-            // Extraction des chartes
-            let cleCharte = `charte_administrative_${p.id}`;
-            if(localStorage.getItem(cleCharte)) {
-                toutesLesChartes[p.id] = JSON.parse(localStorage.getItem(cleCharte));
-            }
-            
-            // Extraction des modules découpés par ID de projet (sécurité anti-perte terrain)
-            let prefixes = ['bdqe', 'avenants', 'planning', 'suivi', 'ccpms', 'pv'];
-            prefixes.forEach(pref => {
-                let cleSpecifique = `${pref}_${p.id}`;
-                if(localStorage.getItem(cleSpecifique)) {
-                    donneesParProjet[cleSpecifique] = JSON.parse(localStorage.getItem(cleSpecifique));
-                }
-            });
-        });
-    } catch(e) {
-        console.error("Erreur lors du packaging des sous-clés :", e);
-    }
-
-    // 4. Assemblage final du paquet de données unifié
-    let paquetGlobalData = { 
-        dateExport: new Date().toISOString(), 
-        projets: JSON.parse(baseProjets), 
-        utilisateurs: JSON.parse(baseUsers), 
+    let paquetGlobalData = {
+        dateExport: new Date().toISOString(),
+        projets: JSON.parse(baseProjets),
+        utilisateurs: JSON.parse(baseUsers),
         ficheMaitrePapa: JSON.parse(masterFiche),
-        chartesIsolees: toutesLesChartes,
         bdqe: JSON.parse(baseBDQE),
         ccpms: JSON.parse(baseCCPMS),
         avenants: JSON.parse(baseAvenants),
         planning: JSON.parse(basePlanning),
-        suiviAvancement: JSON.parse(baseSuiviAvancement),
-        donneesParProjet: donneesParProjet // Inclus le PV, les métres réels et l'index projet
+        suiviAvancement: JSON.parse(baseSuivi)
+    };
+    
+    localStorage.setItem("CLOUD_MIRROR_SNAPSHOT", JSON.stringify(paquetGlobalData));
+    console.log("🚀 [Alignement] Vos modifications importées ont été verrouillées dans le flux global.");
+}
+// 1. EXPORTATION ABSOLUE DE TOUTES LES DONNÉES DE L'APPLICATION
+function exporterFichierCompletJsonAccueil() {
+    let baseProjets = localStorage.getItem("classeur_maitre_projets_lee") || "[]";
+    let baseUsers = localStorage.getItem("matrice_utilisateurs_rbac_gc") || "[]";
+    let masterFiche = localStorage.getItem("base_donnees_fiche_projet_maitre") || "{}";
+    
+    // Capture de l'ensemble des modules d'études et de suivi terrain
+    let baseBDQE = localStorage.getItem("base_donnees_bdqe_global") || "{}"; 
+    let baseCCPMS = localStorage.getItem("base_donnees_ccpms_global") || "{}";
+    let baseAvenants = localStorage.getItem("base_donnees_avenants_global") || "[]";
+    let basePlanning = localStorage.getItem("base_donnees_planning_gantt") || "{}";
+    let baseSuivi = localStorage.getItem("base_donnees_suivi_avancement_travaux") || "{}";
+
+    // Collecte des clés isolées par lot (Chartes, BDQE locaux, CCPMS locaux)
+    let chartesIsolees = {};
+    let bdqeIsolees = {};
+    let ccpmsIsolees = {};
+    let suiviIsolees = {};
+    let planningIsolees = {};
+
+    try {
+        let projets = JSON.parse(baseProjets);
+        projets.forEach(p => {
+            if(localStorage.getItem(`charte_administrative_${p.id}`)) {
+                chartesIsolees[p.id] = JSON.parse(localStorage.getItem(`charte_administrative_${p.id}`));
+            }
+            if(localStorage.getItem(`bdqe_${p.id}`)) {
+                bdqeIsolees[p.id] = JSON.parse(localStorage.getItem(`bdqe_${p.id}`));
+            }
+            if(localStorage.getItem(`ccpms_${p.id}`)) {
+                ccpmsIsolees[p.id] = JSON.parse(localStorage.getItem(`ccpms_${p.id}`));
+            }
+            if(localStorage.getItem(`suivi_${p.id}`)) {
+                suiviIsolees[p.id] = JSON.parse(localStorage.getItem(`suivi_${p.id}`));
+            }
+            if(localStorage.getItem(`planning_${p.id}`)) {
+                planningIsolees[p.id] = JSON.parse(localStorage.getItem(`planning_${p.id}`));
+            }
+        });
+    } catch(e) { console.error("Erreur de lecture des lots", e); }
+
+    // Compilation du paquet global unifié
+    let paquetGlobalData = {
+        dateExport: new Date().toISOString(),
+        provenance: "Console_Accueil_Master",
+        projets: JSON.parse(baseProjets),
+        utilisateurs: JSON.parse(baseUsers),
+        ficheMaitrePapa: JSON.parse(masterFiche),
+        bdqe: JSON.parse(baseBDQE),
+        ccpms: JSON.parse(baseCCPMS),
+        avenants: JSON.parse(baseAvenants),
+        planning: JSON.parse(basePlanning),
+        suiviAvancement: JSON.parse(baseSuivi),
+        chartesIsolees: chartesIsolees,
+        bdqeIsolees: bdqeIsolees,
+        ccpmsIsolees: ccpmsIsolees,
+        suiviIsolees: suiviIsolees,
+        planningIsolees: planningIsolees
     };
 
-    // 5. Génération et téléchargement du fichier JSON
+    // Génération du fichier téléchargeable
     let chaineTexte = JSON.stringify(paquetGlobalData, null, 2);
     let blob = new Blob([chaineTexte], { type: "application/json" });
     let lien = document.createElement("a");
     lien.href = URL.createObjectURL(blob);
-    
-    // Formatage dynamique du nom avec la date du jour
-    let dateStr = new Date().toISOString().substring(0, 10);
-    lien.download = `GENIE_CIVIL_PRO_BACKUP_GLOBAL_${dateStr}.json`;
-    
+    lien.download = `GENIE_CIVIL_PRO_BACKUP_TOTAL_${new Date().toISOString().substring(0,10)}.json`;
     document.body.appendChild(lien); 
     lien.click(); 
     document.body.removeChild(lien);
-    
-    alert("🚀 Succès ! Sauvegarde totale compilée.\nToutes vos données (Configuration, Utilisateurs, Fiches et Études Techniques) sont sécurisées dans le fichier.");
+}
+
+// 2. IMPORTATION ET RESTAURATION SÉCURISÉE DES DONNÉES INJECTÉES
+function importerFichierCompletJsonAccueil(input) {
+    if (input.files && input.files[0]) {
+        let reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                let paquet = JSON.parse(e.target.result);
+                
+                // Validation élémentaire de la structure du fichier
+                if (!paquet.projets || !paquet.utilisateurs) {
+                    return alert("⚠️ Fichier JSON invalide. Structure Génie Civil Pro non reconnue.");
+                }
+                
+                if (confirm("🚨 ATTENTION : L'importation de ce fichier va écraser la totalité de vos configurations, projets et suivis actuels sur cet appareil. Confirmer ?")) {
+                    
+                    // Restitution des structures globales
+                    localStorage.setItem("classeur_maitre_projets_lee", JSON.stringify(paquet.projets || []));
+                    localStorage.setItem("matrice_utilisateurs_rbac_gc", JSON.stringify(paquet.utilisateurs || []));
+                    localStorage.setItem("base_donnees_fiche_projet_maitre", JSON.stringify(paquet.ficheMaitrePapa || {}));
+                    
+                    // Restitution des modules d'études globaux
+                    if (paquet.bdqe) localStorage.setItem("base_donnees_bdqe_global", JSON.stringify(paquet.bdqe));
+                    if (paquet.ccpms) localStorage.setItem("base_donnees_ccpms_global", JSON.stringify(paquet.ccpms));
+                    if (paquet.avenants) localStorage.setItem("base_donnees_avenants_global", JSON.stringify(paquet.avenants));
+                    if (paquet.planning) localStorage.setItem("base_donnees_planning_gantt", JSON.stringify(paquet.planning));
+                    if (paquet.suiviAvancement) localStorage.setItem("base_donnees_suivi_avancement_travaux", JSON.stringify(paquet.suiviAvancement));
+                    
+                    // Restitution dynamique des clés locales spécifiques aux sous-lots
+                    if (paquet.chartesIsolees) {
+                        for (let id in paquet.chartesIsolees) localStorage.setItem(`charte_administrative_${id}`, JSON.stringify(paquet.chartesIsolees[id]));
+                    }
+                    if (paquet.bdqeIsolees) {
+                        for (let id in paquet.bdqeIsolees) localStorage.setItem(`bdqe_${id}`, JSON.stringify(paquet.bdqeIsolees[id]));
+                    }
+                    if (paquet.ccpmsIsolees) {
+                        for (let id in paquet.ccpmsIsolees) localStorage.setItem(`ccpms_${id}`, JSON.stringify(paquet.ccpmsIsolees[id]));
+                    }
+                    if (paquet.suiviIsolees) {
+                        for (let id in paquet.suiviIsolees) localStorage.setItem(`suivi_${id}`, JSON.stringify(paquet.suiviIsolees[id]));
+                    }
+                    if (paquet.planningIsolees) {
+                        for (let id in paquet.planningIsolees) localStorage.setItem(`planning_${id}`, JSON.stringify(paquet.planningIsolees[id]));
+                    }
+
+                    // Enclenchement de la synchronisation cloud miroir locale pour éviter les décalages
+                    localStorage.setItem("CLOUD_MIRROR_SNAPSHOT", JSON.stringify(paquet));
+
+                    alert("✅ Base de données totale synchronisée et restaurée avec succès ! L'application va s'actualiser."); 
+                    window.location.reload();
+                }
+            } catch (err) { 
+                alert("❌ Erreur critique lors du décodage ou de la lecture du fichier JSON."); 
+                console.error(err);
+            }
+        };
+        reader.readAsText(input.files[0]);
+    }
 }
 
 </script>
