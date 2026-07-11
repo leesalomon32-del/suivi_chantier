@@ -1,577 +1,339 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Génie Civil Pro - Console Dashboard Master</title>
-    <style>
-        :root {
-            --primary-dark: #0f172a;
-            --sidebar-bg: #1e293b;
-            --accent-blue: #2563eb;
-            --accent-amber: #d97706;
-            --success-green: #16a34a;
-            --bg-light: #f8fafc;
-            --text-dark: #334155;
-            --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-        }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-light); color: var(--text-dark); margin: 0; padding: 0; height: 100vh; overflow: hidden; }
-        
-        .app-layout { display: grid; grid-template-columns: 280px 1fr 260px; height: 100vh; width: 100%; box-sizing: border-box; }
-        
-        .col-sidebar { background-color: var(--sidebar-bg); color: #f1f5f9; padding: 20px 15px; display: flex; flex-direction: column; border-right: 1px solid #334155; overflow-y: auto; box-sizing: border-box; }
-        .col-menu { background-color: #f1f5f9; border-left: 1px solid #e2e8f0; padding: 20px 15px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; box-sizing: border-box; }
-        
-        .col-content-wrapper { display: flex; flex-direction: column; height: 100vh; overflow: hidden; background: var(--bg-light); position: relative; }
-        .navbar-top-actions { background: white; border-bottom: 1px solid #e2e8f0; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; min-height: 55px; box-sizing: border-box; width: 100%; gap: 10px; }
-        
-        .col-content { padding: 25px; overflow-y: auto; flex-grow: 1; display: flex; flex-direction: column; gap: 20px; box-sizing: border-box; }
-        .col-title { font-size: 11px; font-weight: bold; text-transform: uppercase; color: #94a3b8; margin-bottom: 12px; letter-spacing: 1px; border-bottom: 1px solid #334155; padding-bottom: 8px; }
-        
-        .search-proj-input { width: 100%; padding: 8px 10px; background: #334155; border: 1px solid #475569; border-radius: 6px; color: white; font-size: 13px; margin-bottom: 15px; outline: none; box-sizing: border-box; }
-        .search-proj-input::placeholder { color: #94a3b8; }
-        .project-item { padding: 12px 10px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-size: 13px; margin-bottom: 5px; display: flex; align-items: center; gap: 8px; color: #cbd5e1; box-sizing: border-box; }
-        .project-item:hover { background-color: #334155; color: white; }
-        .project-item.active { background-color: var(--accent-blue); color: white; font-weight: bold; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2); }
-        
-        .project-item-text { flex-grow: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .project-arrow { font-size: 10px; color: #94a3b8; cursor: pointer; transition: transform 0.2s; padding: 4px; border-radius: 4px; }
-        .project-arrow:hover { background: #475569; color: white; }
-        .project-arrow.collapsed { transform: rotate(-90deg); }
-        
-        .child-container { display: flex; flex-direction: column; }
-        .child-container.hidden { display: none; }
-        .project-child { margin-left: 20px; font-size: 12px; border-left: 2px solid #475569; padding-left: 10px; width: calc(100% - 20px); }
-        
-        .section-card { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: var(--card-shadow); }
-        .map-card-full { width: 100%; background: white; border: 1px solid #cbd5e1; border-radius: 12px; overflow: hidden; box-shadow: var(--card-shadow); box-sizing: border-box; position: relative; }
-        .map-img-placeholder { background: #e2e8f0; display: flex; align-items: center; justify-content: center; color: #475569; font-size: 13px; font-weight: bold; min-height: 150px; text-align: center; padding: 15px; }
-        
-        .info-table { width: 100%; border-collapse: collapse; }
-        .info-table td { padding: 10px 8px; border-bottom: 1px solid #f1f5f9; font-size: 13px; vertical-align: middle; }
-        .info-lbl { font-weight: bold; color: #64748b; width: 200px; }
-        .info-val-text { color: var(--primary-dark); font-weight: 500; }
-        
-        .row-metrics-double { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .metric-box-premium { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; text-align: center; box-shadow: var(--card-shadow); display: flex; flex-direction: column; justify-content: center; min-height: 80px; }
-        .metric-title { font-size: 11px; font-weight: 800; text-transform: uppercase; color: #64748b; margin-bottom: 6px; letter-spacing: 0.5px; }
-        .metric-value { font-size: 16px; font-weight: bold; color: var(--primary-dark); }
-        
-        .progress-container { background: #e2e8f0; border-radius: 10px; height: 8px; overflow: hidden; margin-top: 6px; width: 100%; }
-        .progress-bar { height: 100%; background: var(--accent-blue); width: 0%; transition: width 0.3s; }
-        .bloc-note-area { width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 15px; font-family: inherit; font-size: 14px; resize: none; outline: none; background: #fffdeb; box-shadow: var(--card-shadow); box-sizing: border-box; }
-
-        .card-nav { background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 10px; text-decoration: none; color: var(--primary-dark); display: flex; flex-direction: column; gap: 4px; transition: all 0.2s ease; box-shadow: 0 2px 4px rgb(0 0 0 / 0.02); cursor: pointer; }
-        .card-nav:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1); border-color: #cbd5e1; }
-        .card-nav-title { font-weight: bold; font-size: 13px; display: flex; align-items: center; gap: 6px; }
-        .card-nav-desc { font-size: 11px; color: #64748b; padding-left: 18px; }
-        
-        .btn { padding: 6px 12px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; color: white; font-size: 12px; }
-        .btn-primary { background-color: var(--accent-blue); }
-    /* --- ADAPTATION MOBILE INTELLIGENTE (PWA) --- */
-@media (max-width: 768px) {
-    /* Si la page utilise une grille, on la passe en une seule colonne */
-    .layout-grid-workspace, .admin-main-layout, body > div[style*="display: flex"] {
-        flex-direction: column !important;
-        display: flex !important;
-        padding: 8px !important;
-        gap: 15px !important;
-    }
-
-    /* La liste des projets prend toute la largeur en haut */
-    div[style*="width: 25%"], .sidebar-projets, div:has(> #tbodyUsersAdmin) {
-        width: 100% !important;
-        max-width: 100% !important;
-    }
-
-    /* Le panneau des modules prend toute la largeur en dessous */
-    div[style*="width: 75%"], .main-content-modules {
-        width: 100% !important;
-    }
-
-    /* On agrandit légèrement les boutons des modules pour que les agents puissent cliquer facilement avec le pouce */
-    .btn, button, div[style*="background: white"] {
-        padding: 12px !important;
-        font-size: 13px !important;
-    }
-}
-
-    </style>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>Génie Civil Pro - Console Dashboard Master</title>
+ <style>
+ :root {
+ --primary-dark: #0f172a;
+ --sidebar-bg: #1e293b;
+ --accent-blue: #2563eb;
+ --accent-amber: #d97706;
+ --success-green: #16a34a;
+ --bg-light: #f8fafc;
+ --text-dark: #334155;
+ --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+ }
+ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-light); color: var(--text-dark); margin: 0; padding: 0; height: 100vh; overflow: hidden; }
+ 
+ .app-layout { display: block !important; position: relative; height: 100vh; width: 100%; box-sizing: border-box; overflow: hidden; }
+ .col-sidebar, .col-menu { position: absolute; top: 0; height: 100vh; z-index: 1000; transition: transform 0.3s ease, box-shadow 0.3s ease; box-shadow: 0 0 15px rgba(0,0,0,0.2); }
+ .col-sidebar { left: 0; width: 280px; transform: translateX(-100%); background-color: var(--sidebar-bg); color: #f1f5f9; padding: 20px 15px; display: flex; flex-direction: column; border-right: 1px solid #334155; overflow-y: auto; box-sizing: border-box; }
+ .col-sidebar.ouvert { transform: translateX(0); }
+ .col-menu { right: 0; width: 260px; transform: translateX(100%); background-color: #f1f5f9; border-left: 1px solid #e2e8f0; padding: 20px 15px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; box-sizing: border-box; }
+ .col-menu.ouvert { transform: translateX(0); }
+ .col-content-wrapper { width: 100% !important; height: 100vh; overflow: hidden; background: var(--bg-light); position: relative; display: flex; flex-direction: column; }
+ 
+ .navbar-top-actions { background: white; border-bottom: 1px solid #e2e8f0; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; min-height: 55px; box-sizing: border-box; width: 100%; gap: 10px; }
+ .col-content { padding: 25px; overflow-y: auto; flex-grow: 1; display: flex; flex-direction: column; gap: 20px; box-sizing: border-box; }
+ .col-title { font-size: 11px; font-weight: bold; text-transform: uppercase; color: #94a3b8; margin-bottom: 12px; letter-spacing: 1px; border-bottom: 1px solid #334155; padding-bottom: 8px; }
+ .search-proj-input { width: 100%; padding: 8px 10px; background: #334155; border: 1px solid #475569; border-radius: 6px; color: white; font-size: 13px; margin-bottom: 15px; outline: none; box-sizing: border-box; }
+ .search-proj-input::placeholder { color: #94a3b8; }
+ .project-item { padding: 12px 10px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-size: 13px; margin-bottom: 5px; display: flex; align-items: center; gap: 8px; color: #cbd5e1; box-sizing: border-box; }
+ .project-item:hover { background-color: #334155; color: white; }
+ .project-item.active { background-color: var(--accent-blue); color: white; font-weight: bold; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2); }
+ .project-item-text { flex-grow: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+ .project-arrow { font-size: 10px; color: #94a3b8; cursor: pointer; transition: transform 0.2s; padding: 4px; border-radius: 4px; }
+ .project-arrow:hover { background: #475569; color: white; }
+ .project-arrow.collapsed { transform: rotate(-90deg); }
+ .child-container { display: flex; flex-direction: column; }
+ .child-container.hidden { display: none; }
+ .project-child { margin-left: 20px; font-size: 12px; border-left: 2px solid #475569; padding-left: 10px; width: calc(100% - 20px); }
+ .section-card { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: var(--card-shadow); }
+ .map-card-full { width: 100%; background: white; border: 1px solid #cbd5e1; border-radius: 12px; overflow: hidden; box-shadow: var(--card-shadow); box-sizing: border-box; position: relative; }
+ .map-img-placeholder { background: #e2e8f0; display: flex; align-items: center; justify-content: center; color: #475569; font-size: 13px; font-weight: bold; min-height: 150px; text-align: center; padding: 15px; }
+ .info-table { width: 100%; border-collapse: collapse; }
+ .info-table td { padding: 10px 8px; border-bottom: 1px solid #f1f5f9; font-size: 13px; vertical-align: middle; }
+ .info-lbl { font-weight: bold; color: #64748b; width: 200px; }
+ .info-val-text { color: var(--primary-dark); font-weight: 500; }
+ .row-metrics-double { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+ .metric-box-premium { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; text-align: center; box-shadow: var(--card-shadow); display: flex; flex-direction: column; justify-content: center; min-height: 80px; }
+ .metric-title { font-size: 11px; font-weight: 800; text-transform: uppercase; color: #64748b; margin-bottom: 6px; letter-spacing: 0.5px; }
+ .metric-value { font-size: 16px; font-weight: bold; color: var(--primary-dark); }
+ .progress-container { background: #e2e8f0; border-radius: 10px; height: 8px; overflow: hidden; margin-top: 6px; width: 100%; }
+ .progress-bar { height: 100%; background: var(--accent-blue); width: 0%; transition: width 0.3s; }
+ .bloc-note-area { width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 15px; font-family: inherit; font-size: 14px; resize: none; outline: none; background: #fffdeb; box-shadow: var(--card-shadow); box-sizing: border-box; }
+ .card-nav { background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 10px; text-decoration: none; color: var(--primary-dark); display: flex; flex-direction: column; gap: 4px; transition: all 0.2s ease; box-shadow: 0 2px 4px rgb(0 0 0 / 0.02); cursor: pointer; }
+ .card-nav:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1); border-color: #cbd5e1; }
+ .card-nav-title { font-weight: bold; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+ .card-nav-desc { font-size: 11px; color: #64748b; padding-left: 18px; }
+ .btn { padding: 6px 12px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; color: white; font-size: 12px; }
+ .btn-primary { background-color: var(--accent-blue); }
+ .btn-toggle-volet { background: #475569; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 12px; display: inline-flex; align-items: center; gap: 5px; transition: background 0.2s; }
+ .btn-toggle-volet:hover { background: #334155; }
+ </style>
 </head>
 <body>
 <div class="app-layout">
-    <!-- COLONNE 1 : LISTE DES PROJETS -->
-    <div class="col-sidebar">
-        <div class="col-title">📂 Liste des Projets</div>
-        <input type="text" id="searchProjInput" class="search-proj-input" placeholder="🔍 Rechercher un projet..." oninput="filtrerLaListeDesProjets()">
-        <div id="listeProjetsContainer" style="overflow-y:auto; flex-grow:1;"></div>
-    </div>
+ <!-- COLONNE 1 : LISTE DES PROJETS (CACHÉE) -->
+ <div class="col-sidebar">
+ <div class="col-title">Liste des Projets</div>
+ <input type="text" id="searchProjInput" class="search-proj-input" placeholder="Rechercher un projet..." oninput="filtrerLaListeDesProjets()">
+ <div id="listeProjetsContainer" style="overflow-y:auto; flex-grow:1;"></div>
+ </div>
 
-    <!-- COLONNE 2 : INTERFACE DE LA FICHE SYNTHÉTIQUE -->
-    <div class="col-content-wrapper">
-        <div class="navbar-top-actions">
-            <button class="btn" style="background:var(--danger-red);" onclick="deconnecterSessionConsole()">🚪 Déconnexion</button>
-            <!-- NOUVEAUX BOUTONS DE SAUVEGARDE INTEGRALE -->
-<div style="display: flex; gap: 8px;">
-    <button class="btn" style="background: #0284c7;" onclick="exporterFichierCompletJsonAccueil()">Exporter TOUT (.json)</button>
-    <label class="btn" style="background: #16a34a; margin: 0; cursor: pointer; color: white;">
-        Importer TOUT (.json)
-        <input type="file" id="importJsonAccueilInput" style="display: none;" onchange="importerFichierCompletJsonAccueil(this)">
-    </label>
-</div>
+ <!-- COLONNE 2 : L'ÉCRAN CENTRAL DE L'ACCUEIL -->
+ <div class="col-content-wrapper">
+ <div class="navbar-top-actions">
+ <button class="btn-toggle-volet" onclick="basculerVolet('gauche')">📁 Lots & Projets</button>
+ <button class="btn" style="background:var(--danger-red);" onclick="deconnecterSessionConsole()">Déconnexion</button>
+ 
+ <div style="display: flex; gap: 8px;">
+ <button class="btn" style="background: #0284c7;" onclick="exporterFichierCompletJsonAccueil()">Exporter TOUT (.json)</button>
+ <label class="btn" style="background: #16a34a; margin: 0; cursor: pointer; color: white;">
+ Importer TOUT (.json)
+ <input type="file" id="importJsonAccueilInput" style="display: none;" onchange="importerFichierCompletJsonAccueil(this)">
+ </label>
+ </div>
+ 
+ <div style="font-weight:bold; font-size:14px; color:var(--primary-dark);" id="txtModuleActuelCentral">Fiche Synthétique</div>
+ <div style="font-size:12px; color:var(--accent-blue); font-weight:bold;" id="txtProjetActifLabelTop">PROJET : Aucun</div>
+ <button class="btn-toggle-volet" onclick="basculerVolet('droite')">⚙️ Exploration</button>
+ </div>
+ 
+ <div class="col-content">
+ <div class="map-card-full">
+ <div class="map-img-placeholder">
+ <input type="file" id="mapFileInput" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer; z-index:999;" onchange="sauvegarderPhotoEmplacement(this)">
+ <span id="mapTxt" style="z-index:10; padding:15px;">! Cliquez ici pour lier le Plan ou la Photo de l'Emplacement</span>
+ <img id="mapImgView" style="width:100%; height:100%; object-fit:contain; position:absolute; top:0; left:0; display:none; z-index:20;">
+ </div>
+ </div>
+ 
+ <div class="section-card">
+ <table class="info-table">
+ <tr><td class="info-lbl">Nom du Projet :</td><td id="lblNomProjet" class="info-val-text" style="font-size:14px; font-weight:bold; color:var(--accent-blue);">-</td></tr>
+ <tr><td class="info-lbl">Financement :</td><td id="lblFin" class="info-val-text">-</td></tr>
+ <tr><td class="info-lbl">Maître d'Ouvrage :</td><td id="lblMO" class="info-val-text">-</td></tr>
+ <tr id="rowMOD" style="display:none;"><td class="info-lbl">Maître d'Ouvrage Délégué :</td><td id="lblMOD" class="info-val-text">-</td></tr>
+ <tr><td class="info-lbl">Maître d'Œuvre :</td><td id="lblMOE" class="info-val-text">-</td></tr>
+ <tr><td class="info-lbl">Entreprise Titulaire :</td><td id="lblEnt" class="info-val-text">-</td></tr>
+ <tr><td class="info-lbl">Numéro de Contrat :</td><td id="lblNumContrat" class="info-val-text" style="font-family:monospace; font-weight:bold; color:#0284c7;">-</td></tr>
+ </table>
+ </div>
+ 
+ <div class="row-metrics-double">
+ <div class="metric-box-premium" style="border-top:4px solid var(--accent-blue);"><div class="metric-title">Calendrier d'Exécution</div><div id="txtCalculCalendrier" style="font-size:12px; font-weight:bold; color:var(--accent-blue); line-height:1.4;">-</div></div>
+ <div class="metric-box-premium" style="border-top:4px solid var(--accent-amber);"><div class="metric-title">Enveloppe Budgétaire</div><div class="metric-value" id="txtBudgetFiche" style="font-size:15px; color:var(--primary-dark);">-</div><div id="txtDetailAvenantFiche" style="font-size:11px; color:var(--accent-amber); font-weight:bold; display:none; margin-top:3px;">-</div></div>
+ </div>
+ 
+ <div class="section-card" style="border-top:4px solid var(--success-green);">
+ <div class="metric-title" style="text-align:center; margin-bottom:8px;">Taux d'Avancements Généraux</div>
+ <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+ <div>Physique Global : <span id="txtPctPhy" style="font-weight:bold; float:right; color:var(--accent-blue);">0.00%</span><div class="progress-container"><div class="progress-bar" id="barPctPhy" style="background:var(--accent-blue);"></div></div></div>
+ <div>Financier Global : <span id="txtPctFin" style="font-weight:bold; float:right; color:var(--success-green);">0.00%</span><div class="progress-container"><div class="progress-bar" id="barPctFin" style="background:var(--success-green);"></div></div></div>
+ </div>
+ </div>
+ <div><div class="metric-title" style="margin-bottom:6px; color:var(--primary-dark);">Consignes :</div><textarea id="blocNotesAdmin" class="bloc-note-area" rows="2" placeholder="Saisir les consignes..." onchange="sauvegarderBlocNotesLocal(this.value)"></textarea></div>
+ </div>
+ </div>
 
-
-            <div style="font-weight:bold; font-size:14px; color:var(--primary-dark);" id="txtModuleActuelCentral">Fiche Synthétique du Projet</div>
-            <div style="font-size:12px; color:var(--accent-blue); font-weight:bold;" id="txtProjetActifLabelTop">PROJET SELECTIONNÉ : Aucun</div>
-        </div>
-        
-        <div class="col-content">
-            <div class="map-card-full">
-                <div class="map-img-placeholder">
-                    <input type="file" id="mapFileInput" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer; z-index:999;" onchange="sauvegarderPhotoEmplacement(this)">
-                    <span id="mapTxt" style="z-index:10; padding:15px;">📸 Cliquez ici pour lier le Plan ou la Photo de l'Emplacement de ce Projet</span>
-                    <img id="mapImgView" style="width:100%; height:100%; object-fit:contain; position:absolute; top:0; left:0; display:none; z-index:20;">
-                </div>
-            </div>
-            
-            <div class="section-card">
-                <table class="info-table">
-                    <tr><td class="info-lbl">Nom du Projet :</td><td id="lblNomProjet" class="info-val-text" style="font-size:14px; font-weight:bold; color:var(--accent-blue);">-</td></tr>
-                    <tr><td class="info-lbl">Financement :</td><td id="lblFin" class="info-val-text">-</td></tr>
-                    <tr><td class="info-lbl">Maître d'Ouvrage :</td><td id="lblMO" class="info-val-text">-</td></tr>
-                    <tr id="rowMOD" style="display:none;"><td class="info-lbl">Maître d'Ouvrage Délégué :</td><td id="lblMOD" class="info-val-text">-</td></tr>
-                    <tr><td class="info-lbl">Maître d'Œuvre :</td><td id="lblMOE" class="info-val-text">-</td></tr>
-                    <tr><td class="info-lbl">Entreprise Titulaire :</td><td id="lblEnt" class="info-val-text">-</td></tr>
-                    <tr><td class="info-lbl">Numéro de Contrat :</td><td id="lblNumContrat" class="info-val-text" style="font-family:monospace; font-weight:bold; color:#0284c7;">-</td></tr>
-                </table>
-            </div>
-            
-            <div class="row-metrics-double">
-                <div class="metric-box-premium" style="border-top:4px solid var(--accent-blue);"><div class="metric-title">📅 Calendrier d'Exécution</div><div id="txtCalculCalendrier" style="font-size:12px; font-weight:bold; color:var(--accent-blue); line-height:1.4;">-</div></div>
-                <div class="metric-box-premium" style="border-top:4px solid var(--accent-amber);"><div class="metric-title">💰 Enveloppe Budgétaire Totale</div><div class="metric-value" id="txtBudgetFiche" style="font-size:15px; color:var(--primary-dark);">-</div><div id="txtDetailAvenantFiche" style="font-size:11px; color:var(--accent-amber); font-weight:bold; display:none; margin-top:3px;">-</div></div>
-            </div>
-            
-            <div class="section-card" style="border-top:4px solid var(--success-green);">
-                <div class="metric-title" style="text-align:center; margin-bottom:8px;">📊 Taux d'Avancements Généraux Consolidés</div>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
-                    <div>🧮 Physique Global : <span id="txtPctPhy" style="font-weight:bold; float:right; color:var(--accent-blue);">0.00%</span><div class="progress-container"><div class="progress-bar" id="barPctPhy" style="background:var(--accent-blue);"></div></div></div>
-                    <div>🪙 Financier Global : <span id="txtPctFin" style="font-weight:bold; float:right; color:var(--success-green);">0.00%</span><div class="progress-container"><div class="progress-bar" id="barPctFin" style="background:var(--success-green);"></div></div></div>
-                </div>
-            </div>
-            <div><div class="metric-title" style="margin-bottom:6px; color:var(--primary-dark);">📌 Notes de l'administration / Consignes :</div><textarea id="blocNotesAdmin" class="bloc-note-area" rows="2" placeholder="Saisir les consignes..." onchange="sauvegarderBlocNotesLocal(this.value)"></textarea></div>
-        </div>
-    </div>
-
-    <!-- COLONNE 3 : BARRE DES NAVIGATIONS MODULES PASSERELLES -->
-    <div class="col-menu">
-        <div class="col-title">🚀 Exploration Modules</div>
-        <div class="card-nav" style="border-left:4px solid var(--accent-blue);" onclick="ouvrirVraiePageLien('4_bdqe.html')"><div class="card-nav-title">📊 Saisie du BDQE</div><div class="card-nav-desc">Bordereau initial</div></div>
-        <div class="card-nav" style="border-left:4px solid var(--accent-amber);" onclick="ouvrirVraiePageLien('5_avenants.html')"><div class="card-nav-title">➕ Suivi des Avenants</div><div class="card-nav-desc">Ajustements budgétaires</div></div>
-        <div class="card-nav" style="border-left:4px solid #64748b;" onclick="ouvrirVraiePageLien('6-planning.html')"><div class="card-nav-title">📅 Planning & Gantt</div><div class="card-nav-desc">Calendrier de chantier</div></div>
-        <div class="card-nav" style="border-left:4px solid var(--success-green);" onclick="ouvrirVraiePageLien('7_avancement.html')"><div class="card-nav-title">📈 Taux d'Avancement</div><div class="card-nav-desc">Métrés réels du terrain</div></div>
-        <div class="card-nav" style="border-left:4px solid #7c3aed;" onclick="ouvrirVraiePageLien('8_ccpms.html')"><div class="card-nav-title">📂 GED Centrale CCPMS</div><div class="card-nav-desc">Armoire photos et PDF</div></div>
-        <div class="card-nav" style="border-left:4px solid var(--danger-red);" onclick="ouvrirVraiePageLien('9_pv.html')"><div class="card-nav-title">📝 Procès-Verbal de Visite</div><div class="card-nav-desc">Rapport officiel</div></div>
-        <div class="card-nav" style="border-left:4px solid var(--primary-dark); background: #f8fafc;" onclick="ouvrirVraiePageLien('10_recap.html')"><div class="card-nav-title" style="color: var(--primary-dark);">📊 Page 10 : Rapport Bailleurs</div><div class="card-nav-desc">Rapport Exécutif horizontal</div></div>
-    </div>
+ <!-- COLONNE 3 : BARRE DES MODULES (CACHÉE) -->
+ <div class="col-menu">
+ <div class="col-title">Exploration Modules</div>
+ <div class="card-nav" style="border-left:4px solid var(--accent-blue);" onclick="ouvrirVraiePageLien('4_bdqe.html')"><div class="card-nav-title">Saisie du BDQE</div></div>
+ <div class="card-nav" style="border-left:4px solid var(--accent-amber);" onclick="ouvrirVraiePageLien('5_avenants.html')"><div class="card-nav-title">Suivi des Avenants</div></div>
+ <div class="card-nav" style="border-left:4px solid #64748b;" onclick="ouvrirVraiePageLien('6-planning.html')"><div class="card-nav-title">Planning & Gantt</div></div>
+ <div class="card-nav" style="border-left:4px solid var(--success-green);" onclick="ouvrirVraiePageLien('7_avancement.html')"><div class="card-nav-title">Taux d'Avancement</div></div>
+ <div class="card-nav" style="border-left:4px solid #7c3aed;" onclick="ouvrirVraiePageLien('8_ccpms.html')"><div class="card-nav-title">GED Centrale CCPMS</div></div>
+ <div class="card-nav" style="border-left:4px solid var(--danger-red);" onclick="ouvrirVraiePageLien('9_pv.html')"><div class="card-nav-title">Procès-Verbal de Visite</div></div>
+ <div class="card-nav" style="border-left:4px solid var(--primary-dark); background: #f8fafc;" onclick="ouvrirVraiePageLien('10_recap.html')"><div class="card-nav-title" style="color: var(--primary-dark);">Rapport Bailleurs</div></div>
+ </div>
 </div>
 <script>
-    let listeProjetsGlobal = [];
-    let idProjetActif = null;
-    let etatsDossiersReplies = {};
+ let listeProjetsGlobal = [];
+ let idProjetActif = null;
+ let etatsDossiersReplies = {};
+ let userRoleActuel = localStorage.getItem("session_user_role") || "agents";
+ let userLotsAutorises = [];
+ try { userLotsAutorises = JSON.parse(localStorage.getItem("session_user_lots")) || []; } catch(e) {}
 
-    let userRoleActuel = localStorage.getItem("session_user_role") || "agents";
-    let userLotsAutorises = [];
-    try { userLotsAutorises = JSON.parse(localStorage.getItem("session_user_lots")) || []; } catch(e) { userLotsAutorises = []; }
+ window.onload = function() {
+ if (localStorage.getItem("session_securisee_active_gc") !== "VALIDE") {
+ window.location.href = "1_login.html"; return;
+ }
+ if (userRoleActuel === "admin") {
+ let navbar = document.querySelector('.navbar-top-actions');
+ if (navbar) {
+ let btnAdmin = document.createElement('button');
+ btnAdmin.className = "btn btn-primary"; btnAdmin.style.background = "var(--accent-amber)"; btnAdmin.style.padding = "4px 10px"; btnAdmin.style.fontSize = "11px";
+ btnAdmin.innerText = "Paramètres Admin"; btnAdmin.onclick = function() { window.location.href = "2_admin.html"; };
+ navbar.appendChild(btnAdmin);
+ }
+ }
+ if (userRoleActuel === "agents") {
+ document.querySelectorAll('.col-menu .card-nav').forEach(carte => {
+ let onClickAttr = carte.getAttribute('onclick') || "";
+ if (!onClickAttr.includes('7_avancement.html') && !onClickAttr.includes('8_ccpms.html') && !onClickAttr.includes('9_pv.html') && !onClickAttr.includes('10_recap.html')) {
+ carte.style.display = "none";
+ }
+ });
+ }
+ let ProjsSauves = localStorage.getItem("classeur_maitre_projets_lee");
+ if(ProjsSauves) { listeProjetsGlobal = JSON.parse(ProjsSauves); } else {
+ listeProjetsGlobal = [
+ { id: 101, nom: "MARCHE CENTRAL 52 ECOLES", type: "PAPA", parentId: null, photoEmplacement: "", bloc_notes: "" },
+ { id: 102, nom: "Lot 1 - Arrondissement 4", type: "ENFANT", parentId: 101, photoEmplacement: "", bloc_notes: "" },
+ { id: 103, nom: "Lot 2 - Arrondissement 5", type: "ENFANT", parentId: 101, photoEmplacement: "", bloc_notes: "" }
+ ];
+ localStorage.setItem("classeur_maitre_projets_lee", JSON.stringify(listeProjetsGlobal));
+ }
+ idProjetActif = localStorage.getItem("id_projet_actif_lee") || "101";
+ listeProjetsGlobal.forEach(p => { if(p.type === 'PAPA') etatsDossiersReplies[p.id] = false; });
+ renderProjetsSidebar();
+ chargerFicheProjetSelectionne();
+ };
+ function renderProjetsSidebar() {
+ let container = document.getElementById('listeProjetsContainer'); container.innerHTML = "";
+ let racines = listeProjetsGlobal.filter(p => p.type === 'PAPA' || p.type === 'CLASSIQUE');
+ racines.forEach(r => {
+ if (userRoleActuel !== "admin" && userRoleActuel !== "cadres" && !userLotsAutorises.includes(String(r.id))) {
+ if (!listeProjetsGlobal.some(e => e.type === 'ENFANT' && e.parentId == r.id && userLotsAutorises.includes(String(e.id)))) return;
+ }
+ let blockParent = document.createElement('div');
+ let estActif = idProjetActif == r.id ? 'active' : '';
+ let icone = r.type === 'PAPA' ? '📁' : '📄';
+ let flecheHTML = r.type === 'PAPA' ? `<span class="project-arrow ${etatsDossiersReplies[r.id] ? 'collapsed':''}" onclick="toggleDossierAccordéon(${r.id}, event)">▼</span>` : "";
+ blockParent.className = `project-item ${estActif}`;
+ blockParent.innerHTML = `<span onclick="selectionnerProjetLigne(${r.id})">${icone}</span><span class="project-item-text" onclick="selectionnerProjetLigne(${r.id})">${r.nom}</span>${flecheHTML}`;
+ container.appendChild(blockParent);
+ if (r.type === 'PAPA') {
+ let childContainer = document.createElement('div'); childContainer.className = "child-container" + (etatsDossiersReplies[r.id] ? ' hidden' : '');
+ listeProjetsGlobal.filter(p => p.type === 'ENFANT' && p.parentId == r.id).forEach(e => {
+ if (userRoleActuel !== "admin" && userRoleActuel !== "cadres" && !userLotsAutorises.includes(String(e.id))) return;
+ let divE = document.createElement('div'); divE.className = `project-item project-child ${idProjetActif == e.id ? 'active' : ''}`;
+ divE.innerHTML = `<span class="project-item-text" onclick="selectionnerProjetLigne(${e.id})">${e.nom}</span>`;
+ childContainer.appendChild(divE);
+ });
+ container.appendChild(childContainer);
+ }
+ });
+ }
 
-    window.onload = function() {
-        if (localStorage.getItem("session_securisee_active_gc") !== "VALIDE") {
-            window.location.href = "1_login.html"; return;
-        }
+ function toggleDossierAccordéon(papaId, event) { event.stopPropagation(); etatsDossiersReplies[papaId] = !etatsDossiersReplies[papaId]; renderProjetsSidebar(); }
+ function selectionnerProjetLigne(id) { idProjetActif = id; localStorage.setItem("id_projet_actif_lee", idProjetActif); renderProjetsSidebar(); chargerFicheProjetSelectionne(); document.querySelector('.col-sidebar').classList.remove('ouvert'); }
+ function chargerFicheProjetSelectionne() {
+ if (!idProjetActif || listeProjetsGlobal.length === 0) return;
+ let p = listeProjetsGlobal.find(i => i.id == idProjetActif); if(!p) return;
+ let charteSpecifique = localStorage.getItem(`charte_administrative_${idProjetActif}`);
+ let d = charteSpecifique ? JSON.parse(charteSpecifique) : {};
+ let m = {}; if (p.type === "ENFANT" && p.parentId) { let parentSauve = localStorage.getItem(`charte_administrative_${p.parentId}`); if (parentSauve) m = JSON.parse(parentSauve); }
+ let nomProjetAffiche = p.nom.toUpperCase();
+ if (p.type === "ENFANT" && p.parentId) { let papa = listeProjetsGlobal.find(i => i.id == p.parentId); nomProjetAffiche = `${papa ? papa.nom.toUpperCase() : "" } — (${p.nom.toUpperCase()})`; }
+ document.getElementById('txtProjetActifLabelTop').innerText = "PROJET : " + p.nom.toUpperCase();
+ document.getElementById('lblNomProjet').innerText = nomProjetAffiche;
+ document.getElementById('lblFin').innerText = d.financement || m.financement || "-";
+ document.getElementById('lblMO').innerText = d.mo || m.mo || "-";
+ document.getElementById('lblMOE').innerText = d.moe || m.moe || "-";
+ document.getElementById('lblEnt').innerText = d.entreprise || m.entreprise || "-";
+ document.getElementById('lblNumContrat').innerText = d.numContrat || m.numContrat || "-";
+ let zoneNotes = document.getElementById('blocNotesAdmin');
+ if (zoneNotes) { zoneNotes.value = p.bloc_notes || ""; if (userRoleActuel !== "admin" && userRoleActuel !== "cadres") { zoneNotes.readOnly = true; zoneNotes.style.background = "#f1f5f9"; zoneNotes.placeholder = "Lecture seule"; } else { zoneNotes.readOnly = false; zoneNotes.style.background = "#fffdeb"; } }
+ let imgView = document.getElementById('mapImgView'); let txtMapPlaceholder = document.getElementById('mapTxt');
+ if(p.photoEmplacement && p.photoEmplacement.trim() !== "") { imgView.src = p.photoEmplacement; imgView.style.display = "block"; txtMapPlaceholder.style.display = "none"; } else { imgView.style.display = "none"; txtMapPlaceholder.style.display = "block"; }
+ lancerCalculsConsolidationFiche(p);
+ }
 
-        // AJOUT SÉCURISÉ DU BOUTON ADMIN POUR LE COMPTE MAITRE
-        if (userRoleActuel === "admin") {
-            let navbar = document.querySelector('.navbar-top-actions');
-            if (navbar) {
-                let btnAdmin = document.createElement('button');
-                btnAdmin.className = "btn btn-primary";
-                btnAdmin.style.background = "var(--accent-amber)";
-                btnAdmin.style.padding = "4px 10px";
-                btnAdmin.style.fontSize = "11px";
-                btnAdmin.innerText = "⚙️ Paramètres Admin";
-                btnAdmin.onclick = function() { window.location.href = "2_admin.html"; };
-                navbar.appendChild(btnAdmin);
-            }
-        }
+ function lancerCalculsConsolidationFiche(p) {
+ let totalInitial = 0; let totalAvenants = 0; let totalLignesSuivi = 0; let sumPhyRatio = 0; let mntMarchatTotal = 0; let mntRealiseTotal = 0; let dateMinProjet = null; let dateMaxProjet = null;
+ function extraire(prefixe, id) { return localStorage.getItem(`${prefixe}_${id}`) ? JSON.parse(localStorage.getItem(`${prefixe}_${id}`)) : []; }
+ let listeChantiersAAnalyse = [p]; if (p.type === "PAPA") { listeChantiersAAnalyse = listeChantiersAAnalyse.concat(listeProjetsGlobal.filter(item => item.type === "ENFANT" && item.parentId == p.id)); }
+ listeChantiersAAnalyse.forEach(c => {
+ let listB = extraire("bdqe", c.id); let listA = extraire("avenants", c.id); let listPl = extraire("planning", c.id); let listS = extraire("suivi", c.id);
+ listB.forEach(i => totalInitial += (i.total || 0)); listA.forEach(i => totalAvenants += (i.total_av || 0));
+ listPl.forEach(item => { if (!item.date_debut || !item.date_fin) return; let d1 = new Date(item.date_debut); let d2 = new Date(item.date_fin); if (!dateMinProjet || d1 < dateMinProjet) dateMinProjet = d1; if (!dateMaxProjet || d2 > dateMaxProjet) dateMaxProjet = d2; });
+ listS.forEach(item => { if (item.quantite_contrat > 0) { totalLignesSuivi++; let pL = Math.min((item.qte_realisee / item.quantite_contrat) * 100, 100); sumPhyRatio += pL; mntMarchatTotal += (item.total_contrat || 0); mntRealiseTotal += ((item.total_contrat || 0) * (pL / 100)); } });
+ });
+ document.getElementById('txtBudgetFiche').innerText = totalInitial > 0 ? (totalInitial + totalAvenants).toLocaleString('fr-FR', {minimumFractionDigits:2}) + " Ar" : "0,00 Ar";
+ let rowAvLbl = document.getElementById('txtDetailAvenantFiche'); if(totalAvenants !== 0) { rowAvLbl.innerText = `Dont Avenants : ${totalAvenants >= 0 ? '+':''}${totalAvenants.toLocaleString('fr-FR')} Ar`; rowAvLbl.style.display = "block"; } else { rowAvLbl.style.display = "none"; }
+ if (dateMinProjet && dateMaxProjet) {
+ let auj = new Date(); let dTotale = Math.ceil(Math.abs(dateMaxProjet - dateMinProjet) / (1000*60*60*24)) + 1; let dEcoulee = Math.ceil((auj - dateMinProjet) / (1000*60*60*24)); if(dEcoulee < 0) dEcoulee = 0; if(dEcoulee > dTotale) dEcoulee = dTotale;
+ document.getElementById('txtCalculCalendrier').innerHTML = `<b>${dEcoulee}/${dTotale} jours</b> (${Math.round((dEcoulee / dTotale) * 100)}%)<br><span style="font-size:11px;color:grey;">Période : ${dateMinProjet.toLocaleDateString('fr-FR')} — ${dateMaxProjet.toLocaleDateString('fr-FR')}</span>`;
+ } else { document.getElementById('txtCalculCalendrier').innerText = "Aucun calendrier planifié."; }
+ let tPhy = totalLignesSuivi > 0 ? (sumPhyRatio / totalLignesSuivi) : 0; let tFin = mntMarchatTotal > 0 ? (mntRealiseTotal / mntMarchatTotal) * 100 : 0;
+ document.getElementById('txtPctPhy').innerText = tPhy.toFixed(2) + "%"; document.getElementById('barPctPhy').style.width = tPhy + "%";
+ document.getElementById('txtPctFin').innerText = tFin.toFixed(2) + "%"; document.getElementById('barPctFin').style.width = tFin + "%";
+ }
+ function filtrerLaListeDesProjets() {
+ let motCle = document.getElementById('searchProjInput').value.toLowerCase().trim();
+ if (!motCle) { renderProjetsSidebar(); return; }
+ document.querySelectorAll('#listeProjetsContainer .child-container').forEach(c => c.classList.remove('hidden'));
+ document.querySelectorAll('#listeProjetsContainer .project-item').forEach(item => {
+ let texte = item.querySelector('.project-item-text').innerText.toLowerCase();
+ if(texte.includes(motCle)) item.style.display = "flex"; else item.style.display = "none";
+ });
+ }
 
-        // RESTRICTION AGENTS SUR LES CARD-NAV DE DROITE
-        if (userRoleActuel === "agents") {
-            let cartesNav = document.querySelectorAll('.col-menu .card-nav');
-            cartesNav.forEach(carte => {
-                let onClickAttr = carte.getAttribute('onclick') || "";
-                if (!onClickAttr.includes('7_avancement.html') && !onClickAttr.includes('8_ccpms.html') && !onClickAttr.includes('9_pv.html') && !onClickAttr.includes('10_recap.html')) {
-                    carte.style.display = "none";
-                }
-            });
-        }
+ function ouvrirVraiePageLien(fichierHtml) {
+ if(!idProjetActif) return alert("Sélectionnez d'abord un projet !");
+ localStorage.setItem("id_projet_en_cours_de_saisie_temporaire", idProjetActif); window.location.href = fichierHtml; 
+ }
 
-        let ProjsSauves = localStorage.getItem("classeur_maitre_projets_lee");
-        if(ProjsSauves) { listeProjetsGlobal = JSON.parse(ProjsSauves); } else {
-            listeProjetsGlobal = [
-                { id: 101, nom: "MARCHE CENTRAL 52 ECOLES", type: "PAPA", parentId: null, photoEmplacement: "", bloc_notes: "" },
-                { id: 102, nom: "Lot 1 - Arrondissement 4", type: "ENFANT", parentId: 101, photoEmplacement: "", bloc_notes: "" },
-                { id: 103, nom: "Lot 2 - Arrondissement 5", type: "ENFANT", parentId: 101, photoEmplacement: "", bloc_notes: "" }
-            ];
-            localStorage.setItem("classeur_maitre_projets_lee", JSON.stringify(listeProjetsGlobal));
-        }
+ function deconnecterSessionConsole() {
+ if(confirm("Fermer la session ?")) {
+ localStorage.removeItem("session_securisee_active_gc"); localStorage.removeItem("session_user_login"); localStorage.removeItem("session_user_role"); localStorage.removeItem("session_user_lots");
+ window.location.href = "1_login.html";
+ }
+ }
 
-        idProjetActif = localStorage.getItem("id_projet_actif_lee") || "101";
-        listeProjetsGlobal.forEach(p => { if(p.type === 'PAPA') etatsDossiersReplies[p.id] = false; });
+ function sauvegarderBlocNotesLocal(valeur) { let p = listeProjetsGlobal.find(i => i.id == idProjetActif); if(p) { p.bloc_notes = valeur; localStorage.setItem("classeur_maitre_projets_lee", JSON.stringify(listeProjetsGlobal)); } }
+ function sauvegarderPhotoEmplacement(input) { if (input.files && input.files) { let reader = new FileReader(); reader.onload = function(e) { let imgData = e.target.result; let p = listeProjetsGlobal.find(i => i.id == idProjetActif); if(p) { p.photoEmplacement = imgData; localStorage.setItem("classeur_maitre_projets_lee", JSON.stringify(listeProjetsGlobal)); } let idUniqueProjet = idProjetActif; let listC = localStorage.getItem(`ccpms_${idUniqueProjet}`) ? JSON.parse(localStorage.getItem(`ccpms_${idUniqueProjet}`)) : []; listC.unshift({ id: Date.now(), categorie: "Photos", dateDoc: new Date().toISOString().substring(0,10), titre: `[Fiche] : ${p.nom}`, description: `Plan mémorisé.`, fichierBrut: imgData, nomFichier: `Emplacement_${p.nom}.jpg`, typeMime: "image/jpeg" }); localStorage.setItem(`ccpms_${idUniqueProjet}`, JSON.stringify(listC)); document.getElementById('mapImgView').src = imgData; document.getElementById('mapImgView').style.display = "block"; document.getElementById('mapTxt').style.display = "none"; alert("Succès !"); }; reader.readAsDataURL(input.files); } }
 
-        renderProjetsSidebar();
-        chargerFicheProjetSelectionne();
-    };
+ function basculerVolet(cote) {
+ if (cote === 'gauche') {
+ document.querySelector('.col-sidebar').classList.toggle('ouvert'); document.querySelector('.col-menu').classList.remove('ouvert');
+ } else if (cote === 'droite') {
+ document.querySelector('.col-menu').classList.toggle('ouvert'); document.querySelector('.col-sidebar').classList.remove('ouvert');
+ }
+ }
 
-    function renderProjetsSidebar() {
-        let container = document.getElementById('listeProjetsContainer'); container.innerHTML = "";
-        let racines = listeProjetsGlobal.filter(p => p.type === 'PAPA' || p.type === 'CLASSIQUE');
-        
-        racines.forEach(r => {
-            if (userRoleActuel !== "admin" && userRoleActuel !== "cadres" && !userLotsAutorises.includes(String(r.id))) {
-                let aUnEnfantAutorise = listeProjetsGlobal.some(e => e.type === 'ENFANT' && e.parentId == r.id && userLotsAutorises.includes(String(e.id)));
-                if (!aUnEnfantAutorise) return; 
-            }
+ function exporterFichierCompletJsonAccueil() {
+ let baseProjets = localStorage.getItem("classeur_maitre_projets_lee") || "[]"; let baseUsers = localStorage.getItem("matrice_utilisateurs_rbac_gc") || "[]"; let masterFiche = localStorage.getItem("base_donnees_fiche_projet_maitre") || "{}";
+ let baseBDQE = localStorage.getItem("base_donnees_bdqe_global") || "{}"; let baseCCPMS = localStorage.getItem("base_donnees_ccpms_global") || "{}"; let baseAvenants = localStorage.getItem("base_donnees_avenants_global") || "[]"; let basePlanning = localStorage.getItem("base_donnees_planning_gantt") || "{}"; let baseSuivi = localStorage.getItem("base_donnees_suivi_avancement_travaux") || "{}";
+ let chartesIsolees = {}, bdqeIsolees = {}, ccpmsIsolees = {}, suiviIsolees = {}, planningIsolees = {};
+ try {
+ JSON.parse(baseProjets).forEach(p => {
+ if(localStorage.getItem(`charte_administrative_${p.id}`)) chartesIsolees[p.id] = JSON.parse(localStorage.getItem(`charte_administrative_${p.id}`));
+ if(localStorage.getItem(`bdqe_${p.id}`)) bdqeIsolees[p.id] = JSON.parse(localStorage.getItem(`bdqe_${p.id}`));
+ if(localStorage.getItem(`ccpms_${p.id}`)) ccpmsIsolees[p.id] = JSON.parse(localStorage.getItem(`ccpms_${p.id}`));
+ if(localStorage.getItem(`suivi_${p.id}`)) suiviIsolees[p.id] = JSON.parse(localStorage.getItem(`suivi_${p.id}`));
+ if(localStorage.getItem(`planning_${p.id}`)) planningIsolees[p.id] = JSON.parse(localStorage.getItem(`planning_${p.id}`));
+ });
+ } catch(e){}
+ let paquetGlobalData = { dateExport: new Date().toISOString(), projets: JSON.parse(baseProjets), utilisateurs: JSON.parse(baseUsers), ficheMaitrePapa: JSON.parse(masterFiche), bdqe: JSON.parse(baseBDQE), ccpms: JSON.parse(baseCCPMS), avenants: JSON.parse(baseAvenants), planning: JSON.parse(basePlanning), suiviAvancement: JSON.parse(baseSuivi), chartesIsolees, bdqeIsolees, ccpmsIsolees, suiviIsolees, planningIsolees };
+ let blob = new Blob([JSON.stringify(paquetGlobalData, null, 2)], { type: "application/json" });
+ let lien = document.createElement("a"); lien.href = URL.createObjectURL(blob); lien.download = `GENIE_CIVIL_PRO_DATABASE_MASTER.json`;
+ document.body.appendChild(lien); lien.click(); document.body.removeChild(lien);
+ alert("✅ Fichier global créé !");
+ }
 
-            let blockParent = document.createElement('div');
-            let estActif = idProjetActif == r.id ? 'active' : '';
-            let icone = r.type === 'PAPA' ? '🏢 ' : '💼 ';
-            let flecheHTML = "";
-            if (r.type === 'PAPA') {
-                flecheHTML = `<span class="project-arrow ${etatsDossiersReplies[r.id] ? 'collapsed':''}" onclick="toggleDossierAccordéon(${r.id}, event)">▼</span>`;
-            }
-            blockParent.className = `project-item ${estActif}`;
-            blockParent.innerHTML = `<span onclick="selectionnerProjetLigne(${r.id})">${icone}</span><span class="project-item-text" onclick="selectionnerProjetLigne(${r.id})">${r.nom}</span>${flecheHTML}`;
-            container.appendChild(blockParent);
-
-            if (r.type === 'PAPA') {
-                let childContainer = document.createElement('div');
-                childContainer.className = "child-container" + (etatsDossiersReplies[r.id] ? ' hidden' : '');
-                
-                listeProjetsGlobal.filter(p => p.type === 'ENFANT' && p.parentId == r.id).forEach(e => {
-                    if (userRoleActuel !== "admin" && userRoleActuel !== "cadres" && !userLotsAutorises.includes(String(e.id))) return;
-
-                    let divE = document.createElement('div');
-                    divE.className = `project-item project-child ${idProjetActif == e.id ? 'active' : ''}`;
-                    divE.innerHTML = `<span class="project-item-text" onclick="selectionnerProjetLigne(${e.id})">↳ ${e.nom}</span>`;
-                    childContainer.appendChild(divE);
-                });
-                container.appendChild(childContainer);
-            }
-        });
-    }
-    function toggleDossierAccordéon(papaId, event) { event.stopPropagation(); etatsDossiersReplies[papaId] = !etatsDossiersReplies[papaId]; renderProjetsSidebar(); }
-    function selectionnerProjetLigne(id) { idProjetActif = id; localStorage.setItem("id_projet_actif_lee", idProjetActif); renderProjetsSidebar(); chargerFicheProjetSelectionne(); }
-</script>
-<script>
-    function chargerFicheProjetSelectionne() {
-    if (!idProjetActif || listeProjetsGlobal.length === 0) return;
-    let p = listeProjetsGlobal.find(i => i.id == idProjetActif); if(!p) return;
-
-    // 1. AIGUILLAGE DYNAMIQUE : Lecture de la charte spécifique du lot actif
-    let charteSpecifique = localStorage.getItem(`charte_administrative_${idProjetActif}`);
-    let d = charteSpecifique ? JSON.parse(charteSpecifique) : {};
-
-    // 2. RECUPERATION DE L'HERITAGE SI C'EST UN ENFANT
-    let m = {};
-    if (p.type === "ENFANT" && p.parentId) {
-        let parentSauve = localStorage.getItem(`charte_administrative_${p.parentId}`);
-        if (parentSauve) m = JSON.parse(parentSauve);
-    }
-
-    // 3. Assemblage du titre combiné
-    let nomProjetAffiche = p.nom.toUpperCase();
-    if (p.type === "ENFANT" && p.parentId) {
-        let papa = listeProjetsGlobal.find(i => i.id == p.parentId);
-        let nomPere = papa ? papa.nom.toUpperCase() : (m.objet || "").toUpperCase();
-        nomProjetAffiche = `${nomPere} — (${p.nom.toUpperCase()})`;
-    }
-
-    // 4. Injection des vrais textes isolés (Valeur propre OU héritée du vrai père)
-    document.getElementById('txtProjetActifLabelTop').innerText = "PROJET SELECTIONNÉ : " + p.nom.toUpperCase();
-    document.getElementById('lblNomProjet').innerText = nomProjetAffiche;
-    document.getElementById('lblFin').innerText = d.financement || m.financement || "-";
-    document.getElementById('lblMO').innerText = d.mo || m.mo || "-";
-    document.getElementById('lblMOE').innerText = d.moe || m.moe || "-";
-    document.getElementById('lblEnt').innerText = d.entreprise || m.entreprise || "-";
-    document.getElementById('lblNumContrat').innerText = d.numContrat || m.numContrat || "-";
-    
-    let zoneNotes = document.getElementById('blocNotesAdmin');
-    if (zoneNotes) {
-        zoneNotes.value = p.bloc_notes || "";
-        if (userRoleActuel !== "admin" && userRoleActuel !== "cadres") {
-            zoneNotes.readOnly = true; zoneNotes.style.background = "#f1f5f9"; zoneNotes.placeholder = "🔒 Lecture seule";
-        } else { zoneNotes.readOnly = false; zoneNotes.style.background = "#fffdeb"; }
-    }
-
-    let imgView = document.getElementById('mapImgView'); let txtMapPlaceholder = document.getElementById('mapTxt');
-    if(p.photoEmplacement && p.photoEmplacement.trim() !== "") { imgView.src = p.photoEmplacement; imgView.style.display = "block"; txtMapPlaceholder.style.display = "none"; } else { imgView.style.display = "none"; txtMapPlaceholder.style.display = "block"; }
-    
-    lancerCalculsConsolidationFiche(p);
-}
-
-
-    function lancerCalculsConsolidationFiche(p) {
-        let totalInitial = 0; let totalAvenants = 0; let totalLignesSuivi = 0; let sumPhyRatio = 0; let mntMarchatTotal = 0; let mntRealiseTotal = 0; let dateMinProjet = null; let dateMaxProjet = null;
-        function extraire(prefixe, id) { return localStorage.getItem(`${prefixe}_${id}`) ? JSON.parse(localStorage.getItem(`${prefixe}_${id}`)) : []; }
-
-        let listeChantiersAAnalyse = [p];
-        if (p.type === "PAPA") { listeChantiersAAnalyse = listeChantiersAAnalyse.concat(listeProjetsGlobal.filter(item => item.type === "ENFANT" && item.parentId == p.id)); }
-
-        listeChantiersAAnalyse.forEach(c => {
-            let listB = extraire("bdqe", c.id); let listA = extraire("avenants", c.id); let listPl = extraire("planning", c.id); let listS = extraire("suivi", c.id);
-            listB.forEach(i => totalInitial += (i.total || 0)); listA.forEach(i => totalAvenants += (i.total_av || 0));
-            listPl.forEach(item => { if (!item.date_debut || !item.date_fin) return; let d1 = new Date(item.date_debut); let d2 = new Date(item.date_fin); if (!dateMinProjet || d1 < dateMinProjet) dateMinProjet = d1; if (!dateMaxProjet || d2 > dateMaxProjet) dateMaxProjet = d2; });
-            listS.forEach(item => { if (item.quantite_contrat > 0) { totalLignesSuivi++; let pL = Math.min((item.qte_realisee / item.quantite_contrat) * 100, 100); sumPhyRatio += pL; mntMarchatTotal += (item.total_contrat || 0); mntRealiseTotal += ((item.total_contrat || 0) * (pL / 100)); } });
-        });
-
-        document.getElementById('txtBudgetFiche').innerText = totalInitial > 0 ? (totalInitial + totalAvenants).toLocaleString('fr-FR', {minimumFractionDigits:2}) + " Ar" : "0,00 Ar";
-        let rowAvLbl = document.getElementById('txtDetailAvenantFiche');
-        if(totalAvenants !== 0) { rowAvLbl.innerText = `Dont Avenants : ${totalAvenants >= 0 ? '+':''}${totalAvenants.toLocaleString('fr-FR')} Ar`; rowAvLbl.style.display = "block"; } else { rowAvLbl.style.display = "none"; }
-
-        if (dateMinProjet && dateMaxProjet) {
-            let auj = new Date(); let dTotale = Math.ceil(Math.abs(dateMaxProjet - dateMinProjet) / (1000*60*60*24)) + 1; let dEcoulee = Math.ceil((auj - dateMinProjet) / (1000*60*60*24)); if(dEcoulee < 0) dEcoulee = 0; if(dEcoulee > dTotale) dEcoulee = dTotale;
-            document.getElementById('txtCalculCalendrier').innerHTML = `<b>${dEcoulee}/${dTotale} jours</b> (${Math.round((dEcoulee / dTotale) * 100)}%)<br><span style="font-size:11px;color:grey;">Période : ${dateMinProjet.toLocaleDateString('fr-FR')} — ${dateMaxProjet.toLocaleDateString('fr-FR')}</span>`;
-        } else { document.getElementById('txtCalculCalendrier').innerText = "Aucun calendrier planifié."; }
-
-        let tPhy = totalLignesSuivi > 0 ? (sumPhyRatio / totalLignesSuivi) : 0; let tFin = mntMarchatTotal > 0 ? (mntRealiseTotal / mntMarchatTotal) * 100 : 0;
-        document.getElementById('txtPctPhy').innerText = tPhy.toFixed(2) + "%"; document.getElementById('barPctPhy').style.width = tPhy + "%";
-        document.getElementById('txtPctFin').innerText = tFin.toFixed(2) + "%"; document.getElementById('barPctFin').style.width = tFin + "%";
-    }
-
-    function filtrerLaListeDesProjets() {
-        let motCle = document.getElementById('searchProjInput').value.toLowerCase().trim();
-        let items = document.querySelectorAll('#listeProjetsContainer .project-item');
-        let conteneursEnfants = document.querySelectorAll('#listeProjetsContainer .child-container');
-        if (!motCle) { renderProjetsSidebar(); return; }
-        conteneursEnfants.forEach(c => c.classList.remove('hidden'));
-        items.forEach(item => {
-            let texte = item.querySelector('.project-item-text').innerText.toLowerCase();
-            if(texte.includes(motCle)) item.style.display = "flex"; else item.style.display = "none";
-        });
-    }
-
-    function ouvrirVraiePageLien(fichierHtml) {
-        if(!idProjetActif) return alert("Sélectionnez d'abord un projet à gauche !");
-        localStorage.setItem("id_projet_en_cours_de_saisie_temporaire", idProjetActif);
-        window.location.href = fichierHtml; 
-    }
-        function deconnecterSessionConsole() {
-        if(confirm("🚪 Souhaitez-vous fermer votre session et reverrouiller la console ?")) {
-            localStorage.removeItem("session_securisee_active_gc");
-            localStorage.removeItem("session_user_login");
-            localStorage.removeItem("session_user_role");
-            localStorage.removeItem("session_user_lots");
-            window.location.href = "1_login.html";
-        }
-    }
-
-    function sauvegarderBlocNotesLocal(valeur) { let p = listeProjetsGlobal.find(i => i.id == idProjetActif); if(p) { p.bloc_notes = valeur; localStorage.setItem("classeur_maitre_projets_lee", JSON.stringify(listeProjetsGlobal)); } }
-    function sauvegarderPhotoEmplacement(input) { if (input.files && input.files) { let reader = new FileReader(); reader.onload = function(e) { let imgData = e.target.result; let p = listeProjetsGlobal.find(i => i.id == idProjetActif); if(p) { p.photoEmplacement = imgData; localStorage.setItem("classeur_maitre_projets_lee", JSON.stringify(listeProjetsGlobal)); } let idUniqueProjet = idProjetActif; let ccpmsSauve = localStorage.getItem(`ccpms_${idUniqueProjet}`); let listC = ccpmsSauve ? JSON.parse(ccpmsSauve) : []; listC.unshift({ id: Date.now(), categorie: "Photos", dateDoc: new Date().toISOString().substring(0,10), titre: `[Fiche Projet] - Emplacement : ${p.nom}`, description: `Plan mémorisé depuis la page d'accueil.`, fichierBrut: imgData, nomFichier: `Emplacement_${p.nom}.jpg`, typeMime: "image/jpeg" }); localStorage.setItem(`ccpms_${idUniqueProjet}`, JSON.stringify(listC)); document.getElementById('mapImgView').src = imgData; document.getElementById('mapImgView').style.display = "block"; document.getElementById('mapTxt').style.display = "none"; alert("📸 Succès !"); }; reader.readAsDataURL(input.files); } }
-// --- INTERCEPTEUR DE SYNCHRONISATION CLOUD POUR LES AGENTS ---
-const CONFIG_NOM_FICHIER_DRIVE = "GENIE_CIVIL_PRO_DATABASE_MASTER.json";
-
-window.addEventListener('DOMContentLoaded', () => {
-    aspirerDonneesCloudUniversel();
-});
-
-function aspirerDonneesCloudUniversel() {
-    let sauvegardeMiroir = localStorage.getItem("CLOUD_MIRROR_SNAPSHOT");
-    
-    // BLINDAGE : Si le cloud est vide mais qu'on a déjà des projets importés, on ne détruit rien !
-    if (!sauvegardeMiroir || sauvegardeMiroir === "{}") {
-        let projetsLocauxExistants = localStorage.getItem("classeur_maitre_projets_lee");
-        if (projetsLocauxExistants && projetsLocauxExistants !== "[]") {
-            console.log("⚠️ Cloud vide détecté, mais données locales présentes. Création du flux miroir...");
-            pousserModificationTerrainVersCloudMiroir();
-        }
-        return; 
-    }
-
-    try {
-        let paquet = JSON.parse(sauvegardeMiroir);
-        if (paquet && paquet.utilisateurs) {
-            localStorage.setItem("matrice_utilisateurs_rbac_gc", JSON.stringify(paquet.utilisateurs));
-            localStorage.setItem("classeur_maitre_projets_lee", JSON.stringify(paquet.projets));
-            localStorage.setItem("base_donnees_fiche_projet_maitre", JSON.stringify(paquet.ficheMaitrePapa));
-            
-            if (paquet.bdqe) localStorage.setItem("base_donnees_bdqe_global", JSON.stringify(paquet.bdqe));
-            if (paquet.ccpms) localStorage.setItem("base_donnees_ccpms_global", JSON.stringify(paquet.ccpms));
-            if (paquet.avenants) localStorage.setItem("base_donnees_avenants_global", JSON.stringify(paquet.avenants));
-            if (paquet.planning) localStorage.setItem("base_donnees_planning_gantt", JSON.stringify(paquet.planning));
-            if (paquet.suiviAvancement) localStorage.setItem("base_donnees_suivi_avancement_travaux", JSON.stringify(paquet.suiviAvancement));
-            
-            console.log("☁️ Accueil agent synchronisé avec succès sans perte.");
-            if (typeof chargerDonneesSessionAiguillage === 'function') chargerDonneesSessionAiguillage();
-        }
-    } catch (e) {
-        console.error("Erreur de dépaquetage sécurisé", e);
-    }
-}
-
-function pousserModificationTerrainVersCloudMiroir() {
-    let baseProjets = localStorage.getItem("classeur_maitre_projets_lee") || "[]";
-    let baseUsers = localStorage.getItem("matrice_utilisateurs_rbac_gc") || "[]";
-    let masterFiche = localStorage.getItem("base_donnees_fiche_projet_maitre") || "{}";
-    let baseBDQE = localStorage.getItem("base_donnees_bdqe_global") || "{}"; 
-    let baseCCPMS = localStorage.getItem("base_donnees_ccpms_global") || "{}";
-    let baseAvenants = localStorage.getItem("base_donnees_avenants_global") || "[]";
-    let basePlanning = localStorage.getItem("base_donnees_planning_gantt") || "{}";
-    let baseSuivi = localStorage.getItem("base_donnees_suivi_avancement_travaux") || "{}";
-
-    let paquetGlobalData = {
-        dateExport: new Date().toISOString(),
-        projets: JSON.parse(baseProjets),
-        utilisateurs: JSON.parse(baseUsers),
-        ficheMaitrePapa: JSON.parse(masterFiche),
-        bdqe: JSON.parse(baseBDQE),
-        ccpms: JSON.parse(baseCCPMS),
-        avenants: JSON.parse(baseAvenants),
-        planning: JSON.parse(basePlanning),
-        suiviAvancement: JSON.parse(baseSuivi)
-    };
-    
-    localStorage.setItem("CLOUD_MIRROR_SNAPSHOT", JSON.stringify(paquetGlobalData));
-    console.log("🚀 [Alignement] Vos modifications importées ont été verrouillées dans le flux global.");
-}
-// 1. EXPORTATION ABSOLUE DE TOUTES LES DONNÉES DE L'APPLICATION
-function exporterFichierCompletJsonAccueil() {
-    let baseProjets = localStorage.getItem("classeur_maitre_projets_lee") || "[]";
-    let baseUsers = localStorage.getItem("matrice_utilisateurs_rbac_gc") || "[]";
-    let masterFiche = localStorage.getItem("base_donnees_fiche_projet_maitre") || "{}";
-    
-    // Capture de l'ensemble des modules d'études et de suivi terrain
-    let baseBDQE = localStorage.getItem("base_donnees_bdqe_global") || "{}"; 
-    let baseCCPMS = localStorage.getItem("base_donnees_ccpms_global") || "{}";
-    let baseAvenants = localStorage.getItem("base_donnees_avenants_global") || "[]";
-    let basePlanning = localStorage.getItem("base_donnees_planning_gantt") || "{}";
-    let baseSuivi = localStorage.getItem("base_donnees_suivi_avancement_travaux") || "{}";
-
-    // Collecte des clés isolées par lot (Chartes, BDQE locaux, CCPMS locaux)
-    let chartesIsolees = {};
-    let bdqeIsolees = {};
-    let ccpmsIsolees = {};
-    let suiviIsolees = {};
-    let planningIsolees = {};
-
-    try {
-        let projets = JSON.parse(baseProjets);
-        projets.forEach(p => {
-            if(localStorage.getItem(`charte_administrative_${p.id}`)) {
-                chartesIsolees[p.id] = JSON.parse(localStorage.getItem(`charte_administrative_${p.id}`));
-            }
-            if(localStorage.getItem(`bdqe_${p.id}`)) {
-                bdqeIsolees[p.id] = JSON.parse(localStorage.getItem(`bdqe_${p.id}`));
-            }
-            if(localStorage.getItem(`ccpms_${p.id}`)) {
-                ccpmsIsolees[p.id] = JSON.parse(localStorage.getItem(`ccpms_${p.id}`));
-            }
-            if(localStorage.getItem(`suivi_${p.id}`)) {
-                suiviIsolees[p.id] = JSON.parse(localStorage.getItem(`suivi_${p.id}`));
-            }
-            if(localStorage.getItem(`planning_${p.id}`)) {
-                planningIsolees[p.id] = JSON.parse(localStorage.getItem(`planning_${p.id}`));
-            }
-        });
-    } catch(e) { console.error("Erreur de lecture des lots", e); }
-
-    // Compilation du paquet global unifié
-    let paquetGlobalData = {
-        dateExport: new Date().toISOString(),
-        provenance: "Console_Accueil_Master",
-        projets: JSON.parse(baseProjets),
-        utilisateurs: JSON.parse(baseUsers),
-        ficheMaitrePapa: JSON.parse(masterFiche),
-        bdqe: JSON.parse(baseBDQE),
-        ccpms: JSON.parse(baseCCPMS),
-        avenants: JSON.parse(baseAvenants),
-        planning: JSON.parse(basePlanning),
-        suiviAvancement: JSON.parse(baseSuivi),
-        chartesIsolees: chartesIsolees,
-        bdqeIsolees: bdqeIsolees,
-        ccpmsIsolees: ccpmsIsolees,
-        suiviIsolees: suiviIsolees,
-        planningIsolees: planningIsolees
-    };
-
-    // Génération du fichier téléchargeable
-    let chaineTexte = JSON.stringify(paquetGlobalData, null, 2);
-    let blob = new Blob([chaineTexte], { type: "application/json" });
-    let lien = document.createElement("a");
-    lien.href = URL.createObjectURL(blob);
-    lien.download = `GENIE_CIVIL_PRO_BACKUP_TOTAL_${new Date().toISOString().substring(0,10)}.json`;
-    document.body.appendChild(lien); 
-    lien.click(); 
-    document.body.removeChild(lien);
-}
-
-// 2. IMPORTATION ET RESTAURATION SÉCURISÉE DES DONNÉES INJECTÉES
-function importerFichierCompletJsonAccueil(input) {
-    if (input.files && input.files[0]) {
-        let reader = new FileReader();
-        reader.onload = function(e) {
-            try {
-                let paquet = JSON.parse(e.target.result);
-                
-                // Validation élémentaire de la structure du fichier
-                if (!paquet.projets || !paquet.utilisateurs) {
-                    return alert("⚠️ Fichier JSON invalide. Structure Génie Civil Pro non reconnue.");
-                }
-                
-                if (confirm("🚨 ATTENTION : L'importation de ce fichier va écraser la totalité de vos configurations, projets et suivis actuels sur cet appareil. Confirmer ?")) {
-                    
-                    // Restitution des structures globales
-                    localStorage.setItem("classeur_maitre_projets_lee", JSON.stringify(paquet.projets || []));
-                    localStorage.setItem("matrice_utilisateurs_rbac_gc", JSON.stringify(paquet.utilisateurs || []));
-                    localStorage.setItem("base_donnees_fiche_projet_maitre", JSON.stringify(paquet.ficheMaitrePapa || {}));
-                    
-                    // Restitution des modules d'études globaux
-                    if (paquet.bdqe) localStorage.setItem("base_donnees_bdqe_global", JSON.stringify(paquet.bdqe));
-                    if (paquet.ccpms) localStorage.setItem("base_donnees_ccpms_global", JSON.stringify(paquet.ccpms));
-                    if (paquet.avenants) localStorage.setItem("base_donnees_avenants_global", JSON.stringify(paquet.avenants));
-                    if (paquet.planning) localStorage.setItem("base_donnees_planning_gantt", JSON.stringify(paquet.planning));
-                    if (paquet.suiviAvancement) localStorage.setItem("base_donnees_suivi_avancement_travaux", JSON.stringify(paquet.suiviAvancement));
-                    
-                    // Restitution dynamique des clés locales spécifiques aux sous-lots
-                    if (paquet.chartesIsolees) {
-                        for (let id in paquet.chartesIsolees) localStorage.setItem(`charte_administrative_${id}`, JSON.stringify(paquet.chartesIsolees[id]));
-                    }
-                    if (paquet.bdqeIsolees) {
-                        for (let id in paquet.bdqeIsolees) localStorage.setItem(`bdqe_${id}`, JSON.stringify(paquet.bdqeIsolees[id]));
-                    }
-                    if (paquet.ccpmsIsolees) {
-                        for (let id in paquet.ccpmsIsolees) localStorage.setItem(`ccpms_${id}`, JSON.stringify(paquet.ccpmsIsolees[id]));
-                    }
-                    if (paquet.suiviIsolees) {
-                        for (let id in paquet.suiviIsolees) localStorage.setItem(`suivi_${id}`, JSON.stringify(paquet.suiviIsolees[id]));
-                    }
-                    if (paquet.planningIsolees) {
-                        for (let id in paquet.planningIsolees) localStorage.setItem(`planning_${id}`, JSON.stringify(paquet.planningIsolees[id]));
-                    }
-
-                    // Enclenchement de la synchronisation cloud miroir locale pour éviter les décalages
-                    localStorage.setItem("CLOUD_MIRROR_SNAPSHOT", JSON.stringify(paquet));
-
-                    alert("✅ Base de données totale synchronisée et restaurée avec succès ! L'application va s'actualiser."); 
-                    window.location.reload();
-                }
-            } catch (err) { 
-                alert("❌ Erreur critique lors du décodage ou de la lecture du fichier JSON."); 
-                console.error(err);
-            }
-        };
-        reader.readAsText(input.files[0]);
-    }
-}
-
+ function importerFichierCompletJsonAccueil(input) {
+ if (input.files && input.files) {
+ let reader = new FileReader();
+ reader.onload = function(e) {
+ try {
+ let paquet = JSON.parse(e.target.result);
+ if (!paquet.projets || !paquet.utilisateurs) return alert("⚠️ Fichier invalide.");
+ if (confirm("🚨 Tout écraser ?")) {
+ localStorage.setItem("classeur_maitre_projets_lee", JSON.stringify(paquet.projets)); localStorage.setItem("matrice_utilisateurs_rbac_gc", JSON.stringify(paquet.utilisateurs)); localStorage.setItem("base_donnees_fiche_projet_maitre", JSON.stringify(paquet.ficheMaitrePapa));
+ if (paquet.bdqe) localStorage.setItem("base_donnees_bdqe_global", JSON.stringify(paquet.bdqe));
+ if (paquet.ccpms) localStorage.setItem("base_donnees_ccpms_global", JSON.stringify(paquet.ccpms));
+ if (paquet.avenants) localStorage.setItem("base_donnees_avenants_global", JSON.stringify(paquet.avenants));
+ if (paquet.planning) localStorage.setItem("base_donnees_planning_gantt", JSON.stringify(paquet.planning));
+ if (paquet.suiviAvancement) localStorage.setItem("base_donnees_suivi_avancement_travaux", JSON.stringify(paquet.suiviAvancement));
+ if (paquet.chartesIsolees) { for (let id in paquet.chartesIsolees) localStorage.setItem(`charte_administrative_${id}`, JSON.stringify(paquet.chartesIsolees[id])); }
+ if (paquet.bdqeIsolees) { for (let id in paquet.bdqeIsolees) localStorage.setItem(`bdqe_${id}`, JSON.stringify(paquet.bdqeIsolees[id])); }
+ if (paquet.ccpmsIsolees) { for (let id in paquet.ccpmsIsolees) localStorage.setItem(`ccpms_${id}`, JSON.stringify(paquet.ccpmsIsolees[id])); }
+ if (paquet.suiviIsolees) { for (let id in paquet.suiviIsolees) localStorage.setItem(`suivi_${id}`, JSON.stringify(paquet.suiviIsolees[id])); }
+ if (paquet.planningIsolees) { for (let id in paquet.planningIsolees) localStorage.setItem(`planning_${id}`, JSON.stringify(paquet.planningIsolees[id])); }
+ alert("✅ Réussite !"); window.location.reload();
+ }
+ } catch (err) { alert("❌ Erreur de lecture."); }
+ };
+ reader.readAsText(input.files);
+ }
+ }
 </script>
 </body>
 </html>
