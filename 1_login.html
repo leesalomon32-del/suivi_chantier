@@ -117,40 +117,37 @@
             .catch(err => console.error("Erreur SW", err));
         }
     });
-    function importerFichierClasseurJsonManuel(input) {
-        if (input.files && input.files[0]) {
-            let reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    let paquet = JSON.parse(e.target.result);
-                    if (!paquet.projets || !paquet.utilisateurs) return alert("⚠️ Fichier invalide.");
-                    if (confirm("⚠️ Écraser les données locales de cet appareil ?")) {
-                        localStorage.setItem("classeur_maitre_projets_lee", JSON.stringify(paquet.projets || []));
-                        localStorage.setItem("matrice_utilisateurs_rbac_gc", JSON.stringify(paquet.utilisateurs || []));
-                        localStorage.setItem("base_donnees_fiche_projet_maitre", JSON.stringify(paquet.ficheMaitrePapa || {}));
-                        if (paquet.chartesIsolees) {
-                            for (let idLot in paquet.chartesIsolees) {
-                                localStorage.setItem(`charte_administrative_${idLot}`, JSON.stringify(paquet.chartesIsolees[idLot]));
-                            }
-                        }
-                        localStorage.setItem("base_donnees_bdqe_global", JSON.stringify(paquet.bdqe || {}));
-                        localStorage.setItem("base_donnees_ccpms_global", JSON.stringify(paquet.ccpms || {}));
-                        localStorage.setItem("base_donnees_avenants_global", JSON.stringify(paquet.avenants || []));
-                        localStorage.setItem("base_donnees_planning_gantt", JSON.stringify(paquet.planning || {}));
-                        localStorage.setItem("base_donnees_suivi_avancement_travaux", JSON.stringify(paquet.suiviAvancement || {}));
-                        if (paquet.donneesParProjet) {
-                            for (let cle in paquet.donneesParProjet) {
-                                localStorage.setItem(cle, JSON.stringify(paquet.donneesParProjet[cle]));
-                            }
-                        }
-                        alert("✅ Importation réussie !");
-                        window.location.reload();
-                    }
-                } catch (err) { alert("❌ Erreur de lecture."); }
-            };
-            reader.readAsText(input.files[0]);
-        }
-    }
+    function importerFichierClasseurJsonLocal(input) {
+ if (input.files && input.files[0]) {
+ let reader = new FileReader();
+ reader.onload = function(e) {
+ try {
+ let paquet = JSON.parse(e.target.result);
+ if (!paquet.projets || !paquet.utilisateurs) return alert("⚠️ Fichier invalide.");
+ if (confirm("🚨 ATTENTION : Cela va écraser TOUTES vos données actuelles. Confirmer ?")) {
+ localStorage.setItem("classeur_maitre_projets_lee", JSON.stringify(paquet.projets));
+ localStorage.setItem("matrice_utilisateurs_rbac_gc", JSON.stringify(paquet.utilisateurs));
+ localStorage.setItem("base_donnees_fiche_projet_maitre", JSON.stringify(paquet.ficheMaitrePapa));
+ 
+ if (paquet.bdqe) localStorage.setItem("base_donnees_bdqe_global", JSON.stringify(paquet.bdqe));
+ if (paquet.ccpms) localStorage.setItem("base_donnees_ccpms_global", JSON.stringify(paquet.ccpms));
+ if (paquet.avenants) localStorage.setItem("base_donnees_avenants_global", JSON.stringify(paquet.avenants));
+ if (paquet.planning) localStorage.setItem("base_donnees_planning_gantt", JSON.stringify(paquet.planning));
+ if (paquet.suiviAvancement) localStorage.setItem("base_donnees_suivi_avancement_travaux", JSON.stringify(paquet.suiviAvancement));
+
+ if (paquet.chartesIsolees) { for (let id in paquet.chartesIsolees) localStorage.setItem(`charte_administrative_${id}`, JSON.stringify(paquet.chartesIsolees[id])); }
+ if (paquet.bdqeIsolees) { for (let id in paquet.bdqeIsolees) localStorage.setItem(`bdqe_${id}`, JSON.stringify(paquet.bdqeIsolees[id])); }
+ if (paquet.ccpmsIsolees) { for (let id in paquet.ccpmsIsolees) localStorage.setItem(`ccpms_${id}`, JSON.stringify(paquet.ccpmsIsolees[id])); }
+ if (paquet.suiviIsolees) { for (let id in paquet.suiviIsolees) localStorage.setItem(`suivi_${id}`, JSON.stringify(paquet.suiviIsolees[id])); }
+ if (paquet.planningIsolees) { for (let id in paquet.planningIsolees) localStorage.setItem(`planning_${id}`, JSON.stringify(paquet.planningIsolees[id])); }
+
+ alert("✅ Restauration locale réussie !"); window.location.reload();
+ }
+ } catch (err) { alert("❌ Erreur de lecture du fichier JSON."); }
+ };
+ reader.readAsText(input.files[0]);
+ }
+ }
 </script>
 </body>
 </html>
