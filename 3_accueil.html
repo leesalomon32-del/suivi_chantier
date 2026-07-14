@@ -178,25 +178,23 @@
  { id: 102, nom: "Lot 1 - Arrondissement 4", type: "ENFANT", parentId: 101, photoEmplacement: "", bloc_notes: "" },
  { id: 103, nom: "Lot 2 - Arrondissement 5", type: "ENFANT", parentId: 101, photoEmplacement: "", bloc_notes: "" }
  ];
- localStorage.setItem("classeur_maitre_projets_lee", JSON.stringify(listeProjetsGlobal));
- }
- // CODE CORRIGÉ :
-// On regarde d'abord si on revient d'une page de saisie (comme le planning)
-let idTemporaire = localStorage.getItem("id_projet_en_cours_de_saisie_temporaire");
+     // CODE CORRIGÉ :
+    // On regarde d'abord si on revient d'une page de saisie (comme le planning)
+    let idTemporaire = localStorage.getItem("id_projet_en_cours_de_saisie_temporaire");
 
-if (idTemporaire) {
-    idProjetActif = idTemporaire;
-    // On synchronise la clé principale de l'accueil pour rester sur le bon projet
-    localStorage.setItem("id_projet_actif_lee", idProjetActif);
-} else {
-    // Sinon, comportement classique
-    idProjetActif = localStorage.getItem("id_projet_actif_lee") || "101";
-}
+    if (idTemporaire) {
+        idProjetActif = idTemporaire;
+        // On synchronise la clé principale de l'accueil pour rester sur le bon projet
+        localStorage.setItem("id_projet_actif_lee", idProjetActif);
+    } else {
+        // Sinon, comportement classique
+        idProjetActif = localStorage.getItem("id_projet_actif_lee") || "101";
+    }
 
- listeProjetsGlobal.forEach(p => { if(p.type === 'PAPA') etatsDossiersReplies[p.id] = false; });
- renderProjetsSidebar();
- chargerFicheProjetSelectionne();
- };
+    listeProjetsGlobal.forEach(p => { if(p.type === 'PAPA') etatsDossiersReplies[p.id] = false; });
+    renderProjetsSidebar();
+    chargerFicheProjetSelectionne();
+    }
  function renderProjetsSidebar() {
  let container = document.getElementById('listeProjetsContainer'); container.innerHTML = "";
  let racines = listeProjetsGlobal.filter(p => p.type === 'PAPA' || p.type === 'CLASSIQUE');
