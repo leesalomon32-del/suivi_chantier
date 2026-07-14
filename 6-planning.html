@@ -246,7 +246,7 @@ function rechargerTout() {
   trierDonnees(); 
   genererSegments(); 
   afficherTableauPlanning(); 
-  calculerRecapitulatifsGantt(); // Alignement orthographique strict
+  calculerRecapitulatifsGantt(); 
   
   // Gravure définitive et isolée dans la mémoire pour le projet actif
   localStorage.setItem(cleStockagePlanning, JSON.stringify(listePlanning));
@@ -293,6 +293,37 @@ function executerHackFlemmard() {
  }
 }
 
+function genererSegments() {
+ try {
+  let uniqueOuvrages = ["TOUS", ...new Set(listePlanning.map(item => item.ouvrage).filter(Boolean))];
+  let uniqueStructures = ["TOUS", ...new Set(listePlanning.map(item => item.structure).filter(Boolean))];
+  
+  let containerOuvrage = document.getElementById('segmentOuvrages'); 
+  if (containerOuvrage) {
+   containerOuvrage.innerHTML = "";
+   uniqueOuvrages.forEach(ouv => { 
+    let btn = document.createElement('button'); 
+    btn.className = `segment-btn ${filtreOuvrageActif === ouv ? 'active' : ''}`; 
+    btn.innerText = ouv; 
+    btn.onclick = () => { filtreOuvrageActif = ouv; rechargerTout(); }; 
+    containerOuvrage.appendChild(btn); 
+   });
+  }
+  
+  let containerStructure = document.getElementById('segmentStructures'); 
+  if (containerStructure) {
+   containerStructure.innerHTML = "";
+   uniqueStructures.forEach(str => { 
+    let btn = document.createElement('button'); 
+    btn.className = `segment-btn ${filtreStructureActif === str ? 'active' : ''}`; 
+    btn.innerText = str; 
+    btn.onclick = () => { filtreStructureActif = str; rechargerTout(); }; 
+    containerStructure.appendChild(btn); 
+   });
+  }
+ } catch (err) { console.error("Erreur Segments:", err); }
+}
+
 function afficherTableauPlanning() {
  let tbody = document.getElementById('tbodyPlanning'); if(!tbody) return; tbody.innerHTML = "";
  listePlanning.forEach((item, index) => {
@@ -330,6 +361,6 @@ function calculerRecapitulatifsGantt() {
 </script>
 </body>
 </html>
-    
+
     
 
