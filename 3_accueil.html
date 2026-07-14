@@ -207,24 +207,47 @@
  }
 
  function importerFichierClasseurJsonAccueil(input) {
-  if (input.files && input.files) {
-   let reader = new FileReader();
-   reader.onload = function(e) {
-    try {
-     let paquet = JSON.parse(e.target.result);
-     if (!paquet.projets || !paquet.utilisateurs) return alert(" ⚠️ Fichier invalide.");
-     if (confirm(" ⚠️ ATTENTION : Cela va écraser vos configurations locales. Confirmer ?")) {
-      localStorage.setItem("classeur_maitre_projets_lee", JSON.stringify(paquet.projets));
-      localStorage.setItem("matrice_utilisateurs_rbac_gc", JSON.stringify(paquet.utilisateurs));
-      localStorage.setItem("base_donnees_fiche_projet_maitre", JSON.stringify(paquet.ficheMaitrePapa));
-      if (paquet.chartesIsolees) { for (let idLot in paquet.chartesIsolees) { localStorage.setItem(`charte_administrative_${idLot}`, JSON.stringify(paquet.chartesIsolees[idLot])); } }
-      alert(" 📥 Synchronisation Manuelle Réussie !"); window.location.reload();
-     }
-    } catch (err) { alert(" ❌ Erreur de lecture."); }
-   };
-   reader.readAsText(input.files);
-  }
+ if (input.files && input.files[0]) {
+  let reader = new FileReader();
+  reader.onload = async function(e) {
+   try {
+    let paquet = JSON.parse(e.target.result);
+    // Vérification universelle de la validité du fichier génie civil
+    if (!paquet.projets && !paquet.classeur_maitre_projets_lee) {
+     return alert(" ⚠️ Fichier JSON invalide pour Génie Civil Pro.");
+    }
+    
+    if (confirm(" ⚠️ ATTENTION : Valider la synchronisation forcée vers le Cloud Supabase ?")) {
+     // Restitution adaptative des projets
+     let projets = paquet.projets || paquet.classeur_maitre_projets_lee;
+     localStorage.setItem("classeur_maitre_projets_lee", JSON.stringify(projets));
+     
+     // Restitution adaptative des utilisateurs
+     if (paquet.utilisateurs) localStorage.setItem("matrice_utilisateurs_rbac_gc", JSON.stringify(paquet.utilisateurs));
+     if (paquet.ficheMaitrePapa) localStorage.setItem("base_donnees_fiche_projet_maitre", JSON.stringify(paquet.ficheMaitrePapa));
+     
+     // Restitution de toutes les enveloppes de sous-lots isolés (BDQE, Suivi, Chartes)
+     if (paquet.chartesIsolees) { for (let id in paquet.chartesIsolees) localStorage.setItem(`charte_administrative_${id}`, JSON.stringify(paquet.chartesIsolees[id])); }
+     if (paquet.bdqeIsolees) { for (let id in paquet.bdqeIsolees) localStorage.setItem(`bdqe_${id}`, JSON.stringify(paquet.bdqeIsolees[id])); }
+     if (paquet.ccpmsIsolees) { for (let id in paquet.ccpmsIsolees) localStorage.setItem(`ccpms_${id}`, JSON.stringify(paquet.ccpmsIsolees[id])); }
+     if (paquet.suiviIsolees) { for (let id in paquet.suiviIsolees) localStorage.setItem(`suivi_${id}`, JSON.stringify(paquet.suiviIsolees[id])); }
+     if (paquet.planningIsolees) { for (let id in paquet.planningIsolees) localStorage.setItem(`planning_${id}`, JSON.stringify(paquet.planningIsolees[id])); }
+     
+     // Propulsion immédiate vers le Cloud Supabase
+     await pousserDonneesVersSupabase();
+     
+     alert(" 📥 Base globale poussée sur Supabase avec succès !");
+     window.location.reload();
+    }
+   } catch (err) { 
+    console.error(err);
+    alert(" ❌ Erreur de lecture structurelle du fichier JSON."); 
+   }
+  };
+  reader.readAsText(input.files[0]);
  }
+}
+
  async function aspirerDonneesDepuisSupabase() {
   try {
    const { data, error } = await supabaseClient.from('app_database').select('data').eq('id', 1).single();
