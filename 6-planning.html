@@ -4,17 +4,8 @@
  <meta charset="UTF-8">
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
  <title>Génie Civil Pro - Planning Gantt Isolé</title>
- 
- <!-- Connecteur Cloud Supabase Officiel -->
- <!-- Bibliothèque Cloud Officielle -->
-<!-- Serveur Cloudflare ultra-stable et immunisé contre les blocages à Madagascar -->
-<script src="https://cloudflare.com"></script>
-<script>
- const SUPABASE_URL = "https://supabase.co";
- const SUPABASE_KEY = "sb_publishable_sgaqDZKA5v6LT128Pvon9w_HnziORIq";
- // Initialisation alignée du connecteur cloud
- const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-</script>
+ <!-- Connexion à notre brique de secours locale magique -->
+ <script src="config.js"></script>
  <style>
  :root {
  --primary-color: #1e3a8a;
@@ -58,219 +49,327 @@
 <body>
 <div class="container">
  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-  <h1 style="margin:0;"> Module 6 : Planification du Planning & Gantt 📅 Isolé</h1>
-  <button class="btn btn-secondary" onclick="window.location.href='3_accueil.html'">« Retour Accueil</button>
+ <h1 style="margin:0;"> Module 6 : Planification du Planning & Gantt 📅 Isolé</h1>
+ <button class="btn btn-secondary" onclick="window.location.href='3_accueil.html'">« Retour Accueil</button>
  </div>
+
+ <!-- SECTION : LE HACK DU FLEMMARD -->
  <div class="hack-box">
-  <div class="filter-title" style="margin-top:0; color:#b45309;"> Le 🚀 Hack du Flemmard : Planification Express par Ouvrage / Structure</div>
-  <div class="form-group">
-   <div class="form-field">
-    <label>Appliquer à l'échelle de :</label>
-    <select id="hackEchelle" onchange="actualiserOptionsHack()">
-     <option value="PROJET"> Tout ce Projet Unique 🌍</option>
-     <option value="OUVRAGE"> Un Ouvrage Spécifique 🧱</option>
-     <option value="STRUCTURE"> Une Structure de son Ouvrage 🏢</option>
-    </select>
-   </div>
-   <div class="form-field" id="fieldHackCible" style="display:none;"><label>Choisir la cible :</label><select id="hackCible" style="max-width:350px;"></select></div>
-   <div class="form-field"><label>Date de Début</label><input type="date" id="hackDebut"></div>
-   <div class="form-field"><label>Date de Fin</label><input type="date" id="hackFin"></div>
-   <div><button class="btn btn-warning" onclick="executerHackFlemmard()"> Injecter en Masse ⚡</button></div>
-  </div>
+ <div class="filter-title" style="margin-top:0; color:#b45309;"> Le Hack du Flemmard : Planification Express par Ouvrage / Structure 🚀</div>
+ <div class="form-group">
+ <div class="form-field">
+ <label>Appliquer à l'échelle de :</label>
+ <select id="hackEchelle" onchange="actualiserOptionsHack()">
+ <option value="PROJET"> Tout ce Projet Unique 🌍</option>
+ <option value="OUVRAGE"> Un Ouvrage Spécifique 🧱</option>
+ <option value="STRUCTURE"> Une Structure de son Ouvrage 🏢</option>
+ </select>
  </div>
+ <div class="form-field" id="fieldHackCible" style="display:none;"><label>Choisir la cible :</label><select id="hackCible" style="max-width:350px;"></select></div>
+ <div class="form-field"><label>Date de Début</label><input type="date" id="hackDebut"></div>
+ <div class="form-field"><label>Date de Fin</label><input type="date" id="hackFin"></div>
+ <div><button class="btn btn-warning" onclick="executerHackFlemmard()"> Injecter en Masse ⚡</button></div>
+ </div>
+ </div>
+
+ <!-- SECTION : FILTRES PAR SEGMENTS -->
  <div class="filter-section">
-  <div class="filter-title"> Segment : Filtrer l'affichage par 🔍 Ouvrage</div><div class="segment-container" id="segmentOuvrages"></div>
-  <div class="filter-title"> Segment : Filtrer l'affichage par 🔍 Structure</div><div class="segment-container" id="segmentStructures"></div>
+ <div class="filter-title"> Segment : Filtrer l'affichage par Ouvrage 🔍</div><div class="segment-container" id="segmentOuvrages"></div>
+ <div class="filter-title"> Segment : Filtrer l'affichage par Structure 🔍</div><div class="segment-container" id="segmentStructures"></div>
  </div>
+
+ <!-- GRANDE TABLE DES TÂCHES -->
  <div class="table-responsive">
-  <table id="tablePlanning">
-   <thead><tr><th>Ouvrage</th><th>Code</th><th>Structure</th><th>Désignation</th><th>Date Début</th><th>Date Fin</th><th>Durée</th><th style="width:260px; text-align:center;">Aperçu Gantt Visuel</th></tr></thead>
-   <tbody id="tbodyPlanning"></tbody>
-  </table>
+ <table id="tablePlanning">
+ <thead>
+ <tr>
+ <th>Ouvrage</th>
+ <th>Code</th>
+ <th>Structure</th>
+ <th>Désignation</th>
+ <th>Date Début</th>
+ <th>Date Fin</th>
+ <th>Durée</th>
+ <th style="width:260px; text-align:center;">Aperçu Gantt Visuel</th>
+ </tr>
+ </thead>
+ <tbody id="tbodyPlanning"></tbody>
+ </table>
  </div>
+
+ <!-- BILANS ET CALENDRIER EN BAS DE PAGE -->
  <div class="recap-box">
-  <div class="recap-card">
-   <h3> Durée Calendaire par Ouvrage 🧱</h3>
-   <table><thead><tr><th>Ouvrage</th><th>Date Début</th><th>Date Fin</th><th>Durée Totale</th></tr></thead><tbody id="tbodyRecapOuvrage"></tbody></table>
-  </div>
-  <div class="recap-card" style="display: flex; flex-direction: column; justify-content: center;">
-   <div class="total-block">
-    <div style="color:var(--primary-color); font-size:14px; margin-bottom:5px;"> CALENDRIER GLOBAL DU PROJET : 🌍</div>
-    <div id="recapProjetGlobal" style="font-size:18px;">Période : Non planifiée</div>
-   </div>
-  </div>
+ <div class="recap-card">
+ <h3> Durée Calendaire par Ouvrage 🧱</h3>
+ <table><thead><tr><th>Ouvrage</th><th>Date Début</th><th>Date Fin</th><th>Durée Totale</th></tr></thead><tbody id="tbodyRecapOuvrage"></tbody></table>
+ </div>
+ <div class="recap-card" style="display: flex; flex-direction: column; justify-content: center;">
+ <div class="total-block">
+ <div style="color:var(--primary-color); font-size:14px; margin-bottom:5px;">CALENDRIER GLOBAL DU PROJET : 🌍</div>
+ <div id="recapProjetGlobal" style="font-size:18px;">Période : Non planifiée</div>
+ </div>
+ </div>
  </div>
 </div>
 <script>
- let listePlanning = [];
- let filtreOuvrageActif = "TOUS";
- let filtreStructureActif = "TOUS";
- 
- let idProjetCourant = localStorage.getItem("id_projet_actif_lee") || "101";
- let cleStockagePlanning = `planning_${idProjetCourant}`;
- let cleStockageBDQE = `bdqe_${idProjetCourant}`;
- 
- // Fonction pour extraire un planning isolé depuis le gros paquet Cloud sans saturer la mémoire
-async function chargerPlanningDepuisCloud() {
- try {
-  const { data, error } = await supabaseClient.from('app_database').select('data').eq('id', 1).single();
-  if (error) throw error;
-  if (data && data.data) {
-   let paquet = data.data;
-   let planningsIsolees = paquet.planningIsolees || {};
-   
-   let bdqeInitial = localStorage.getItem(cleStockageBDQE);
-   let listeBaseBDQE = bdqeInitial ? JSON.parse(bdqeInitial) : [];
-   
-   // Si le planning de ce projet existe sur le Cloud, on le charge
-   if (planningsIsolees[idProjetCourant]) {
-    listePlanning = planningsIsolees[idProjetCourant];
-    listeBaseBDQE.forEach(baseItem => {
-     let existe = listePlanning.find(plItem => plItem.code_bdqe === baseItem.code_bdqe && plItem.designation === baseItem.designation);
-     if(!existe) { listePlanning.push({ ...baseItem, date_debut: "", date_fin: "", duree: 0 }); }
-    });
-   } else {
-    // Sinon, on l'initialise à partir du BDQE
-    listePlanning = listeBaseBDQE.map(item => { return { ...item, date_debut: "", date_fin: "", duree: 0 }; });
-   }
-   rechargerTout();
-  }
- } catch (err) { console.error("Erreur de téléchargement direct du planning:", err); }
+// =========================================================================
+// BLOC 3 : CORRECTIF DE CHARGEMENT ET D'HÉRITAGE DU BDQE EN LOCAL
+// =========================================================================
+
+let listePlanning = [];
+let filtreOuvrageActif = "TOUS";
+let filtreStructureActif = "TOUS";
+let idProjetCourant = localStorage.getItem("id_projet_actif_lee") || "101";
+let cleStockagePlanning = `planning_${idProjetCourant}`;
+let cleStockageBDQE = `bdqe_${idProjetCourant}`;
+
+// CORRECTIF BUG 1 : Chargement direct depuis le LocalStorage local
+function chargerPlanningLocalement() {
+    let bdqeInitial = localStorage.getItem(cleStockageBDQE);
+    let listeBaseBDQE = bdqeInitial ? JSON.parse(bdqeInitial) : [];
+    let planningSauve = localStorage.getItem(cleStockagePlanning);
+
+    if (planningSauve) {
+        listePlanning = JSON.parse(planningSauve);
+        
+        // Synchronisation adaptative : injecte les nouvelles tâches du BDQE si manquantes
+        listeBaseBDQE.forEach(baseItem => {
+            let existe = listePlanning.find(plItem => plItem.code_bdqe === baseItem.code_bdqe && plItem.designation === baseItem.designation);
+            if(!existe) { 
+                listePlanning.push({ ...baseItem, date_debut: "", date_fin: "", duree: 0 }); 
+            }
+        });
+    } else {
+        // Si le planning est tout neuf, on le crée en copiant les colonnes du BDQE
+        listePlanning = listeBaseBDQE.map(item => { 
+            return { ...item, date_debut: "", date_fin: "", duree: 0 }; 
+        });
+    }
+    rechargerTout();
 }
 
-window.onload = async function() {
- let userRoleActuel = localStorage.getItem("session_user_role") || "agents";
- let userLotsAutorises = [];
- try { userLotsAutorises = JSON.parse(localStorage.getItem("session_user_lots")) || []; } catch(e) {}
- 
- if (userRoleActuel === "agents") {
-  alert(" Accès Refusé : Privilèges requis insuffisants pour modifier le calendrier d'exécution. 🔒");
-  window.location.href = "3_accueil.html"; return;
- }
- 
- if (userRoleActuel === "cadres" || (userRoleActuel === "controle" && !userLotsAutorises.includes(String(idProjetCourant)))) {
-  let formSaisie = document.getElementById('formSaisieTache') || document.querySelector('.form-group') || document.getElementById('formPlanning');
-  if (formSaisie) formSaisie.style.display = 'none';
-  let alerte = document.createElement('div');
-  alerte.style.cssText = "background:#eff6ff; color:#1e40af; padding:10px; border-radius:6px; font-weight:bold; margin-bottom:15px; border:1px solid #bfdbfe; font-size:13px; max-width:1120px; margin: 10px auto;";
-  alerte.innerText = " Mode Consultation Uniquement (Lecture Seule 🔒 Calendrier Direction / Périmètre non affecté)";
-  if (formSaisie) formSaisie.parentNode.insertBefore(alerte, formSaisie); else document.body.insertBefore(alerte, document.body.firstChild);
-  let ths = document.querySelectorAll('table th'); if(ths.length > 0 && ths[ths.length - 1].innerText.includes('Actions')) { ths[ths.length - 1].style.display = 'none'; }
- }
- 
- // Lancement de l'aspiration Cloud directe au lieu de lire la mémoire locale saturée
- await chargerPlanningDepuisCloud();
- actualiserOptionsHack();
+// Lancement au démarrage de la page
+window.onload = function() {
+    let userRoleActuel = localStorage.getItem("session_user_role") || "agents";
+    let userLotsAutorises = [];
+    try { userLotsAutorises = JSON.parse(localStorage.getItem("session_user_lots")) || []; } catch(e) {}
+    
+    // Protection RBAC : expulsion si simple agent
+    if (userRoleActuel === "agents") {
+        alert("🔒 Accès Refusé : Privilèges requis insuffisants pour modifier le calendrier d'exécution.");
+        window.location.href = "3_accueil.html"; 
+        return;
+    }
+    
+    // Mode lecture seule pour la direction ou périmètre non affecté
+    if (userRoleActuel === "cadres" || (userRoleActuel === "controle" && !userLotsAutorises.includes(String(idProjetCourant)))) {
+        let formSaisie = document.querySelector('.hack-box');
+        if (formSaisie) formSaisie.style.display = 'none';
+        
+        let alerte = document.createElement('div');
+        alerte.style.cssText = "background:#eff6ff; color:#1e40af; padding:10px; border-radius:6px; font-weight:bold; margin-bottom:15px; border:1px solid #bfdbfe; font-size:13px; max-width:1120px; margin: 10px auto;";
+        alerte.innerText = "Mode Consultation Uniquement 🔒 (Lecture Seule Calendrier Direction / Périmètre non affecté)";
+        document.body.insertBefore(alerte, document.body.firstChild);
+        
+        // On masquera plus tard les inputs de date lors du rendu du tableau
+        window.modeLectureSeuleActive = true;
+    }
+    
+    // Déclenchement de notre nouvelle fonction de lecture locale
+    chargerPlanningLocalement();
+    actualiserOptionsHack();
 };
 
- function trierDonnees() {
-  listePlanning.sort((a, b) => {
-   let compOuvrage = a.ouvrage.localeCompare(b.ouvrage, 'fr', {sensitivity: 'base'}); if (compOuvrage !== 0) return compOuvrage;
-   let partsA = a.code_bdqe.split(/[\.,]/).map(Number); let partsB = b.code_bdqe.split(/[\.,]/).map(Number);
-   for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) { let numA = partsA[i] || 0; let numB = partsB[i] || 0; if (numA !== numB) return numA - numB; }
-   return 0;
-  });
- }
- function calculerDureeJours(debutStr, finStr) { if (!debutStr || !finStr) return 0; let d1 = new Date(debutStr); let d2 = new Date(finStr); if (d2 < d1) return 0; return Math.ceil(Math.abs(d2 - d1) / (1000 * 60 * 60 * 24)) + 1; }
- async function modifierDateLigne(index, champ, valeur) {
-  let item = listePlanning[index];
-  if (champ === 'debut') item.date_debut = valeur;
-  if (champ === 'fin') item.date_fin = valeur;
-  item.duree = calculerDureeJours(item.date_debut, item.date_fin);
-  rechargerTout();
-  // Sauvegarde instantanée dans le Cloud lors du changement d'une date ligne par ligne
-  await pousserPlanningVersSupabase();
- }
-
- function actualiserOptionsHack() {
-  let echelle = document.getElementById('hackEchelle').value; let fieldCible = document.getElementById('fieldHackCible'); let selectCible = document.getElementById('hackCible');
-  if (echelle === "PROJET") { fieldCible.style.display = "none"; } 
-  else {
-   fieldCible.style.display = "flex"; selectCible.innerHTML = "";
-   if (echelle === "OUVRAGE") {
-    [...new Set(listePlanning.map(i => i.ouvrage).filter(Boolean))].forEach(o => { let opt = document.createElement('option'); opt.value = o; opt.innerText = o; selectCible.appendChild(opt); });
-   } else if (echelle === "STRUCTURE") {
-    let clesUniques = []; listePlanning.forEach(item => { if(item.ouvrage && item.structure) { let cle = item.ouvrage + " ||| " + item.structure; if(!clesUniques.includes(cle)) clesUniques.push(cle); } });
-    clesUniques.forEach(cle => { let fragments = cle.split(" ||| "); let opt = document.createElement('option'); opt.value = cle; opt.innerText = "[" + fragments[0] + "] -> " + fragments[1]; selectCible.appendChild(opt); });
-   }
-  }
- }
-
- async function executerHackFlemmard() {
-  try {
-   let echelle = document.getElementById('hackEchelle').value; let cible = document.getElementById('hackCible').value; let debut = document.getElementById('hackDebut').value; let fin = document.getElementById('hackFin').value;
-   if(!debut || !fin) { alert("⚠️ Dates manquantes !"); return; }
-   if(new Date(fin) < new Date(debut)) { alert("⚠️ Chronologie invalide."); return; }
-   
-   let compteur = 0;
-   listePlanning.forEach(item => {
-    let cibleOk = false;
-    if (echelle === "PROJET") cibleOk = true;
-    if (echelle === "OUVRAGE" && item.ouvrage === cible) cibleOk = true;
-    if (echelle === "STRUCTURE") { let frg = cible.split(" ||| "); if (frg.length >= 2 && item.ouvrage === frg[0] && item.structure === frg[1]) cibleOk = true; }
-    if (cibleOk) { item.date_debut = debut; item.date_fin = fin; item.duree = calculerDureeJours(debut, fin); compteur++; }
-   });
-   
-   rechargerTout();
-   
-   // ALIGNEMENT CRUCIAL : Propulsion forcée vers Supabase avant de quitter l'écran
-   await pousserPlanningVersSupabase();
-   
-   alert(" 🎉 Succès ! " + compteur + " lignes planifiées et synchronisées sur le Cloud ! ⚡");
-  } catch (err) { alert(" ❌ Erreur : " + err.message); }
- }
-
- function rechargerTout() {
- try {
-  trierDonnees(); 
-  genererSegments(); 
-  afficherTableauPlanning(); 
-  calculerRecapitulatifsGantt();
-  
-  // NOTE EXPERT : Désactivation de l'écriture locale saturée pour stopper le crash !
-  // Les données sont désormais propulsées directement et uniquement sur le Cloud.
- } catch (err) {
-  console.error("Erreur au rafraîchissement global:", err);
- }
+function trierDonnees() {
+    listePlanning.sort((a, b) => {
+        let compOuvrage = a.ouvrage.localeCompare(b.ouvrage, 'fr', {sensitivity: 'base'}); 
+        if (compOuvrage !== 0) return compOuvrage;
+        let partsA = a.code_bdqe.split(/[\.,]/).map(Number); 
+        let partsB = b.code_bdqe.split(/[\.,]/).map(Number);
+        for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) { 
+            let numA = partsA[i] || 0; let numB = partsB[i] || 0; 
+            if (numA !== numB) return numA - numB; 
+        }
+        return 0;
+    });
 }
 
+function calculerDureeJours(debutStr, finStr) { 
+    if (!debutStr || !finStr) return 0; 
+    let d1 = new Date(debutStr); 
+    let d2 = new Date(finStr); 
+    if (d2 < d1) return 0; 
+    return Math.ceil(Math.abs(d2 - d1) / (1000 * 60 * 60 * 24)) + 1; 
+}
+// =========================================================================
+// BLOC 4 : RENDU GRAPHIQUE GANTT ET INJECTION EN MASSE LOCAL
+// =========================================================================
 
- function genererSegments() {
-  let uniqueOuvrages = ["TOUS", ...new Set(listePlanning.map(item => item.ouvrage).filter(Boolean))];
-  let uniqueStructures = ["TOUS", ...new Set(listePlanning.map(item => item.structure).filter(Boolean))];
-  let containerOuvrage = document.getElementById('segmentOuvrages'); if (containerOuvrage) { containerOuvrage.innerHTML = ""; uniqueOuvrages.forEach(ouv => { let btn = document.createElement('button'); btn.className = `segment-btn ${filtreOuvrageActif === ouv ? 'active' : ''}`; btn.innerText = ouv; btn.onclick = () => { filtreOuvrageActif = ouv; rechargerTout(); }; containerOuvrage.appendChild(btn); }); }
-  let containerStructure = document.getElementById('segmentStructures'); if (containerStructure) { containerStructure.innerHTML = ""; uniqueStructures.forEach(str => { let btn = document.createElement('button'); btn.className = `segment-btn ${filtreStructureActif === str ? 'active' : ''}`; btn.innerText = str; btn.onclick = () => { filtreStructureActif = str; rechargerTout(); }; containerStructure.appendChild(btn); }); }
- }
+// Sauvegarde instantanée dans le LocalStorage lors du changement d'une date
+function modifierDateLigne(index, champ, valeur) {
+    let item = listePlanning[index];
+    if (champ === 'debut') item.date_debut = valeur;
+    if (champ === 'fin') item.date_fin = valeur;
+    item.duree = calculerDureeJours(item.date_debut, item.date_fin);
+    rechargerTout();
+}
 
- function afficherTableauPlanning() {
-  let tbody = document.getElementById('tbodyPlanning'); if(!tbody) return; tbody.innerHTML = "";
-  listePlanning.forEach((item, index) => {
-   if (filtreOuvrageActif !== "TOUS" && item.ouvrage !== filtreOuvrageActif) return;
-   if (filtreStructureActif !== "TOUS" && item.structure !== filtreStructureActif) return;
-   let tr = document.createElement('tr'); let ganttHTML = `<div style="color:grey; font-size:11px; text-align:center;">Dates manquantes</div>`;
-   if (item.date_debut && item.date_fin) { ganttHTML = `<div class="gantt-bar" style="width: 90%; margin: 0 auto;"> ${item.duree} ⏱ jrs</div>`; }
-   tr.innerHTML = `<td><b>${item.ouvrage}</b></td><td>${item.code_bdqe}</td><td>${item.structure}</td><td>${item.designation}</td><td><input type="date" class="input-date" value="${item.date_debut}" onchange="modifierDateLigne(${index}, 'debut', this.value)"></td><td><input type="date" class="input-date" value="${item.date_fin}" onchange="modifierDateLigne(${index}, 'fin', this.value)"></td><td style="font-weight:bold; color:var(--primary-color);">${item.duree > 0 ? item.duree + " jours" : ""}</td><td class="gantt-cell">${ganttHTML}</td>`;
-   tbody.appendChild(tr);
-  });
- }
+function actualiserOptionsHack() {
+    let echelle = document.getElementById('hackEchelle').value; 
+    let fieldCible = document.getElementById('fieldHackCible'); 
+    let selectCible = document.getElementById('hackCible');
+    if (echelle === "PROJET") { 
+        fieldCible.style.display = "none"; 
+    } else {
+        fieldCible.style.display = "flex"; 
+        selectCible.innerHTML = "";
+        if (echelle === "OUVRAGE") {
+            [...new Set(listePlanning.map(i => i.ouvrage).filter(Boolean))].forEach(o => { 
+                let opt = document.createElement('option'); opt.value = o; opt.innerText = o; selectCible.appendChild(opt); 
+            });
+        } else if (echelle === "STRUCTURE") {
+            let clesUniques = []; 
+            listePlanning.forEach(item => { 
+                if(item.ouvrage && item.structure) { 
+                    let cle = item.ouvrage + " ||| " + item.structure; 
+                    if(!clesUniques.includes(cle)) clesUniques.push(cle); 
+                } 
+            });
+            clesUniques.forEach(cle => { 
+                let fragments = cle.split(" ||| "); 
+                let opt = document.createElement('option'); opt.value = cle; opt.innerText = "[" + fragments[0] + "] -> " + fragments[1]; 
+                selectCible.appendChild(opt); 
+            });
+        }
+    }
+}
 
- function calculerRecapitulatifsGantt() {
-  let recap = {}; let pMin = null; let pMax = null;
-  listePlanning.forEach(item => {
-   if (!item.date_debut || !item.date_fin) return;
-   let dDeb = new Date(item.date_debut); let dFin = new Date(item.date_fin); if (!pMin || dDeb < pMin) pMin = dDeb; if (!pMax || dFin > pMax) pMax = dFin;
-   if (!recap[item.ouvrage]) recap[item.ouvrage] = { min: dDeb, max: dFin };
-   if (dDeb < recap[item.ouvrage].min) recap[item.ouvrage].min = dDeb; if (dFin > recap[item.ouvrage].max) recap[item.ouvrage].max = dFin;
-  });
-  let tbodyRecap = document.getElementById('tbodyRecapOuvrage'); if(!tbodyRecap) return; tbodyRecap.innerHTML = "";
-  for (let ouv in recap) {
-   let dur = Math.ceil(Math.abs(recap[ouv].max - recap[ouv].min) / (1000 * 60 * 60 * 24)) + 1;
-   let tr = document.createElement('tr'); tr.innerHTML = `<td><b>${ouv}</b></td><td>${recap[ouv].min.toLocaleDateString('fr-FR')}</td><td>${recap[ouv].max.toLocaleDateString('fr-FR')}</td><td style="font-weight:bold;color:green;">${dur} jours</td>`; tbodyRecap.appendChild(tr);
-  }
-  if (pMin && pMax) {
-   let totalProjetDuree = Math.ceil(Math.abs(pMax - pMin) / (1000 * 60 * 60 * 24)) + 1;
-   document.getElementById('recapProjetGlobal').innerHTML = ` Période : Du <b>${pMin.toLocaleDateString('fr-FR')}</b> au <b>${pMax.toLocaleDateString('fr-FR')}</b><br> Durée Globale : <span style="color:green;font-weight:bold;">${totalProjetDuree} jours</span>`;
-  } else { document.getElementById('recapProjetGlobal').innerText = "Période : Aucune tâche planifiée."; }
+// Outil d'injection en masse automatique sans bug cloud
+function executerHackFlemmard() {
+    try {
+        let echelle = document.getElementById('hackEchelle').value; 
+        let cible = document.getElementById('hackCible').value; 
+        let debut = document.getElementById('hackDebut').value; 
+        let fin = document.getElementById('hackFin').value;
+        
+        if(!debut || !fin) return alert("⚠️ Dates manquantes !");
+        if(new Date(fin) < new Date(debut)) return alert("⚠️ Chronologie invalide (la fin est avant le début).");
+        
+        let compteur = 0;
+        listePlanning.forEach(item => {
+            let cibleOk = false;
+            if (echelle === "PROJET") cibleOk = true;
+            if (echelle === "OUVRAGE" && item.ouvrage === cible) cibleOk = true;
+            if (echelle === "STRUCTURE") { 
+                let frg = cible.split(" ||| "); 
+                if (frg.length >= 2 && item.ouvrage === frg[0] && item.structure === frg[1]) cibleOk = true; 
+            }
+            if (cibleOk) { 
+                item.date_debut = debut; 
+                item.date_fin = fin; 
+                item.duree = calculerDureeJours(debut, fin); 
+                compteur++; 
+            }
+        });
+        
+        rechargerTout();
+        alert("🎉 Succès ! " + compteur + " tâches planifiées en mémoire locale !");
+    } catch (err) { 
+        alert("❌ Erreur : " + err.message); 
+    }
+}
+
+function rechargerTout() {
+    trierDonnees(); 
+    genererSegments(); 
+    afficherTableauPlanning(); 
+    calculerRecapitulatifsGantt();
+    
+    // Rangement local et sécurisé
+    rangerDonneeSecurisee(cleStockagePlanning, JSON.stringify(listePlanning));
+}
+
+function genererSegments() {
+    let uniqueOuvrages = ["TOUS", ...new Set(listePlanning.map(item => item.ouvrage).filter(Boolean))];
+    let uniqueStructures = ["TOUS", ...new Set(listePlanning.map(item => item.structure).filter(Boolean))];
+    
+    let containerOuvrage = document.getElementById('segmentOuvrages'); 
+    if (containerOuvrage) { 
+        containerOuvrage.innerHTML = ""; 
+        uniqueOuvrages.forEach(ouv => { 
+            let btn = document.createElement('button'); btn.className = `segment-btn ${filtreOuvrageActif === ouv ? 'active' : ''}`; btn.innerText = ouv; btn.onclick = () => { filtreOuvrageActif = ouv; rechargerTout(); }; containerOuvrage.appendChild(btn); 
+        }); 
+    }
+    let containerStructure = document.getElementById('segmentStructures'); 
+    if (containerStructure) { 
+        containerStructure.innerHTML = ""; 
+        uniqueStructures.forEach(str => { 
+            let btn = document.createElement('button'); btn.className = `segment-btn ${filtreStructureActif === str ? 'active' : ''}`; btn.innerText = str; btn.onclick = () => { filtreStructureActif = str; rechargerTout(); }; containerStructure.appendChild(btn); 
+        }); 
+    }
+}
+
+// Dessine le tableau avec les barres graphiques Gantt
+function afficherTableauPrincipal() { // Nom forcé pour correspondre à ton render d'origine
+    let tbody = document.getElementById('tbodyPlanning'); 
+    if(!tbody) return; 
+    tbody.innerHTML = "";
+    
+    listePlanning.forEach((item, index) => {
+        if (filtreOuvrageActif !== "TOUS" && item.ouvrage !== filtreOuvrageActif) return;
+        if (filtreStructureActif !== "TOUS" && item.structure !== filtreStructureActif) return;
+        
+        let tr = document.createElement('tr'); 
+        let ganttHTML = `<div style="color:grey; font-size:11px; text-align:center;">Dates manquantes</div>`;
+        if (item.date_debut && item.date_fin) { 
+            ganttHTML = `<div class="gantt-bar" style="width: 90%; margin: 0 auto;">⏱️ ${item.duree} jrs</div>`; 
+        }
+        
+        // Si le mode lecture seule est activé pour les cadres, on bloque les champs date
+        let désactivé = window.modeLectureSeuleActive ? "disabled style='background:#f1f5f9; border:none;'" : "";
+        
+        tr.innerHTML = `
+            <td><b>${item.ouvrage}</b></td>
+            <td>${item.code_bdqe}</td>
+            <td>${item.structure}</td>
+            <td>${item.designation}</td>
+            <td><input type="date" class="input-date" value="${item.date_debut}" ${désactivé} onchange="modifierDateLigne(${index}, 'debut', this.value)"></td>
+            <td><input type="date" class="input-date" value="${item.date_fin}" ${désactivé} onchange="modifierDateLigne(${index}, 'fin', this.value)"></td>
+            <td style="font-weight:bold; color:var(--primary-color);">${item.duree > 0 ? item.duree + " jours" : ""}</td>
+            <td class="gantt-cell">${ganttHTML}</td>`;
+        tbody.appendChild(tr);
+    });
+}
+// Alias universel pour s'aligner avec tes fonctions d'affichage
+function afficherTableauPlanning() { afficherTableauPrincipal(); }
+
+function calculerRecapitulatifsGantt() {
+    let recap = {}; let pMin = null; let pMax = null;
+    listePlanning.forEach(item => {
+        if (!item.date_debut || !item.date_fin) return;
+        let dDeb = new Date(item.date_debut); let dFin = new Date(item.date_fin); 
+        if (!pMin || dDeb < pMin) pMin = dDeb; 
+        if (!pMax || dFin > pMax) pMax = dFin;
+        if (!recap[item.ouvrage]) recap[item.ouvrage] = { min: dDeb, max: dFin };
+        if (dDeb < recap[item.ouvrage].min) recap[item.ouvrage].min = dDeb; 
+        if (dFin > recap[item.ouvrage].max) recap[item.ouvrage].max = dFin;
+    });
+    
+    let tbodyRecap = document.getElementById('tbodyRecapOuvrage'); 
+    if(!tbodyRecap) return; 
+    tbodyRecap.innerHTML = "";
+    for (let ouv in recap) {
+        let dur = Math.ceil(Math.abs(recap[ouv].max - recap[ouv].min) / (1000 * 60 * 60 * 24)) + 1;
+        let tr = document.createElement('tr'); 
+        tr.innerHTML = `<td><b>${ouv}</b></td><td>${recap[ouv].min.toLocaleDateString('fr-FR')}</td><td>${recap[ouv].max.toLocaleDateString('fr-FR')}</td><td style="font-weight:bold;color:green;">${dur} jours</td>`; 
+        tbodyRecap.appendChild(tr);
+    }
+    if (pMin && pMax) {
+        let totalProjetDuree = Math.ceil(Math.abs(pMax - pMin) / (1000 * 60 * 60 * 24)) + 1;
+        document.getElementById('recapProjetGlobal').innerHTML = `Période : Du <b>${pMin.toLocaleDateString('fr-FR')}</b> au <b>${pMax.toLocaleDateString('fr-FR')}</b><br>Durée Globale : <span style="color:green;font-weight:bold;">${totalProjetDuree} jours</span>`;
+    } else { 
+        document.getElementById('recapProjetGlobal').innerText = "Période : Aucune tâche planifiée."; 
+    }
 }
 </script>
 </body>
