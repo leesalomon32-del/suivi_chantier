@@ -8,6 +8,7 @@
  <!-- Connexion sécurisée au Cloud Supabase -->
  <!-- Bibliothèque Supabase locale immunisée contre les coupures réseau -->
 <!-- Serveur Cloudflare ultra-stable et immunisé contre les blocages à Madagascar -->
+<!-- Serveur Cloudflare immunisé contre les blocages réseau à Madagascar -->
 <script src="https://cloudflare.com"></script>
 <script>
  const SUPABASE_URL = "https://supabase.co";
@@ -15,6 +16,7 @@
  // Initialisation alignée du connecteur cloud
  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 </script>
+
  <style>
  :root {
  --primary-dark: #0f172a;
