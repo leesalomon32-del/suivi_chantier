@@ -212,7 +212,7 @@
 </div>
 <script>
 // =======================================================
-// BLOC 3 : LOGIQUE INITIALE ET SÉCURITÉ LOCAL DASHBOARD
+// BLOC 3 : LOGIQUE INITIALE ET SÉCURITÉ LOCAL DASHBOARD (CORRIGÉ)
 // =======================================================
 
 let listeProjetsGlobal = [];
@@ -227,7 +227,6 @@ try {
     userLotsAutorises = []; 
 }
 
-// Fonctions d'ouverture/fermeture des barres latérales d'origine
 function toggleSidebarLeft() {
     let layout = document.getElementById('mainAppLayout');
     if (layout.classList.contains('no-sidebar-left')) { layout.classList.remove('no-sidebar-left'); } 
@@ -244,15 +243,12 @@ function toggleSidebarRight() {
     else { layout.classList.add('no-sidebar-right'); }
 }
 
-// DÉMARRAGE DE LA CONSOLE LOCAL
 window.onload = function() {
-    // Barrière de sécurité : si pas connecté, retour immédiat au login
     if (localStorage.getItem("session_securisee_active_gc") !== "VALIDE") { 
         window.location.href = "1_login.html"; 
         return; 
     }
     
-    // Infiltration du bouton Administrateur si le rôle est "admin"
     if (userRoleActuel === "admin") {
         let navbar = document.querySelector('.navbar-top-actions');
         if (navbar) {
@@ -265,7 +261,6 @@ window.onload = function() {
         }
     }
     
-    // Restriction pour les agents de terrain (masquage automatique des modules budgétaires)
     if (userRoleActuel === "agents") {
         document.querySelectorAll('.col-menu .card-nav').forEach(carte => {
             let action = carte.getAttribute('onclick') || "";
@@ -275,7 +270,6 @@ window.onload = function() {
         });
     }
     
-    // Récupération des projets locaux
     let ProjsSauves = localStorage.getItem("classeur_maitre_projets_lee");
     if(ProjsSauves) { 
         listeProjetsGlobal = JSON.parse(ProjsSauves); 
@@ -294,6 +288,7 @@ window.onload = function() {
     renderProjetsSidebar(); 
     chargerFicheProjetSelectionne();
 };
+
 // =========================================================================
 // BLOC 4 - PARTIE A : AFFICHAGE DES SITES ET LIGNES DE PROJETS
 // =========================================================================
@@ -445,7 +440,7 @@ function lancerCalculsConsolidationFiche(p) {
     document.getElementById('barPctFin').style.width = tFin + "%";
 }
 // =========================================================================
-// BLOC 4 - PARTIE D : COMPRESSION DE PHOTO LOCAL ET FILTRE DE RECHERCHE
+// BLOC 4 - PARTIE D : COMPRESSION DE PHOTO LOCAL ET FILTRE DE RECHERCHE (CORRIGÉ)
 // =========================================================================
 
 function filtrerLaListeDesProjets() {
@@ -464,7 +459,6 @@ function sauvegarderBlocNotesLocal(valeur) {
     } 
 }
 
-// CORRECTIF BUG EMPlACEMENT : Allègement automatique de la photo
 function gererChangementPhotoEmplacement(input) { 
     if (input.files && input.files[0]) {
         let reader = new FileReader(); 
@@ -473,14 +467,12 @@ function gererChangementPhotoEmplacement(input) {
             let p = listeProjetsGlobal.find(i => i.id == idProjetActif); 
             if(!p) return;
             
-            // On appelle l'outil magique de config.js pour réduire la photo à 900px de large
             allégerEtCompresserPhoto(imgDataBrute, 900, function(photoAlégerBase64) {
                 p.photoEmplacement = photoAlégerBase64; 
                 
-                // Sauvegarde sécurisée dans le stockage local
                 let succes = rangerDonneeSecurisee("classeur_maitre_projets_lee", JSON.stringify(listeProjetsGlobal)); 
                 if (succes) {
-                    let listC = localStorage.getItem(`ccpms_${idProjetActif}`) ? JSON.parse(localStorage.getItem(`ccpms_${idProjetActif}`)) : []; 
+                    let listC = localStorage.getItem(`ccpms_${idProjetActif}`) ? JSON.parse(localStorage.getItem(`ccpms_${idActif}`)) : []; 
                     listC.unshift({
                         id: Date.now() + Math.floor(Math.random() * 1000),
                         categorie: "Photos", 
@@ -493,7 +485,6 @@ function gererChangementPhotoEmplacement(input) {
                     }); 
                     rangerDonneeSecurisee(`ccpms_${idProjetActif}`, JSON.stringify(listC)); 
                     
-                    // Rafraîchissement visuel à l'écran
                     document.getElementById('mapImgView').src = photoAlégerBase64; 
                     document.getElementById('mapImgView').style.display = "block"; 
                     document.getElementById('mapTxt').style.display = "none"; 
@@ -505,7 +496,6 @@ function gererChangementPhotoEmplacement(input) {
     } 
 }
 
-// Redirections pour les boutons de secours
 function exporterFichierClasseurJsonAccueil() {
     window.location.href = "2_admin.html";
 }
