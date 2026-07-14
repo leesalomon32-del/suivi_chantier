@@ -138,69 +138,59 @@
     </div>
 </div>
 <script>
-    let listePlanning = [];
-    let filtreOuvrageActif = "TOUS";
-    let filtreStructureActif = "TOUS";
+ let listePlanning = [];
+ let filtreOuvrageActif = "TOUS";
+ let filtreStructureActif = "TOUS";
+ 
+ // CONNECTEUR UNIVERSEL RE ALIGNÉ SUR L'ACCUEIL GLOBAL
+ let idProjetCourant = localStorage.getItem("id_projet_actif_lee") || "101";
+ let cleStockagePlanning = `planning_${idProjetCourant}`;
+ let cleStockageBDQE = `bdqe_${idProjetCourant}`;
+  
 
-    // --- LE CONNECTEUR PROJET ACTIF ---
-    let idProjetCourant = localStorage.getItem("id_projet_en_cours_de_saisie_temporaire") || "generique";
-    let cleStockagePlanning = `planning_${idProjetCourant}`;
-    let cleStockageBDQE = `bdqe_${idProjetCourant}`;
+     window.onload = function() {
+  let userRoleActuel = localStorage.getItem("session_user_role") || "agents";
+  let userLotsAutorises = [];
+  try { userLotsAutorises = JSON.parse(localStorage.getItem("session_user_lots")) || []; } catch(e) {}
+  
+  // Lecture sécurisée de l'ID actif hérité de l'accueil
+  let idProjetUniquePlanning = localStorage.getItem("id_projet_actif_lee") || "101";
+  
+  if (userRoleActuel === "agents") {
+   alert(" Accès Refusé : Privilèges requis insuffisants pour modifier le calendrier d'exécution. 🔒");
+   window.location.href = "3_accueil.html"; return;
+  }
+  
+  if (userRoleActuel === "cadres" || (userRoleActuel === "controle" && !userLotsAutorises.includes(String(idProjetUniquePlanning)))) {
+   let formSaisie = document.getElementById('formSaisieTache') || document.querySelector('.form-group') || document.getElementById('formPlanning');
+   if (formSaisie) formSaisie.style.display = 'none';
+   
+   let alerte = document.createElement('div');
+   alerte.style.cssText = "background:#eff6ff; color:#1e40af; padding:10px; border-radius:6px; font-weight:bold; margin-bottom:15px; border:1px solid #bfdbfe; font-size:13px; max-width:1120px; margin: 10px auto;";
+   alerte.innerText = " Mode Consultation Uniquement (Lecture Seule 🔒 Calendrier Direction / Périmètre non affecté)";
+   if (formSaisie) formSaisie.parentNode.insertBefore(alerte, formSaisie); else document.body.insertBefore(alerte, document.body.firstChild);
+   
+   let ths = document.querySelectorAll('table th');
+   if(ths.length > 0 && ths[ths.length - 1].innerText.includes('Actions')) { ths[ths.length - 1].style.display = 'none'; }
+  }
+  
+  let planningSauve = localStorage.getItem(cleStockagePlanning);
+  let bdqeInitial = localStorage.getItem(cleStockageBDQE);
+  let listeBaseBDQE = bdqeInitial ? JSON.parse(bdqeInitial) : [];
+  
+  if (planningSauve) {
+   listePlanning = JSON.parse(planningSauve);
+   listeBaseBDQE.forEach(baseItem => {
+    let existe = listePlanning.find(plItem => plItem.code_bdqe === baseItem.code_bdqe && plItem.designation === baseItem.designation);
+    if(!existe) { listePlanning.push({ ...baseItem, date_debut: "", date_fin: "", duree: 0 }); }
+   });
+  } else {
+   listePlanning = listeBaseBDQE.map(item => { return { ...item, date_debut: "", date_fin: "", duree: 0 }; });
+  }
+  rechargerTout();
+  actualiserOptionsHack();
+ };
 
-    window.onload = function() {
-                // --- CONNECTEUR DE SÉCURITÉ ET PROTECTION RBAC MULTI-RÔLES ---
-        let userRoleActuel = localStorage.getItem("session_user_role") || "agents";
-        let userLotsAutorises = [];
-        try { userLotsAutorises = JSON.parse(localStorage.getItem("session_user_lots")) || []; } catch(e) {}
-        
-        // Récupération sécurisée de l'ID du projet en cours
-        let idProjetUniquePlanning = localStorage.getItem("id_projet_en_cours_de_saisie_temporaire") || "101";
-
-        // 1. Expulsion immédiate vers l'accueil si un agent tente de forcer l'URL
-        if (userRoleActuel === "agents") {
-            alert("🔒 Accès Refusé : Vous n'avez pas les privilèges requis pour modifier le calendrier d'exécution.");
-            window.location.href = "3_accueil.html"; return;
-        }
-
-        // 2. Passage en mode lecture seule pour les cadres ou les ingénieurs non assignés à ce lot
-        if (userRoleActuel === "cadres" || (userRoleActuel === "controle" && !userLotsAutorises.includes(String(idProjetUniquePlanning)))) {
-            // Masquage du formulaire d'ajout de tâche ou d'ajustement du calendrier
-            let formSaisie = document.getElementById('formSaisieTache') || document.querySelector('.form-group') || document.getElementById('formPlanning');
-            if (formSaisie) formSaisie.style.display = 'none';
-            
-            // Injection du bandeau d'avertissement réglementaire
-            let alerte = document.createElement('div');
-            alerte.style.cssText = "background:#eff6ff; color:#1e40af; padding:10px; border-radius:6px; font-weight:bold; margin-bottom:15px; border:1px solid #bfdbfe; font-size:13px; max-width:1120px; margin: 10px auto;";
-            alerte.innerText = "🔒 Mode Consultation Uniquement (Lecture Seule Calendrier Direction / Périmètre non affecté)";
-            if (formSaisie) formSaisie.parentNode.insertBefore(alerte, formSaisie); else document.body.insertBefore(alerte, document.body.firstChild);
-
-            // Masquage de la colonne d'action pour empêcher toute altération des jalons de temps
-            let ths = document.querySelectorAll('table th');
-            if(ths.length > 0 && ths[ths.length - 1].innerText.includes('Actions')) {
-                ths[ths.length - 1].style.display = 'none';
-            }
-        }
-
-        let planningSauve = localStorage.getItem(cleStockagePlanning);
-        let bdqeInitial = localStorage.getItem(cleStockageBDQE);
-        let listeBaseBDQE = bdqeInitial ? JSON.parse(bdqeInitial) : [];
-
-        if (planningSauve) {
-            listePlanning = JSON.parse(planningSauve);
-            listeBaseBDQE.forEach(baseItem => {
-                let existe = listePlanning.find(plItem => plItem.code_bdqe === baseItem.code_bdqe && plItem.designation === baseItem.designation);
-                if(!existe) {
-                    listePlanning.push({ ...baseItem, date_debut: "", date_fin: "", duree: 0 });
-                }
-            });
-        } else {
-            listePlanning = listeBaseBDQE.map(item => {
-                return { ...item, date_debut: "", date_fin: "", duree: 0 };
-            });
-        }
-        rechargerTout();
-        actualiserOptionsHack();
-    };
 
     function trierDonnees() {
         listePlanning.sort((a, b) => {
