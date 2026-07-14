@@ -8,15 +8,12 @@
 <!-- Bibliothèque Supabase locale immunisée contre les coupures réseau -->
 <!-- Serveur Cloudflare ultra-stable et immunisé contre les blocages à Madagascar -->
 <script src="https://cloudflare.com"></script>
-
-
 <script>
  const SUPABASE_URL = "https://supabase.co";
  const SUPABASE_KEY = "sb_publishable_sgaqDZKA5v6LT128Pvon9w_HnziORIq";
- // Alignement parfait du nom de la variable pour supprimer l'erreur de la ligne 266
+ // Initialisation alignée du connecteur cloud
  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 </script>
-
  <style>
  :root {
  --primary-dark: #0f172a;
