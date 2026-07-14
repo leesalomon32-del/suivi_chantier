@@ -180,7 +180,19 @@
  ];
  localStorage.setItem("classeur_maitre_projets_lee", JSON.stringify(listeProjetsGlobal));
  }
- idProjetActif = localStorage.getItem("id_projet_actif_lee") || "101";
+ // CODE CORRIGÉ :
+// On regarde d'abord si on revient d'une page de saisie (comme le planning)
+let idTemporaire = localStorage.getItem("id_projet_en_cours_de_saisie_temporaire");
+
+if (idTemporaire) {
+    idProjetActif = idTemporaire;
+    // On synchronise la clé principale de l'accueil pour rester sur le bon projet
+    localStorage.setItem("id_projet_actif_lee", idProjetActif);
+} else {
+    // Sinon, comportement classique
+    idProjetActif = localStorage.getItem("id_projet_actif_lee") || "101";
+}
+
  listeProjetsGlobal.forEach(p => { if(p.type === 'PAPA') etatsDossiersReplies[p.id] = false; });
  renderProjetsSidebar();
  chargerFicheProjetSelectionne();
