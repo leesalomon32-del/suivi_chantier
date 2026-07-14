@@ -3,7 +3,15 @@
 <head>
  <meta charset="UTF-8">
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
- <title>Génie Civil Pro - Administration Locale Avancée</title>
+ <title>Génie Civil Pro - Administration Avancée</title>
+ 
+ <!-- Connexion sécurisée au Cloud Supabase -->
+ <script src="https://jsdelivr.net"></script>
+ <script>
+  const SUPABASE_URL = "https://mpejsdcxkumzolodbhdi.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_sgaqDZKA5v6LT128Pvon9w_HnziORIq";
+  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+ </script>
  <style>
  :root {
  --primary-dark: #0f172a;
@@ -42,7 +50,7 @@
  .rbac-tree-wrapper { background: #f8fafc; padding: 8px; border-radius: 6px; border: 1px solid #cbd5e1; max-height: 140px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
  .logo-upload-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
  .logo-upload-box { border: 1px dashed #cbd5e1; padding: 6px; border-radius: 6px; background: #f8fafc; text-align: center; font-size: 10px; min-height: 50px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
- .scrolling-table-wrapper { max-height: 380px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 6px; width: 100%; }
+ .scrolling-table-wrapper { max-height: 130px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 6px; width: 100%; }
  table { width: 100%; border-collapse: collapse; }
  th, td { border: 1px solid #e5e7eb; padding: 6px 8px; text-align: left; font-size: 11px; vertical-align: middle; }
  th { background-color: var(--primary-dark); color: white; position: sticky; top: 0; z-index: 10; }
@@ -53,122 +61,100 @@
 <body>
 <div class="admin-container" style="height: 100%; display: flex; flex-direction: column;">
  <div class="admin-header">
- <div>
- <h1>Bureau d'Administration et Configuration Locale ⚙️</h1>
- <div style="font-size:12px; color:#64748b;">Gestion hors-ligne des structures de lots et comptes de terrain</div>
- </div>
- <button class="btn btn-secondary" onclick="window.location.href='3_accueil.html'">« Accéder au Tableau de Bord Accueil</button>
+  <div>
+   <h1>Bureau d'Administration et Configuration Globale ⚙️</h1>
+   <div style="font-size:12px; color:#64748b;">Gestion cloud synchronisée des structures de lots et comptes de terrain</div>
+  </div>
+  <button class="btn btn-secondary" onclick="window.location.href='3_accueil.html'">« Accéder au Tableau de Bord Accueil</button>
  </div>
  <div class="admin-main-layout">
- <!-- SIDEBAR ACCORDÉON -->
- <div class="admin-sidebar-select">
- <div style="font-size:11px; font-weight:bold; text-transform:uppercase; color:#94a3b8; margin-bottom:8px; letter-spacing:0.5px;">Sélectionner le Lot Actif</div>
- <div style="font-size:10px; color:#d97706; font-weight:bold; margin-bottom:10px; line-height:1.2;">Cliquez sur un lot pour modifier ses chartes administratives.</div>
- <div id="accordeonProjetsAdmin" style="flex-grow:1; display:flex; flex-direction:column; gap:2px;"></div>
- </div>
- <!-- ZONE DE TRAVAIL EXTENSIBLE -->
- <div class="layout-grid-workspace">
- <div class="grid-two-cols">
- <!-- BLOC I : CHARTE CONTRACTUELLE -->
- <div class="admin-card">
- <div class="card-title" id="titreCharteActive">I. Charte Contractuelle (Sélectionnez un lot)</div>
- <div class="form-group"><label>Objet Global du Marché / Nom du Lot</label><input type="text" id="cfgObjet" class="input-control"></div>
- <div class="form-group"><label>Bailleur de Fonds / Financement</label><input type="text" id="cfgFinancement" class="input-control"></div>
- <div class="form-group"><label>Maître d'Ouvrage (MO)</label><input type="text" id="cfgMO" class="input-control"></div>
- <div class="form-group"><label>Mission de Contrôle / Maître d'Œuvre (MOE)</label><input type="text" id="cfgMOE" class="input-control"></div>
- <div class="form-group"><label>Entreprise Titulaire</label><input type="text" id="cfgEnterprise" class="input-control"></div>
- <div class="form-group"><label>Numéro de Contrat Principal</label><input type="text" id="cfgNumContrat" class="input-control"></div>
- <div class="card-title" style="margin-top:2px; font-size:11px;">Logos Officiels Marché</div>
- <div class="logo-upload-grid">
- <div class="logo-upload-box"><label style="font-size:9px;font-weight:bold;cursor:pointer;color:var(--accent-blue);" id="btnUploadMO">MO<input type="file" style="display:none" onchange="convertirLogoBinaire(this, 'logoMO')"></label><div id="preview_logoMO" style="margin-top:2px;"></div></div>
- <div class="logo-upload-box"><label style="font-size:9px;font-weight:bold;cursor:pointer;color:var(--accent-blue);" id="btnUploadFin">Bailleur<input type="file" style="display:none" onchange="convertirLogoBinaire(this, 'logoFin')"></label><div id="preview_logoFin" style="margin-top:2px;"></div></div>
- <div class="logo-upload-box"><label style="font-size:9px;font-weight:bold;cursor:pointer;color:var(--accent-blue);" id="btnUploadMOE">MOE<input type="file" style="display:none" onchange="convertirLogoBinaire(this, 'logoMOE')"></label><div id="preview_logoMOE" style="margin-top:2px;"></div></div>
- <div class="logo-upload-box"><label style="font-size:9px;font-weight:bold;cursor:pointer;color:var(--accent-blue);" id="btnUploadEnt">Ent.<input type="file" style="display:none" onchange="convertirLogoBinaire(this, 'logoEntreprise')"></label><div id="preview_logoEntreprise" style="margin-top:2px;"></div></div>
- </div>
- <button class="btn btn-success" style="justify-content:center;" onclick="sauvegarderDonneesProjetSelectionne()">Enregistrer la Charte Contractuelle</button>
- </div>
- <!-- BLOC II : STRUCTURATION DES LOTS -->
- <div class="admin-card">
- <div class="card-title">II. Création & Structuration de l'Arbre des Lots</div>
- <input type="hidden" id="editProjetId" value="">
- <div class="form-group"><label>Désignation Littérale du Lot</label><input type="text" id="projNom" class="input-control" placeholder="ex: Lot 1 - Arrondissement 4"></div>
- <div class="form-group">
- <label>Classification Technique</label>
- <select id="projType" class="input-control" onchange="gererAffichageSelectParent()">
- <option value="PAPA">Projet Père (Marché Global Centralisé)</option>
- <option value="ENFANT">↳ Projet Enfant (Sous-lot dépendant d'un Projet Père)</option>
- <option value="CLASSIQUE">Projet Classique (Chantier Autonome)</option>
- </select>
- </div>
- <div class="form-group" id="rowSelectParent" style="display:none;">
- <label>Rattachement Hiérarchique</label>
- <select id="projParentId" class="input-control"></select>
- </div>
- <div style="display:flex; gap:10px;">
- <button class="btn btn-primary" id="btnSaveProjet" onclick="enregistrerOuModifierProjetFerme()">Valid ➕ er la Structure</button>
- <button class="btn btn-secondary" id="btnAnnulerProjet" style="display:none;" onclick="reinitialiserFormulaireProjet()">Annuler</button>
- </div>
- <div class="card-title" style="margin-top:3px; font-size:11px;">Lots Actuellement Enregistrés</div>
- <div class="scrolling-table-wrapper">
- <table>
- <thead><tr><th>Désignation</th><th>Type</th><th>Actions</th></tr></thead>
- <tbody id="tbodyProjetsAdminList"></tbody>
- </table>
- </div>
- </div>
- </div>
- <!-- BLOC III : MATRICE SÉCURITÉ -->
- <div class="admin-card" style="shrink: 0; padding-bottom: 20px;">
- <div class="card-title">III. Matrice de Sécurité Multi-Rôles (Comptes Agents de Terrain)</div>
- <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:12px;">
- <div class="form-group"><label>Identifiant de Connexion</label><input type="text" id="usrLogin" class="input-control" placeholder="ex: agent.boeny"></div>
- <div class="form-group"><label>Mot de passe secret</label><input type="text" id="usrPass" class="input-control" placeholder="ex: mada2026"></div>
- <div class="form-group">
- <label>Privilèges</label>
- <select id="usrRole" class="input-control">
- <option value="cadres">Cadre (Rapports, Fiche Accueil - Lecture seule reste)</option>
- <option value="controle">Ingénieur de Contrôle (Écriture libre lots affectés)</option>
- <option value="agents">Agent de Terrain (Avancement, CCPMS sur lots affectés)</option>
- </select>
- </div>
- </div>
- <div class="form-group" style="margin-top: 5px;">
- <label style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2px;">
- <span style="color: var(--accent-blue); font-weight: bold;">Assignation Périmétrique des Lots</span>
- <div style="display:flex; gap:5px; align-items:center;">
- <input type="text" id="searchFilterLots" class="input-control" placeholder="Filtrer..." style="width:100px; padding:2px 5px; font-size:11px;" oninput="filtrerArbreCheckboxesLots()">
- <button class="btn btn-secondary" style="padding:2px 5px; font-size:9px;" onclick="basculerToutCocherLots(true)">Tout Cocher</button>
- <button class="btn btn-secondary" style="padding:2px 5px; font-size:9px;" onclick="basculerToutCocherLots(false)">Décocher</button>
- </div>
- </label>
- <div class="rbac-tree-wrapper" id="boxCheckboxesLotsAssignes"></div>
- </div>
- <div style="text-align:right; margin-top: 2px;"><button class="btn btn-primary" style="padding:6px 16px;" onclick="ajouterNouvelUtilisateurRbac()">Enregistrer le Compte Agent</button></div>
- <div class="card-title" style="margin-top:5px; font-size:11px;">Comptes Déployés & Périmètres Accordés</div>
- <div class="scrolling-table-wrapper" style="max-height: 140px;">
- <table id="tableUsersAdmin">
- <thead><tr><th>Identifiant</th><th>Classification Rôle</th><th>Lots Affectés</th><th style="text-align:center;width:60px;">Actions</th></tr></thead>
- <tbody id="tbodyUsersAdmin"></tbody>
- </table>
- </div>
- </div>
- <!-- CENTRALISATION UNIQUE DU GENERATEUR DE FICHIERS JSON LOCAL -->
- <div class="admin-card" style="border-top: 4px solid #7c3aed; margin-top: 10px; flex-direction: column; gap: 10px; padding: 12px 15px; display: flex; width: 100%; box-sizing: border-box;">
- <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
- <div>
- <div style="font-size: 12px; font-weight: bold; color: var(--primary-dark); text-transform: uppercase;">🗂️ Passerelle d'Import/Export Instantané de l'Écosystème</div>
- <div style="font-size: 11px; color: #64748b;">Générez ou restaurez un fichier global sans dépendance réseau externe.</div>
- </div>
- <div style="display: flex; gap: 8px;">
- <button class="btn" style="background: #0284c7; padding: 8px 14px; font-size: 11px;" onclick="exporterFichierClasseurJsonLocal()">EXPORTER LE FICHIER JSON MASTER</button>
- <label class="btn" style="background: #16a34a; padding: 8px 14px; font-size: 11px; margin: 0; cursor: pointer; color: white;">
- IMPORTER UN FICHIER JSON MASTER 
- <input type="file" style="display: none;" onchange="importerFichierClasseurJsonLocal(this)">
- </label>
- </div>
- </div>
- </div>
- </div>
+  <div class="admin-sidebar-select">
+   <div style="font-size:11px; font-weight:bold; text-transform:uppercase; color:#94a3b8; margin-bottom:8px; letter-spacing:0.5px;">Sélectionner le Lot Actif</div>
+   <div style="font-size:10px; color:#d97706; font-weight:bold; margin-bottom:10px; line-height:1.2;">Cliquez sur un lot pour modifier ses chartes administratives.</div>
+   <div id="accordeonProjetsAdmin" style="flex-grow:1; display:flex; flex-direction:column; gap:2px;"></div>
+  </div>
+  <div class="layout-grid-workspace">
+   <div class="grid-two-cols">
+    <div class="admin-card">
+     <div class="card-title" id="titreCharteActive">I. Charte Contractuelle (Sélectionnez un lot)</div>
+     <div class="form-group"><label>Objet Global du Marché / Nom du Lot</label><input type="text" id="cfgObjet" class="input-control"></div>
+     <div class="form-group"><label>Bailleur de Fonds / Financement</label><input type="text" id="cfgFinancement" class="input-control"></div>
+     <div class="form-group"><label>Maître d'Ouvrage (MO)</label><input type="text" id="cfgMO" class="input-control"></div>
+     <div class="form-group"><label>Mission de Contrôle / Maître d'Œuvre (MOE)</label><input type="text" id="cfgMOE" class="input-control"></div>
+     <div class="form-group"><label>Entreprise Titulaire</label><input type="text" id="cfgEnterprise" class="input-control"></div>
+     <div class="form-group"><label>Numéro de Contrat Principal</label><input type="text" id="cfgNumContrat" class="input-control"></div>
+     <div class="card-title" style="margin-top:2px; font-size:11px;">Logos Officiels Marché</div>
+     <div class="logo-upload-grid">
+      <div class="logo-upload-box"><label style="font-size:9px;font-weight:bold;cursor:pointer;color:var(--accent-blue);" id="btnUploadMO">MO<input type="file" style="display:none" onchange="convertirLogoBinaire(this, 'logoMO')"></label><div id="preview_logoMO" style="margin-top:2px;"></div></div>
+      <div class="logo-upload-box"><label style="font-size:9px;font-weight:bold;cursor:pointer;color:var(--accent-blue);" id="btnUploadFin">Bailleur<input type="file" style="display:none" onchange="convertirLogoBinaire(this, 'logoFin')"></label><div id="preview_logoFin" style="margin-top:2px;"></div></div>
+      <div class="logo-upload-box"><label style="font-size:9px;font-weight:bold;cursor:pointer;color:var(--accent-blue);" id="btnUploadMOE">MOE<input type="file" style="display:none" onchange="convertirLogoBinaire(this, 'logoMOE')"></label><div id="preview_logoMOE" style="margin-top:2px;"></div></div>
+      <div class="logo-upload-box"><label style="font-size:9px;font-weight:bold;cursor:pointer;color:var(--accent-blue);" id="btnUploadEnt">Ent.<input type="file" style="display:none" onchange="convertirLogoBinaire(this, 'logoEntreprise')"></label><div id="preview_logoEntreprise" style="margin-top:2px;"></div></div>
+     </div>
+     <button class="btn btn-success" style="justify-content:center;" onclick="sauvegarderDonneesProjetSelectionne()">Enregistrer la Charte Contractuelle</button>
+    </div>
+    <div class="admin-card">
+     <div class="card-title">II. Création & Structuration de l'Arbre des Lots</div>
+     <input type="hidden" id="editProjetId" value="">
+     <div class="form-group"><label>Désignation Littérale du Lot</label><input type="text" id="projNom" class="input-control" placeholder="ex: Lot 1 - Arrondissement 4"></div>
+     <div class="form-group">
+      <label>Classification Technique</label>
+      <select id="projType" class="input-control" onchange="gererAffichageSelectParent()">
+       <option value="PAPA">Projet Père (Marché Global Centralisé)</option>
+       <option value="ENFANT">Projet Enfant (Sous-lot dépendant d'un Projet Père) ↳</option>
+       <option value="CLASSIQUE">Projet Classique (Chantier Autonome)</option>
+      </select>
+     </div>
+     <div class="form-group" id="rowSelectParent" style="display:none;"><label>Rattachement Hiérarchique</label><select id="projParentId" class="input-control"></select></div>
+     <div style="display:flex; gap:10px;">
+      <button class="btn btn-primary" id="btnSaveProjet" onclick="enregistrerOuModifierProjetFerme()">Valider la Structure ➕</button>
+      <button class="btn btn-secondary" id="btnAnnulerProjet" style="display:none;" onclick="reinitialiserFormulaireProjet()">Annuler</button>
+     </div>
+     <div class="card-title" style="margin-top:3px; font-size:11px;">Lots Actuellement Enregistrés</div>
+     <div class="scrolling-table-wrapper"><table><thead><tr><th>Désignation</th><th>Type</th><th>Actions</th></tr></thead><tbody id="tbodyProjetsAdminList"></tbody></table></div>
+    </div>
+   </div>
+   <div class="admin-card" style="shrink: 0; padding-bottom: 20px;">
+    <div class="card-title">III. Matrice de Sécurité Multi-Rôles (Comptes Agents de Terrain)</div>
+    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:12px;">
+     <div class="form-group"><label>Identifiant de Connexion</label><input type="text" id="usrLogin" class="input-control" placeholder="ex: agent.boeny"></div>
+     <div class="form-group"><label>Mot de passe secret</label><input type="text" id="usrPass" class="input-control" placeholder="ex: mada2026"></div>
+     <div class="form-group">
+      <label>Privilèges</label>
+      <select id="usrRole" class="input-control">
+       <option value="cadres">Cadre (Rapports, Fiche Accueil - Lecture seule reste)</option>
+       <option value="controle">Ingénieur de Contrôle (Écriture libre lots affectés)</option>
+       <option value="agents">Agent de Terrain (Avancement, CCPMS sur lots affectés)</option>
+      </select>
+     </div>
+    </div>
+    <div class="form-group" style="margin-top: 5px;">
+     <label style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2px;">
+      <span style="color: var(--accent-blue); font-weight: bold;">Assignation Périmétrique des Lots</span>
+      <div style="display:flex; gap:5px; align-items:center;">
+       <input type="text" id="searchFilterLots" class="input-control" placeholder="Filtrer..." style="width:100px; padding:2px 5px; font-size:11px;" oninput="filtrerArbreCheckboxesLots()">
+       <button class="btn btn-secondary" style="padding:2px 5px; font-size:9px;" onclick="basculerToutCocherLots(true)">Tout Cocher</button>
+       <button class="btn btn-secondary" style="padding:2px 5px; font-size:9px;" onclick="basculerToutCocherLots(false)">Décocher</button>
+      </div>
+     </label>
+     <div class="rbac-tree-wrapper" id="boxCheckboxesLotsAssignes"></div>
+    </div>
+    <div style="text-align:right; margin-top: 2px;"><button class="btn btn-primary" style="padding:6px 16px;" onclick="ajouterNouvelUtilisateurRbac()">Enregistrer le Compte Agent</button></div>
+    <div class="card-title" style="margin-top:5px; font-size:11px;">Comptes Déployés & Périmètres Accordés</div>
+    <div class="scrolling-table-wrapper" style="max-height: 140px;"><table id="tableUsersAdmin"><thead><tr><th>Identifiant</th><th>Classification Rôle</th><th>Lots Affectés</th><th style="text-align:center;width:60px;">Actions</th></tr></thead><tbody id="tbodyUsersAdmin"></tbody></table></div>
+   </div>
+   <div class="admin-card" style="border-top: 4px solid #7c3aed; margin-top: 10px; flex-direction: column; gap: 10px; padding: 12px 15px; display: flex; width: 100%; box-sizing: border-box;">
+    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+     <div>
+      <div style="font-size: 12px; font-weight: bold; color: var(--primary-dark); text-transform: uppercase;"> Passerelle d'Import/Export Instantané de l'Écosystème</div>
+      <div style="font-size: 11px; color: #64748b;">Générez ou restaurez un fichier global de secours synchronisé avec le Cloud.</div>
+     </div>
+     <div style="display: flex; gap: 8px;">
+      <button class="btn" style="background: #0284c7; padding: 8px 14px; font-size: 11px;" onclick="exporterFichierClasseurJsonLocal()">EXPORTER LE FICHIER JSON MASTER</button>
+      <label class="btn" style="background: #16a34a; padding: 8px 14px; font-size: 11px; margin: 0; cursor: pointer; color: white;">IMPORTER UN FICHIER JSON MASTER <input type="file" style="display: none;" onchange="importerFichierClasseurJsonLocal(this)"></label>
+     </div>
+    </div>
+   </div>
+  </div>
  </div>
 </div>
 <script>
@@ -178,135 +164,113 @@
  let etatsAccordéonAdmin = {}; 
  let etatsAccordéonMatrixAssign = {}; 
 
- if (localStorage.getItem("session_securisee_active_gc") !== "VALIDE") {
- window.location.href = "1_login.html";
+ if (localStorage.getItem("session_securisee_active_gc") !== "VALIDE") { window.location.href = "1_login.html"; }
+
+ async function aspirerDonneesDepuisSupabaseAdmin() {
+  try {
+   const { data, error } = await supabaseClient.from('app_database').select('data').eq('id', 1).single();
+   if (error) throw error;
+   if (data && data.data) {
+    const paquet = data.data;
+    if (paquet.projets && paquet.projets.length > 0) {
+     localStorage.setItem("classeur_maitre_projets_lee", JSON.stringify(paquet.projets));
+     localStorage.setItem("matrice_utilisateurs_rbac_gc", JSON.stringify(paquet.utilisateurs));
+     localStorage.setItem("base_donnees_fiche_projet_maitre", JSON.stringify(paquet.ficheMaitrePapa));
+     if (paquet.chartesIsolees) { for (let id in paquet.chartesIsolees) { localStorage.setItem(`charte_administrative_${id}`, JSON.stringify(paquet.chartesIsolees[id])); } }
+     console.log("☁️ Base d'administration synchronisée depuis le Cloud.");
+    }
+   }
+  } catch (err) { console.error("Erreur de récupération Cloud Admin:", err); }
  }
 
- window.onload = function() { 
- chargerArbreProjetsEtUtilisateurs(); 
+ async function pousserDonneesDepuisAdminVersSupabase() {
+  try {
+   let baseProjets = localStorage.getItem("classeur_maitre_projets_lee") || "[]";
+   let baseUsers = localStorage.getItem("matrice_utilisateurs_rbac_gc") || "[]";
+   let masterFiche = localStorage.getItem("base_donnees_fiche_projet_maitre") || "{}";
+   let chartesIsolees = {};
+   try { JSON.parse(baseProjets).forEach(p => { if(localStorage.getItem(`charte_administrative_${p.id}`)) chartesIsolees[p.id] = JSON.parse(localStorage.getItem(`charte_administrative_${p.id}`)); }); } catch(e){}
+   let paquetGlobalData = { projets: JSON.parse(baseProjets), utilisateurs: JSON.parse(baseUsers), ficheMaitrePapa: JSON.parse(masterFiche), chartesIsolees: chartesIsolees };
+   const { error } = await supabaseClient.from('app_database').update({ data: paquetGlobalData }).eq('id', 1);
+   if (error) throw error;
+   console.log("🚀 Configurations poussées vers Supabase Cloud.");
+  } catch (err) { console.error("Erreur d'envoi Cloud Admin:", err); }
+ }
+
+ window.onload = async function() { 
+  await aspirerDonneesDepuisSupabaseAdmin();
+  chargerArbreProjetsEtUtilisateurs(); 
  };
-
  function chargerArbreProjetsEtUtilisateurs() {
- let ProjsSauves = localStorage.getItem("classeur_maitre_projets_lee");
- listeProjetsGlobal = ProjsSauves ? JSON.parse(ProjsSauves) : [
- { id: 101, nom: "MARCHE CENTRAL 52 ECOLES", type: "PAPA", parentId: null },
- { id: 102, nom: "Lot 1 - Arrondissement 4", type: "ENFANT", parentId: 101 },
- { id: 103, nom: "Lot 2 - Arrondissement 5", type: "ENFANT", parentId: 101 }
- ];
- if(!ProjsSauves) localStorage.setItem("classeur_maitre_projets_lee", JSON.stringify(listeProjetsGlobal));
- 
- listeProjetsGlobal.forEach(p => { 
- if(p.type === 'PAPA') {
- if(etatsAccordéonAdmin[p.id] === undefined) etatsAccordéonAdmin[p.id] = true;
- if(etatsAccordéonMatrixAssign[p.id] === undefined) etatsAccordéonMatrixAssign[p.id] = true;
- }
- });
- 
- let usersSauves = localStorage.getItem("matrice_utilisateurs_rbac_gc");
- listeUtilisateursRBAC = usersSauves ? JSON.parse(usersSauves) : [{ id: 1, login: "admin", pass: "mada2026", role: "admin", lots: ["101", "102", "103"] }];
- if(!usersSauves) localStorage.setItem("matrice_utilisateurs_rbac_gc", JSON.stringify(listeUtilisateursRBAC));
- 
- renderAccordéonSidebarSelection(); 
- afficherTableauProjets(); 
- afficherTableauUtilisateurs();
- genererCheckboxesLotsArbreAccordéon(); 
- gererAffichageSelectParent(); 
- basculerDonneesVersProjetSelectionne(idProjetSelectionneAdmin);
+  let ProjsSauves = localStorage.getItem("classeur_maitre_projets_lee");
+  listeProjetsGlobal = ProjsSauves ? JSON.parse(ProjsSauves) : [{ id: 101, nom: "MARCHE CENTRAL 52 ECOLES", type: "PAPA", parentId: null }, { id: 102, nom: "Lot 1 - Arrondissement 4", type: "ENFANT", parentId: 101 }, { id: 103, nom: "Lot 2 - Arrondissement 5", type: "ENFANT", parentId: 101 }];
+  if(!ProjsSauves) localStorage.setItem("classeur_maitre_projets_lee", JSON.stringify(listeProjetsGlobal));
+  listeProjetsGlobal.forEach(p => { if(p.type === 'PAPA') { if(etatsAccordéonAdmin[p.id] === undefined) etatsAccordéonAdmin[p.id] = true; if(etatsAccordéonMatrixAssign[p.id] === undefined) etatsAccordéonMatrixAssign[p.id] = true; } });
+  let usersSauves = localStorage.getItem("matrice_utilisateurs_rbac_gc");
+  listeUtilisateursRBAC = usersSauves ? JSON.parse(usersSauves) : [{ id: 1, login: "admin", pass: "mada2026", role: "admin", lots: ["101", "102", "103"] }];
+  if(!usersSauves) localStorage.setItem("matrice_utilisateurs_rbac_gc", JSON.stringify(listeUtilisateursRBAC));
+  renderAccordéonSidebarSelection(); afficherTableauProjets(); afficherTableauUtilisateurs(); genererCheckboxesLotsArbreAccordéon(); gererAffichageSelectParent(); basculerDonneesVersProjetSelectionne(idProjetSelectionneAdmin);
  }
 
  function renderAccordéonSidebarSelection() {
- let container = document.getElementById('accordeonProjetsAdmin'); if(!container) return; container.innerHTML = "";
- let racines = listeProjetsGlobal.filter(p => p.type === 'PAPA' || p.type === 'CLASSIQUE');
- racines.forEach(r => {
- let divP = document.createElement('div');
- let estSelectionne = idProjetSelectionneAdmin == r.id ? 'selected' : '';
- let fleche = r.type === 'PAPA' ? `<span class="arrow-toggle" onclick="toggleDossierAdmin(${r.id}, event)">${etatsAccordéonAdmin[r.id]?'▼':'▲'}</span>` : '';
- divP.className = `proj-node ${estSelectionne}`;
- divP.innerHTML = `<span>${r.nom}</span> ${fleche}`;
- divP.onclick = function() { selectionnerProjetEnLigneAdmin(r.id); };
- container.appendChild(divP);
- if (r.type === 'PAPA') {
- listeProjetsGlobal.filter(p => p.type === 'ENFANT' && p.parentId == r.id).forEach(e => {
- let divE = document.createElement('div');
- let cacheStyle = etatsAccordéonAdmin[r.id] ? '' : 'hidden';
- divE.className = `proj-node proj-node-child ${idProjetSelectionneAdmin == e.id ? 'selected' : ''} ${cacheStyle}`;
- divE.innerHTML = `<span>${e.nom}</span>`;
- divE.onclick = function(event) { event.stopPropagation(); selectionnerProjetEnLigneAdmin(e.id); };
- container.appendChild(divE);
- });
- }
- });
+  let container = document.getElementById('accordeonProjetsAdmin'); if(!container) return; container.innerHTML = "";
+  listeProjetsGlobal.filter(p => p.type === 'PAPA' || p.type === 'CLASSIQUE').forEach(r => {
+   let divP = document.createElement('div'); let estSelectionne = idProjetSelectionneAdmin == r.id ? 'selected' : '';
+   let fleche = r.type === 'PAPA' ? `<span class="arrow-toggle" onclick="toggleDossierAdmin(${r.id}, event)">${etatsAccordéonAdmin[r.id]?'▼':'▲'}</span>` : '';
+   divP.className = `proj-node ${estSelectionne}`; divP.innerHTML = `<span>🏢 ${r.nom}</span> ${fleche}`;
+   divP.onclick = function() { selectionnerProjetEnLigneAdmin(r.id); }; container.appendChild(divP);
+   if (r.type === 'PAPA') {
+    listeProjetsGlobal.filter(p => p.type === 'ENFANT' && p.parentId == r.id).forEach(e => {
+     let divE = document.createElement('div'); let cacheStyle = etatsAccordéonAdmin[r.id] ? '' : 'hidden';
+     divE.className = `proj-node proj-node-child ${idProjetSelectionneAdmin == e.id ? 'selected' : ''} ${cacheStyle}`; divE.innerHTML = `<span>↳ ${e.nom}</span>`;
+     divE.onclick = function(event) { event.stopPropagation(); selectionnerProjetEnLigneAdmin(e.id); }; container.appendChild(divE);
+    });
+   }
+  });
  }
 
  function toggleDossierAdmin(pId, ev) { ev.stopPropagation(); etatsAccordéonAdmin[pId] = !etatsAccordéonAdmin[pId]; renderAccordéonSidebarSelection(); }
  function selectionnerProjetEnLigneAdmin(id) { idProjetSelectionneAdmin = id; renderAccordéonSidebarSelection(); basculerDonneesVersProjetSelectionne(id); }
  function basculerDonneesVersProjetSelectionne(id) {
- let p = listeProjetsGlobal.find(i => i.id == id); if(!p) return;
- document.getElementById('titreCharteActive').innerText = `I. Charte Contractuelle (Lot : ${p.nom.toUpperCase()})`;
- document.getElementById('cfgObjet').value = p.nom || "";
- let charteSpecifique = localStorage.getItem(`charte_administrative_${id}`);
- let d = charteSpecifique ? JSON.parse(charteSpecifique) : {};
- let m = {};
- if (p.type === 'ENFANT' && p.parentId) {
- let parentSauve = localStorage.getItem(`charte_administrative_${p.parentId}`);
- if (parentSauve) m = JSON.parse(parentSauve);
- }
- document.getElementById('cfgFinancement').value = d.financement || m.financement || "";
- document.getElementById('cfgMO').value = d.mo || m.mo || "";
- document.getElementById('cfgMOE').value = d.moe || m.moe || "";
- document.getElementById('cfgEnterprise').value = d.entreprise || m.entreprise || "";
- document.getElementById('cfgNumContrat').value = d.numContrat || m.numContrat || "";
- let displayUploader = p.type === 'PAPA' ? 'inline-flex' : 'none';
- document.getElementById('btnUploadMO').style.display = displayUploader;
- document.getElementById('btnUploadFin').style.display = displayUploader;
- document.getElementById('btnUploadMOE').style.display = displayUploader;
- document.getElementById('btnUploadEnt').style.display = displayUploader;
- let sourceLogos = p.type === 'ENFANT' ? m : d;
- document.getElementById('preview_logoMO').innerHTML = sourceLogos.logoMO_html || "";
- document.getElementById('preview_logoFin').innerHTML = sourceLogos.logoFin_html || "";
- document.getElementById('preview_logoMOE').innerHTML = sourceLogos.logoMOE_html || "";
- document.getElementById('preview_logoEntreprise').innerHTML = sourceLogos.logoEntreprise_html || "";
+  let p = listeProjetsGlobal.find(i => i.id == id); if(!p) return;
+  document.getElementById('titreCharteActive').innerText = `I. Charte Contractuelle (Lot : ${p.nom.toUpperCase()})`;
+  document.getElementById('cfgObjet').value = p.nom || "";
+  let d = localStorage.getItem(`charte_administrative_${id}`) ? JSON.parse(localStorage.getItem(`charte_administrative_${id}`)) : {};
+  let m = (p.type === 'ENFANT' && p.parentId && localStorage.getItem(`charte_administrative_${p.parentId}`)) ? JSON.parse(localStorage.getItem(`charte_administrative_${p.parentId}`)) : {};
+  document.getElementById('cfgFinancement').value = d.financement || m.financement || "";
+  document.getElementById('cfgMO').value = d.mo || m.mo || "-"; document.getElementById('cfgMOE').value = d.moe || m.moe || "-";
+  document.getElementById('cfgEnterprise').value = d.entreprise || m.entreprise || "-"; document.getElementById('cfgNumContrat').value = d.numContrat || m.numContrat || "-";
+  let displayUploader = p.type === 'PAPA' ? 'inline-flex' : 'none';
+  document.getElementById('btnUploadMO').style.display = displayUploader; document.getElementById('btnUploadFin').style.display = displayUploader;
+  document.getElementById('btnUploadMOE').style.display = displayUploader; document.getElementById('btnUploadEnt').style.display = displayUploader;
+  let sourceLogos = p.type === 'ENFANT' ? m : d;
+  document.getElementById('preview_logoMO').innerHTML = sourceLogos.logoMO_html || ""; document.getElementById('preview_logoFin').innerHTML = sourceLogos.logoFin_html || "";
+  document.getElementById('preview_logoMOE').innerHTML = sourceLogos.logoMOE_html || ""; document.getElementById('preview_logoEnterprise').innerHTML = sourceLogos.logoEnterprise_html || "";
  }
 
- function sauvegarderDonneesProjetSelectionne() {
- let nomSaisi = document.getElementById('cfgObjet').value.trim();
- if(!nomSaisi) return alert("Désignation manquante !");
- let p = listeProjetsGlobal.find(i => i.id == idProjetSelectionneAdmin);
- if(p) { p.nom = nomSaisi; localStorage.setItem("classeur_maitre_projets_lee", JSON.stringify(listeProjetsGlobal)); }
- let charteData = {
- financement: document.getElementById('cfgFinancement').value.trim(),
- mo: document.getElementById('cfgMO').value.trim(), moe: document.getElementById('cfgMOE').value.trim(),
- entreprise: document.getElementById('cfgEnterprise').value.trim(), numContrat: document.getElementById('cfgNumContrat').value.trim(),
- logoMO_html: document.getElementById('preview_logoMO').innerHTML, logoFin_html: document.getElementById('preview_logoFin').innerHTML, 
- logoMOE_html: document.getElementById('preview_logoMOE').innerHTML, logoEntreprise_html: document.getElementById('preview_logoEntreprise').innerHTML
- };
- localStorage.setItem(`charte_administrative_${idProjetSelectionneAdmin}`, JSON.stringify(charteData));
- if (idProjetSelectionneAdmin == 101) {
- localStorage.setItem("base_donnees_fiche_projet_maitre", JSON.stringify({ objet: nomSaisi, ...charteData }));
- }
- alert(`✅ Charte du lot configurée localement.`);
- chargerArbreProjetsEtUtilisateurs();
+ async function sauvegarderDonneesProjetSelectionne() {
+  let nomSaisi = document.getElementById('cfgObjet').value.trim(); if(!nomSaisi) return alert("Désignation manquante !");
+  let p = listeProjetsGlobal.find(i => i.id == idProjetSelectionneAdmin); if(p) { p.nom = nomSaisi; localStorage.setItem("classeur_maitre_projets_lee", JSON.stringify(listeProjetsGlobal)); }
+  let charteData = { financement: document.getElementById('cfgFinancement').value.trim(), mo: document.getElementById('cfgMO').value.trim(), moe: document.getElementById('cfgMOE').value.trim(), entreprise: document.getElementById('cfgEnterprise').value.trim(), numContrat: document.getElementById('cfgNumContrat').value.trim(), logoMO_html: document.getElementById('preview_logoMO').innerHTML, logoFin_html: document.getElementById('preview_logoFin').innerHTML, logoMOE_html: document.getElementById('preview_logoMOE').innerHTML, logoEnterprise_html: document.getElementById('preview_logoEnterprise').innerHTML };
+  localStorage.setItem(`charte_administrative_${idProjetSelectionneAdmin}`, JSON.stringify(charteData));
+  if (idProjetSelectionneAdmin == 101) { localStorage.setItem("base_donnees_fiche_projet_maitre", JSON.stringify({ objet: nomSaisi, ...charteData })); }
+  await pousserDonneesDepuisAdminVersSupabase(); alert(` Charte du lot configurée et synchronisée.`); chargerArbreProjetsEtUtilisateurs();
  }
 
  function genererCheckboxesLotsArbreAccordéon() {
- let box = document.getElementById('boxCheckboxesLotsAssignes'); if(!box) return; box.innerHTML = "";
- let racines = listeProjetsGlobal.filter(p => p.type === 'PAPA' || p.type === 'CLASSIQUE');
- racines.forEach(r => {
- let divP = document.createElement('div');
- divP.style.cssText = "display:flex; align-items:center; justify-content:space-between; font-weight:bold; color:var(--primary-dark); background:#f1f5f9; padding:5px 8px; border-radius:4px; width:100%; box-sizing:border-box; margin-top:2px;";
- let flecheM = r.type === 'PAPA' ? `<span style="font-size:9px; cursor:pointer; background:#cbd5e1; padding:2px 4px; border-radius:3px;" onclick="toggleDossierMatrixAssign(${r.id}, event)">${etatsAccordéonMatrixAssign[r.id]?'▼ masquer':'▲ déplier'}</span>` : '';
- divP.innerHTML = `<label style="display:inline-flex; align-items:center; gap:5px;"><input type="checkbox" name="assignationLot" value="${r.id}"> ${r.nom}</label> ${flecheM}`;
- box.appendChild(divP);
- if (r.type === 'PAPA') {
- listeProjetsGlobal.filter(p => p.type === 'ENFANT' && p.parentId == r.id).forEach(e => {
- let divE = document.createElement('div');
- divE.style.cssText = "display:flex; align-items:center; gap:5px; margin-left:18px; font-weight:normal; padding:2px 0;";
- if(!etatsAccordéonMatrixAssign[r.id]) divE.style.display = "none";
- divE.innerHTML = `<label style="display:inline-flex; align-items:center; gap:5px;"><input type="checkbox" name="assignationLot" value="${e.id}"> ${e.nom}</label>`;
- box.appendChild(divE);
- });
- }
- });
+  let box = document.getElementById('boxCheckboxesLotsAssignes'); if(!box) return; box.innerHTML = "";
+  listeProjetsGlobal.filter(p => p.type === 'PAPA' || p.type === 'CLASSIQUE').forEach(r => {
+   let divP = document.createElement('div'); divP.style.cssText = "display:flex; align-items:center; justify-content:space-between; font-weight:bold; color:var(--primary-dark); background:#f1f5f9; padding:5px 8px; border-radius:4px; width:100%; box-sizing:border-box; margin-top:2px;";
+   let flecheM = r.type === 'PAPA' ? `<span style="font-size:9px; cursor:pointer; background:#cbd5e1; padding:2px 4px; border-radius:3px;" onclick="toggleDossierMatrixAssign(${r.id}, event)">${etatsAccordéonMatrixAssign[r.id]?'▼ masquer':'▲ déplier'}</span>` : '';
+   divP.innerHTML = `<label style="display:inline-flex; align-items:center; gap:5px;"><input type="checkbox" name="assignationLot" value="${r.id}"> 🏢 ${r.nom}</label> ${flecheM}`; box.appendChild(divP);
+   if (r.type === 'PAPA') {
+    listeProjetsGlobal.filter(p => p.type === 'ENFANT' && p.parentId == r.id).forEach(e => {
+     let divE = document.createElement('div'); divE.style.cssText = "display:flex; align-items:center; gap:5px; margin-left:18px; font-weight:normal; padding:2px 0;";
+     if(!etatsAccordéonMatrixAssign[r.id]) divE.style.display = "none";
+     divE.innerHTML = `<label style="display:inline-flex; align-items:center; gap:5px;"><input type="checkbox" name="assignationLot" value="${e.id}"> ↳ ${e.nom}</label>`; box.appendChild(divE);
+    });
+   }
+  });
  }
 
  function toggleDossierMatrixAssign(papaId, event) { event.preventDefault(); event.stopPropagation(); etatsAccordéonMatrixAssign[papaId] = !etatsAccordéonMatrixAssign[papaId]; genererCheckboxesLotsArbreAccordéon(); }
@@ -315,157 +279,52 @@
  function convertirLogoBinaire(input, cibleId) { if (input.files && input.files) { let reader = new FileReader(); reader.onload = function(e) { document.getElementById(`preview_${cibleId}`).innerHTML = `<img src="${e.target.result}" style="max-height:24px; max-width:100%; object-fit:contain;">`; }; reader.readAsDataURL(input.files); } }
  function gererAffichageSelectParent() { let type = document.getElementById('projType').value; let row = document.getElementById('rowSelectParent'); if(type === 'ENFANT') { row.style.display = 'flex'; let select = document.getElementById('projParentId'); select.innerHTML = ""; listeProjetsGlobal.filter(p => p.type === 'PAPA').forEach(p => { select.innerHTML += `<option value="${p.id}">${p.nom}</option>`; }); } else { row.style.display = 'none'; } }
  function afficherTableauProjets() {
- let tbody = document.getElementById('tbodyProjetsAdminList'); if(!tbody) return; tbody.innerHTML = "";
- listeProjetsGlobal.forEach(p => {
- let tr = document.createElement('tr');
- let txtType = p.type === 'PAPA' ? 'Père' : p.type === 'ENFANT' ? 'Enfant' : 'Classique';
- tr.innerHTML = `<td><b>${p.nom}</b></td><td>${txtType}</td><td><button class="btn btn-primary" style="padding:2px 6px; font-size:10px;" onclick="preparerModifProjet(${p.id})">✏️</button> <button class="btn btn-danger" style="padding:2px 6px; font-size:10px;" onclick="supprimerProjetFerme(${p.id})">🗑️</button></td>`;
- tbody.appendChild(tr);
- });
+  let tbody = document.getElementById('tbodyProjetsAdminList'); if(!tbody) return; tbody.innerHTML = "";
+  listeProjetsGlobal.forEach(p => {
+   let tr = document.createElement('tr'); let txtType = p.type === 'PAPA' ? 'Père' : p.type === 'ENFANT' ? 'Enfant' : 'Classique';
+   tr.innerHTML = `<td><b>${p.nom}</b></td><td>${txtType}</td><td><button class="btn btn-primary" style="padding:2px 6px; font-size:10px;" onclick="preparerModifProjet(${p.id})">✏️</button> <button class="btn btn-danger" style="padding:2px 6px; font-size:10px;" onclick="supprimerProjetFerme(${p.id})">🗑️</button></td>`; tbody.appendChild(tr);
+  });
  }
 
- function enregistrerOuModifierProjetFerme() {
- let nom = document.getElementById('projNom').value.trim();
- let type = document.getElementById('projType').value;
- let idEdit = document.getElementById('editProjetId').value;
- let parentId = type === 'ENFANT' ? parseInt(document.getElementById('projParentId').value) : null;
- if(!nom) return alert("Désignation manquante !");
- if(idEdit === "") {
- listeProjetsGlobal.push({ id: Date.now(), nom, type, parentId });
- } else {
- let item = listeProjetsGlobal.find(p => p.id == idEdit);
- if(item) { item.nom = nom; item.type = type; item.parentId = parentId; }
- }
- localStorage.setItem("classeur_maitre_projets_lee", JSON.stringify(listeProjetsGlobal));
- reinitialiserFormulaireProjet();
- chargerArbreProjetsEtUtilisateurs();
+ async function enregistrerOuModifierProjetFerme() {
+  let nom = document.getElementById('projNom').value.trim(); let type = document.getElementById('projType').value; let idEdit = document.getElementById('editProjetId').value;
+  let parentId = type === 'ENFANT' ? parseInt(document.getElementById('projParentId').value) : null; if(!nom) return alert("Désignation manquante !");
+  if(idEdit === "") { listeProjetsGlobal.push({ id: Date.now(), nom, type, parentId }); } else { let item = listeProjetsGlobal.find(p => p.id == idEdit); if(item) { item.nom = nom; item.type = type; item.parentId = parentId; } }
+  localStorage.setItem("classeur_maitre_projets_lee", JSON.stringify(listeProjetsGlobal));
+  await pousserDonneesDepuisAdminVersSupabase(); reinitialiserFormulaireProjet(); chargerArbreProjetsEtUtilisateurs();
  }
 
  function preparerModifProjet(id) {
- let p = listeProjetsGlobal.find(i => i.id == id); if(!p) return;
- document.getElementById('editProjetId').value = p.id;
- document.getElementById('projNom').value = p.nom;
- document.getElementById('projType').value = p.type;
- document.getElementById('btnSaveProjet').innerText = "Modifier ✏️";
- document.getElementById('btnAnnulerProjet').style.display = "inline-flex";
- gererAffichageSelectParent();
- if(p.type === 'ENFANT') document.getElementById('projParentId').value = p.parentId;
+  let p = listeProjetsGlobal.find(i => i.id == id); if(!p) return; document.getElementById('editProjetId').value = p.id; document.getElementById('projNom').value = p.nom; document.getElementById('projType').value = p.type;
+  document.getElementById('btnSaveProjet').innerText = "Modifier ✏️"; document.getElementById('btnAnnulerProjet').style.display = "inline-flex"; gererAffichageSelectParent();
+  if(p.type === 'ENFANT') document.getElementById('projParentId').value = p.parentId;
  }
 
- function reinitialiserFormulaireProjet() {
- document.getElementById('editProjetId').value = "";
- document.getElementById('projNom').value = "";
- document.getElementById('projType').value = "PAPA";
- document.getElementById('btnSaveProjet').innerText = "Valider la Structure";
- document.getElementById('btnAnnulerProjet').style.display = "none";
- gererAffichageSelectParent();
- }
+ function reinitialiserFormulaireProjet() { document.getElementById('editProjetId').value = ""; document.getElementById('projNom').value = ""; document.getElementById('projType').value = "PAPA"; document.getElementById('btnSaveProjet').innerText = "Valider la Structure"; document.getElementById('btnAnnulerProjet').style.display = "none"; gererAffichageSelectParent(); }
+ async function supprimerProjetFerme(id) { if(confirm("Supprimer ce lot définitivement ?")) { listeProjetsGlobal = listeProjetsGlobal.filter(p => p.id !== id); localStorage.setItem("classeur_maitre_projets_lee", JSON.stringify(listeProjetsGlobal)); await pousserDonneesDepuisAdminVersSupabase(); chargerArbreProjetsEtUtilisateurs(); } }
 
- function supprimerProjetFerme(id) {
- if(confirm("Supprimer ce lot définitivement ?")) {
- listeProjetsGlobal = listeProjetsGlobal.filter(p => p.id !== id);
- localStorage.setItem("classeur_maitre_projets_lee", JSON.stringify(listeProjetsGlobal));
- chargerArbreProjetsEtUtilisateurs();
- }
- }
-
- function ajouterNouvelUtilisateurRbac() {
- let login = document.getElementById('usrLogin').value.trim();
- let pass = document.getElementById('usrPass').value.trim();
- let role = document.getElementById('usrRole').value;
- let checkboxes = document.querySelectorAll('input[name="assignationLot"]:checked');
- let lots = []; checkboxes.forEach(cb => lots.push(cb.value));
- if(!login || !pass || lots.length === 0) return alert("⚠️ Remplissez l'identifiant, le mot de passe et assignez au moins un lot !");
- listeUtilisateursRBAC.push({ id: Date.now(), login, pass, role, lots });
- localStorage.setItem("matrice_utilisateurs_rbac_gc", JSON.stringify(listeUtilisateursRBAC));
- document.getElementById('usrLogin').value = "";
- document.getElementById('usrPass').value = "";
- document.querySelectorAll('input[name="assignationLot"]:checked').forEach(cb => cb.checked = false);
- afficherTableauUtilisateurs();
+ async function ajouterNouvelUtilisateurRbac() {
+  let login = document.getElementById('usrLogin').value.trim(); let pass = document.getElementById('usrPass').value.trim(); let role = document.getElementById('usrRole').value;
+  let checkboxes = document.querySelectorAll('input[name="assignationLot"]:checked'); let lots = []; checkboxes.forEach(cb => lots.push(cb.value));
+  if(!login || !pass || lots.length === 0) return alert(" Remplissez l'identifiant, le mot de passe et assignez au moins un lot ! ⚠️");
+  listeUtilisateursRBAC.push({ id: Date.now(), login, pass, role, lots }); localStorage.setItem("matrice_utilisateurs_rbac_gc", JSON.stringify(listeUtilisateursRBAC));
+  await pousserDonneesDepuisAdminVersSupabase();
+  document.getElementById('usrLogin').value = ""; document.getElementById('usrPass').value = ""; document.querySelectorAll('input[name="assignationLot"]:checked').forEach(cb => cb.checked = false); afficherTableauUtilisateurs();
  }
 
  function afficherTableauUtilisateurs() {
- let tbody = document.getElementById('tbodyUsersAdmin'); if(!tbody) return; tbody.innerHTML = "";
- listeUtilisateursRBAC.forEach(u => {
- let cb = u.role === 'admin' ? '#fee2e2;color:#dc2626' : u.role === 'cadres' ? '#eff6ff;color:#1e40af' : '#dcfce7;color:#15803d';
- let txtLots = u.lots.map(id => { let p = listeProjetsGlobal.find(i => i.id == id); return p ? p.nom : id; }).join(", ");
- let btn = u.login === 'admin' ? '<i>Maitre</i>' : `<button class="btn btn-danger" style="padding:2px 6px; font-size:10px;" onclick="supprimerUser(${u.id})">🗑️</button>`;
- tbody.innerHTML += `<tr><td><b>${u.login}</b></td><td><span class="badge-role" style="background:${cb}">${u.role}</span></td><td style="font-size:10px; font-weight:600; color:#475569; max-width:320px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${txtLots}</td><td style="text-align:center;">${btn}</td></tr>`;
- });
+  let tbody = document.getElementById('tbodyUsersAdmin'); if(!tbody) return; tbody.innerHTML = "";
+  listeUtilisateursRBAC.forEach(u => {
+   let cb = u.role === 'admin' ? '#fee2e2;color:#dc2626' : u.role === 'cadres' ? '#eff6ff;color:#1e40af' : '#dcfce7;color:#15803d';
+   let txtLots = u.lots.map(id => { let p = listeProjetsGlobal.find(i => i.id == id); return p ? p.nom : id; }).join(", ");
+   let btn = u.login === 'admin' ? '<i>Maitre</i>' : `<button class="btn btn-danger" style="padding:2px 6px; font-size:10px;" onclick="supprimerUser(${u.id})">🗑️</button>`;
+   tbody.innerHTML += `<tr><td><b>${u.login}</b></td><td><span class="badge-role" style="background:${cb}">${u.role}</span></td><td style="font-size:10px; font-weight:600; color:#475569; max-width:320px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${txtLots}</td><td style="text-align:center;">${btn}</td></tr>`;
+  });
  }
 
- function supprimerUser(id) {
- if(confirm("Supprimer définitivement ce compte ?")) {
- listeUtilisateursRBAC = listeUtilisateursRBAC.filter(u => u.id !== id);
- localStorage.setItem("matrice_utilisateurs_rbac_gc", JSON.stringify(listeUtilisateursRBAC));
- afficherTableauUtilisateurs();
- }
- }
-
- function exporterFichierClasseurJsonLocal() {
- let baseProjets = localStorage.getItem("classeur_maitre_projets_lee") || "[]";
- let baseUsers = localStorage.getItem("matrice_utilisateurs_rbac_gc") || "[]";
- let masterFiche = localStorage.getItem("base_donnees_fiche_projet_maitre") || "{}";
- let baseBDQE = localStorage.getItem("base_donnees_bdqe_global") || "{}";
- let baseCCPMS = localStorage.getItem("base_donnees_ccpms_global") || "{}";
- let baseAvenants = localStorage.getItem("base_donnees_avenants_global") || "[]";
- let basePlanning = localStorage.getItem("base_donnees_planning_gantt") || "{}";
- let baseSuivi = localStorage.getItem("base_donnees_suivi_avancement_travaux") || "{}";
-
- let chartesIsolees = {}; let bdqeIsolees = {}; let ccpmsIsolees = {}; let suiviIsolees = {}; let planningIsolees = {};
- try {
- JSON.parse(baseProjets).forEach(p => {
- if(localStorage.getItem(`charte_administrative_${p.id}`)) chartesIsolees[p.id] = JSON.parse(localStorage.getItem(`charte_administrative_${p.id}`));
- if(localStorage.getItem(`bdqe_${p.id}`)) bdqeIsolees[p.id] = JSON.parse(localStorage.getItem(`bdqe_${p.id}`));
- if(localStorage.getItem(`ccpms_${p.id}`)) ccpmsIsolees[p.id] = JSON.parse(localStorage.getItem(`ccpms_${p.id}`));
- if(localStorage.getItem(`suivi_${p.id}`)) suiviIsolees[p.id] = JSON.parse(localStorage.getItem(`suivi_${p.id}`));
- if(localStorage.getItem(`planning_${p.id}`)) planningIsolees[p.id] = JSON.parse(localStorage.getItem(`planning_${p.id}`));
- });
- } catch(e){}
-
- let paquetGlobalData = {
- dateExport: new Date().toISOString(), projets: JSON.parse(baseProjets), utilisateurs: JSON.parse(baseUsers), ficheMaitrePapa: JSON.parse(masterFiche),
- bdqe: JSON.parse(baseBDQE), ccpms: JSON.parse(baseCCPMS), avenants: JSON.parse(baseAvenants), planning: JSON.parse(basePlanning), suiviAvancement: JSON.parse(baseSuivi),
- chartesIsolees, bdqeIsolees, ccpmsIsolees, suiviIsolees, planningIsolees
- };
-
- let blob = new Blob([JSON.stringify(paquetGlobalData, null, 2)], { type: "application/json" });
- let lien = document.createElement("a"); lien.href = URL.createObjectURL(blob); lien.download = `GENIE_CIVIL_PRO_DATABASE_MASTER.json`;
- document.body.appendChild(lien); lien.click(); document.body.removeChild(lien);
- alert("✅ Base globale et modules compilés ! Téléchargement local lancé.");
- }
-
- function importerFichierClasseurJsonLocal(input) {
- if (input.files && input.files[0]) {
- let reader = new FileReader();
- reader.onload = function(e) {
- try {
- let paquet = JSON.parse(e.target.result);
- if (!paquet.projets || !paquet.utilisateurs) return alert("⚠️ Fichier invalide.");
- if (confirm("🚨 ATTENTION : Cela va écraser TOUTES vos données actuelles. Confirmer ?")) {
- localStorage.setItem("classeur_maitre_projets_lee", JSON.stringify(paquet.projets));
- localStorage.setItem("matrice_utilisateurs_rbac_gc", JSON.stringify(paquet.utilisateurs));
- localStorage.setItem("base_donnees_fiche_projet_maitre", JSON.stringify(paquet.ficheMaitrePapa));
- 
- if (paquet.bdqe) localStorage.setItem("base_donnees_bdqe_global", JSON.stringify(paquet.bdqe));
- if (paquet.ccpms) localStorage.setItem("base_donnees_ccpms_global", JSON.stringify(paquet.ccpms));
- if (paquet.avenants) localStorage.setItem("base_donnees_avenants_global", JSON.stringify(paquet.avenants));
- if (paquet.planning) localStorage.setItem("base_donnees_planning_gantt", JSON.stringify(paquet.planning));
- if (paquet.suiviAvancement) localStorage.setItem("base_donnees_suivi_avancement_travaux", JSON.stringify(paquet.suiviAvancement));
-
- if (paquet.chartesIsolees) { for (let id in paquet.chartesIsolees) localStorage.setItem(`charte_administrative_${id}`, JSON.stringify(paquet.chartesIsolees[id])); }
- if (paquet.bdqeIsolees) { for (let id in paquet.bdqeIsolees) localStorage.setItem(`bdqe_${id}`, JSON.stringify(paquet.bdqeIsolees[id])); }
- if (paquet.ccpmsIsolees) { for (let id in paquet.ccpmsIsolees) localStorage.setItem(`ccpms_${id}`, JSON.stringify(paquet.ccpmsIsolees[id])); }
- if (paquet.suiviIsolees) { for (let id in paquet.suiviIsolees) localStorage.setItem(`suivi_${id}`, JSON.stringify(paquet.suiviIsolees[id])); }
- if (paquet.planningIsolees) { for (let id in paquet.planningIsolees) localStorage.setItem(`planning_${id}`, JSON.stringify(paquet.planningIsolees[id])); }
-
- alert("✅ Restauration locale réussie !"); window.location.reload();
- }
- } catch (err) { alert("❌ Erreur de lecture du fichier JSON."); }
- };
- reader.readAsText(input.files[0]);
- }
- }
+ async function supprimerUser(id) { if(confirm("Supprimer définitivement ce compte ?")) { listeUtilisateursRBAC = listeUtilisateursRBAC.filter(u => u.id !== id); localStorage.setItem("matrice_utilisateurs_rbac_gc", JSON.stringify(listeUtilisateursRBAC)); await pousserDonneesDepuisAdminVersSupabase(); afficherTableauUtilisateurs(); } }
+ function exporterFichierClasseurJsonLocal() { let baseProjets = localStorage.getItem("classeur_maitre_projets_lee") || "[]"; let baseUsers = localStorage.getItem("matrice_utilisateurs_rbac_gc") || "[]"; let masterFiche = localStorage.getItem("base_donnees_fiche_projet_maitre") || "{}"; let baseBDQE = localStorage.getItem("base_donnees_bdqe_global") || "{}"; let baseCCPMS = localStorage.getItem("base_donnees_ccpms_global") || "{}"; let baseAvenants = localStorage.getItem("base_donnees_avenants_global") || "[]"; let basePlanning = localStorage.getItem("base_donnees_planning_gantt") || "{}"; let baseSuivi = localStorage.getItem("base_donnees_suivi_avancement_travaux") || "{}"; let chartesIsolees = {}; let bdqeIsolees = {}; let ccpmsIsolees = {}; let suiviIsolees = {}; let planningIsolees = {}; try { JSON.parse(baseProjets).forEach(p => { if(localStorage.getItem(`charte_administrative_${p.id}`)) chartesIsolees[p.id] = JSON.parse(localStorage.getItem(`charte_administrative_${p.id}`)); if(localStorage.getItem(`bdqe_${p.id}`)) bdqeIsolees[p.id] = JSON.parse(localStorage.getItem(`bdqe_${p.id}`)); if(localStorage.getItem(`ccpms_${p.id}`)) ccpmsIsolees[p.id] = JSON.parse(localStorage.getItem(`ccpms_${p.id}`)); if(localStorage.getItem(`suivi_${p.id}`)) suiviIsolees[p.id] = JSON.parse(localStorage.getItem(`suivi_${p.id}`)); if(localStorage.getItem(`planning_${p.id}`)) planningIsolees[p.id] = JSON.parse(localStorage.getItem(`planning_${p.id}`)); }); } catch(e){} let paquetGlobalData = { dateExport: new Date().toISOString(), projets: JSON.parse(baseProjets), utilisateurs: JSON.parse(baseUsers), ficheMaitrePapa: JSON.parse(masterFiche), bdqe: JSON.parse(baseBDQE), ccpms: JSON.parse(baseCCPMS), avenants: JSON.parse(baseAvenants), planning: JSON.parse(basePlanning), suiviAvancement: JSON.parse(baseSuivi), chartesIsolees, bdqeIsolees, ccpmsIsolees, suiviIsolees, planningIsolees }; let blob = new Blob([JSON.stringify(paquetGlobalData, null, 2)], { type: "application/json" }); let lien = document.createElement("a"); lien.href = URL.createObjectURL(blob); lien.download = `GENIE_CIVIL_PRO_DATABASE_MASTER.json`; document.body.appendChild(lien); lien.click(); document.body.removeChild(lien); alert(" Base globale et modules compilés ! Téléchargement local lancé. ✔️"); }
+ function importerFichierClasseurJsonLocal(input) { if (input.files && input.files) { let reader = new FileReader(); reader.onload = async function(e) { try { let paquet = JSON.parse(e.target.result); if (!paquet.projets || !paquet.utilisateurs) return alert(" Fichier ⚠️ invalide."); if (confirm(" ATTENTION : Cela va écraser TOUTES vos données actuelles. Confirmer ? 🚨")) { localStorage.setItem("classeur_maitre_projets_lee", JSON.stringify(paquet.projets)); localStorage.setItem("matrice_utilisateurs_rbac_gc", JSON.stringify(paquet.utilisateurs)); localStorage.setItem("base_donnees_fiche_projet_maitre", JSON.stringify(paquet.ficheMaitrePapa)); if (paquet.bdqe) localStorage.setItem("base_donnees_bdqe_global", JSON.stringify(paquet.bdqe)); if (paquet.ccpms) localStorage.setItem("base_donnees_ccpms_global", JSON.stringify(paquet.ccpms)); if (paquet.avenants) localStorage.setItem("base_donnees_avenants_global", JSON.stringify(paquet.avenants)); if (paquet.planning) localStorage.setItem("base_donnees_planning_gantt", JSON.stringify(paquet.planning)); if (paquet.suiviAvancement) localStorage.setItem("base_donnees_suivi_avancement_travaux", JSON.stringify(paquet.suiviAvancement)); if (paquet.chartesIsolees) { for (let id in paquet.chartesIsolees) localStorage.setItem(`charte_administrative_${id}`, JSON.stringify(paquet.chartesIsolees[id])); } if (paquet.bdqeIsolees) { for (let id in paquet.bdqeIsolees) localStorage.setItem(`bdqe_${id}`, JSON.stringify(paquet.bdqeIsolees[id])); } if (paquet.ccpmsIsolees) { for (let id in paquet.ccpmsIsolees) localStorage.setItem(`ccpms_${id}`, JSON.stringify(paquet.ccpmsIsolees[id])); } if (paquet.suiviIsolees) { for (let id in paquet.suiviIsolees) localStorage.setItem(`suivi_${id}`, JSON.stringify(paquet.suiviIsolees[id])); } if (paquet.planningIsolees) { for (let id in paquet.planningIsolees) localStorage.setItem(`planning_${id}`, JSON.stringify(paquet.planningIsolees[id])); } await pousserDonneesDepuisAdminVersSupabase(); alert(" Restauration cloud réussie ! ✔️"); window.location.reload(); } } catch (err) { alert(" Erreur de lecture du fichier JSON."); } }; reader.readAsText(input.files); } }
 </script>
 </body>
 </html>
