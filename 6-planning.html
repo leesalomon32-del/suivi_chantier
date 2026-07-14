@@ -241,20 +241,20 @@
         }
     }
 
-    
-    function rechargerTout() {
-        trierDonnees(); genererSegments(); afficherTableauPlanning(); calculerRecapitulatifsGantt();
-        localStorage.setItem(cleStockagePlanning, JSON.stringify(listePlanning));
-    }
+function rechargerTout() {
+ try {
+  trierDonnees(); 
+  genererSegments(); 
+  afficherTableauPlanning(); 
+  calculerRecapitulatifsGantt(); // Alignement orthographique strict
+  
+  // Gravure définitive et isolée dans la mémoire pour le projet actif
+  localStorage.setItem(cleStockagePlanning, JSON.stringify(listePlanning));
+ } catch (err) {
+  console.error("Erreur au rafraîchissement global:", err);
+ }
+}
 
-    function genererSegments() {
-        let uniqueOuvrages = ["TOUS", ...new Set(listePlanning.map(item => item.ouvrage).filter(Boolean))];
-        let uniqueStructures = ["TOUS", ...new Set(listePlanning.map(item => item.structure).filter(Boolean))];
-        let containerOuvrage = document.getElementById('segmentOuvrages'); containerOuvrage.innerHTML = "";
-        uniqueOuvrages.forEach(ouv => { let btn = document.createElement('button'); btn.className = `segment-btn ${filtreOuvrageActif === ouv ? 'active' : ''}`; btn.innerText = ouv; btn.onclick = () => { filtreOuvrageActif = ouv; rechargerTout(); }; containerOuvrage.appendChild(btn); });
-        let containerStructure = document.getElementById('segmentStructures'); containerStructure.innerHTML = "";
-        uniqueStructures.forEach(str => { let btn = document.createElement('button'); btn.className = `segment-btn ${filtreStructureActif === str ? 'active' : ''}`; btn.innerText = str; btn.onclick = () => { filtreStructureActif = str; rechargerTout(); }; containerStructure.appendChild(btn); });
-    }
 function executerHackFlemmard() {
  try {
   let echelle = document.getElementById('hackEchelle').value;
@@ -272,8 +272,7 @@ function executerHackFlemmard() {
    if (echelle === "OUVRAGE" && item.ouvrage === cible) cibleOk = true;
    if (echelle === "STRUCTURE") { 
     let frg = cible.split(" ||| "); 
-    // CORRECTION CRUCIALE : Lecture ciblée des index du tableau de découpe [0] et [1]
-    if (frg.length >= 2 && item.ouvrage === frg[0] && item.structure === frg[1]) cibleOk = true; 
+    if (frg.length >= 2 && item.ouvrage === frg[0] && item.structure === frg[1]) { cibleOk = true; }
    }
    
    if (cibleOk) { 
@@ -284,58 +283,53 @@ function executerHackFlemmard() {
    }
   });
   
-  // Sauvegarde locale et rafraîchissement complet
   rechargerTout(); 
   
   alert(" 🎉 Succès ! " + compteur + " lignes planifiées avec succès sur ce lot ! ⚡");
   
  } catch (err) {
   console.error("Erreur Planification Express:", err);
-  alert(" ❌ Une erreur interne de syntaxe a bloqué l'enregistrement.");
+  alert(" ❌ Une erreur interne a bloqué l'enregistrement. Détails : " + err.message);
  }
 }
 
-function rechargerTout() {
- trierDonnees(); 
- genererSegments(); 
- afficherTableauPlanning(); 
- calculerRecapitulatifsGantt();
- // Enregistrement avec la clé dynamique réalignée sur le projet actif
- localStorage.setItem(cleStockagePlanning, JSON.stringify(listePlanning));
+function afficherTableauPlanning() {
+ let tbody = document.getElementById('tbodyPlanning'); if(!tbody) return; tbody.innerHTML = "";
+ listePlanning.forEach((item, index) => {
+  if (filtreOuvrageActif !== "TOUS" && item.ouvrage !== filtreOuvrageActif) return;
+  if (filtreStructureActif !== "TOUS" && item.structure !== filtreStructureActif) return;
+  let tr = document.createElement('tr');
+  let ganttHTML = `<div style="color:grey; font-size:11px; text-align:center;">Dates manquantes</div>`;
+  if (item.date_debut && item.date_fin) { ganttHTML = `<div class="gantt-bar" style="width: 90%; margin: 0 auto;"> ${item.duree} ⏱ jrs</div>`; }
+  tr.innerHTML = `<td><b>${item.ouvrage}</b></td><td>${item.code_bdqe}</td><td>${item.structure}</td><td>${item.designation}</td><td><input type="date" class="input-date" value="${item.date_debut}" onchange="modifierDateLigne(${index}, 'debut', this.value)"></td><td><input type="date" class="input-date" value="${item.date_fin}" onchange="modifierDateLigne(${index}, 'fin', this.value)"></td><td style="font-weight:bold; color:var(--primary-color);">${item.duree > 0 ? item.duree + " jours" : ""}</td><td class="gantt-cell">${ganttHTML}</td>`;
+  tbody.appendChild(tr);
+ });
 }
 
-    function afficherTableauPlanning() {
-        let tbody = document.getElementById('tbodyPlanning'); tbody.innerHTML = "";
-        listePlanning.forEach((item, index) => {
-            if (filtreOuvrageActif !== "TOUS" && item.ouvrage !== filtreOuvrageActif) return;
-            if (filtreStructureActif !== "TOUS" && item.structure !== filtreStructureActif) return;
-            let tr = document.createElement('tr');
-            let ganttHTML = `<div style="color:grey; font-size:11px; text-align:center;">Dates manquantes</div>`;
-            if (item.date_debut && item.date_fin) { ganttHTML = `<div class="gantt-bar" style="width: 90%; margin: 0 auto;">⏱️ ${item.duree} jrs</div>`; }
-            tr.innerHTML = `<td><b>${item.ouvrage}</b></td><td>${item.code_bdqe}</td><td>${item.structure}</td><td>${item.designation}</td><td><input type="date" class="input-date" value="${item.date_debut}" onchange="modifierDateLigne(${index}, 'debut', this.value)"></td><td><input type="date" class="input-date" value="${item.date_fin}" onchange="modifierDateLigne(${index}, 'fin', this.value)"></td><td style="font-weight:bold; color:var(--primary-color);">${item.duree > 0 ? item.duree + " jours" : ""}</td><td class="gantt-cell">${ganttHTML}</td>`;
-            tbody.appendChild(tr);
-        });
-    }
-
-    function calculerRecapitulatifsGantt() {
-        let recap = {}; let pMin = null; let pMax = null;
-        listePlanning.forEach(item => {
-            if (!item.date_debut || !item.date_fin) return;
-            let dDeb = new Date(item.date_debut); let dFin = new Date(item.date_fin);
-            if (!pMin || dDeb < pMin) pMin = dDeb; if (!pMax || dFin > pMax) pMax = dFin;
-            if (!recap[item.ouvrage]) recap[item.ouvrage] = { min: dDeb, max: dFin };
-            if (dDeb < recap[item.ouvrage].min) recap[item.ouvrage].min = dDeb; if (dFin > recap[item.ouvrage].max) recap[item.ouvrage].max = dFin;
-        });
-        let tbodyRecap = document.getElementById('tbodyRecapOuvrage'); tbodyRecap.innerHTML = "";
-        for (let ouv in recap) {
-            let dur = Math.ceil(Math.abs(recap[ouv].max - recap[ouv].min) / (1000 * 60 * 60 * 24)) + 1;
-            let tr = document.createElement('tr'); tr.innerHTML = `<td><b>${ouv}</b></td><td>${recap[ouv].min.toLocaleDateString('fr-FR')}</td><td>${recap[ouv].max.toLocaleDateString('fr-FR')}</td><td style="font-weight:bold;color:green;">${dur} jours</td>`; tbodyRecap.appendChild(tr);
-        }
-        if (pMin && pMax) {
-            let totalProjetDuree = Math.ceil(Math.abs(pMax - pMin) / (1000 * 60 * 60 * 24)) + 1;
-            document.getElementById('recapProjetGlobal').innerHTML = `⏱Header Période : Du <b>${pMin.toLocaleDateString('fr-FR')}</b> au <b>${pMax.toLocaleDateString('fr-FR')}</b><br>🚀 Durée Globale : <span style="color:green;font-weight:bold;">${totalProjetDuree} jours</span>`;
-        } else { document.getElementById('recapProjetGlobal').innerText = "Période : Aucune tâche planifiée."; }
-    }
+function calculerRecapitulatifsGantt() {
+ let recap = {}; let pMin = null; let pMax = null;
+ listePlanning.forEach(item => {
+  if (!item.date_debut || !item.date_fin) return;
+  let dDeb = new Date(item.date_debut); let dFin = new Date(item.date_fin);
+  if (!pMin || dDeb < pMin) pMin = dDeb; if (!pMax || dFin > pMax) pMax = dFin;
+  if (!recap[item.ouvrage]) recap[item.ouvrage] = { min: dDeb, max: dFin };
+  if (dDeb < recap[item.ouvrage].min) recap[item.ouvrage].min = dDeb; 
+  if (dFin > recap[item.ouvrage].max) recap[item.ouvrage].max = dFin;
+ });
+ let tbodyRecap = document.getElementById('tbodyRecapOuvrage'); if(!tbodyRecap) return; tbodyRecap.innerHTML = "";
+ for (let ouv in recap) {
+  let dur = Math.ceil(Math.abs(recap[ouv].max - recap[ouv].min) / (1000 * 60 * 60 * 24)) + 1;
+  let tr = document.createElement('tr'); tr.innerHTML = `<td><b>${ouv}</b></td><td>${recap[ouv].min.toLocaleDateString('fr-FR')}</td><td>${recap[ouv].max.toLocaleDateString('fr-FR')}</td><td style="font-weight:bold;color:green;">${dur} jours</td>`; 
+  tbodyRecap.appendChild(tr);
+ }
+ if (pMin && pMax) {
+  let totalProjetDuree = Math.ceil(Math.abs(pMax - pMin) / (1000 * 60 * 60 * 24)) + 1;
+  document.getElementById('recapProjetGlobal').innerHTML = ` Période : Du <b>${pMin.toLocaleDateString('fr-FR')}</b> au <b>${pMax.toLocaleDateString('fr-FR')}</b><br> Durée Globale : <span style="color:green;font-weight:bold;">${totalProjetDuree} jours</span>`;
+ } else { document.getElementById('recapProjetGlobal').innerText = "Période : Aucune tâche planifiée."; }
+}
 </script>
 </body>
 </html>
+    
+    
+
