@@ -503,6 +503,31 @@ function exporterFichierClasseurJsonAccueil() {
 function importerFichierClasseurJsonAccueil(input) {
     alert("Astuce : Pour injecter un fichier de secours global, utilise le bouton d'importation sur l'écran de Connexion !");
 }
+// =========================================================================
+// ACTION DES BOUTONS : RE-NAVIGATION VERS LES MODULES ET DÉCONNEXION
+// =========================================================================
+
+// C'est cette fonction qui manquait ! Elle permet de changer de page.
+function ouvrirVraiePageLien(fichierHtml) { 
+    if(!idProjetActif) {
+        return alert("Sélectionnez d'abord un projet dans la liste de gauche !"); 
+    }
+    // On mémorise le projet en cours pour que la page suivante sache quel tiroir ouvrir
+    localStorage.setItem("id_projet_en_cours_de_saisie_temporaire", idProjetActif); 
+    window.location.href = fichierHtml; 
+}
+
+// Fonction pour fermer la session locale proprement
+function deconnecterSessionConsole() { 
+    if(confirm("Souhaitez-vous vraiment fermer votre session de travail ?")) { 
+        localStorage.removeItem("session_securisee_active_gc"); 
+        localStorage.removeItem("session_user_login"); 
+        localStorage.removeItem("session_user_role"); 
+        localStorage.removeItem("session_user_lots"); 
+        window.location.href = "1_login.html"; 
+    } 
+}
+ 
 </script>
 </body>
 </html>
