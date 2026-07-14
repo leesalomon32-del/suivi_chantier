@@ -4,14 +4,15 @@
  <meta charset="UTF-8">
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
  <title>Génie Civil Pro - Console Dashboard Master</title>
- 
- <!-- Connexion sécurisée au Cloud Supabase -->
- <script src="https://jsdelivr.net"></script>
- <script>
-  const SUPABASE_URL = "https://supabase.co";
-  const SUPABASE_KEY = "sb_publishable_sgaqDZKA5v6LT128Pvon9w_HnziORIq";
-  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
- </script>
+ <!-- Bibliothèque Supabase Cloud Officielle -->
+<script src="https://jsdelivr.net"></script>
+<script>
+ const SUPABASE_URL = "https://supabase.co";
+ const SUPABASE_KEY = "sb_publishable_sgaqDZKA5v6LT128Pvon9w_HnziORIq";
+ // Alignement parfait du nom de la variable pour supprimer l'erreur de la ligne 266
+ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+</script>
+
  <style>
  :root {
  --primary-dark: #0f172a;
