@@ -241,26 +241,7 @@
         }
     }
 
-    function executerHackFlemmard() {
-        let echelle = document.getElementById('hackEchelle').value;
-        let cible = document.getElementById('hackCible').value;
-        let debut = document.getElementById('hackDebut').value;
-        let fin = document.getElementById('hackFin').value;
-        if(!debut || !fin) { alert("Dates manquantes !"); return; }
-        if(new Date(fin) < new Date(debut)) { alert("Chronologie invalide."); return; }
-
-        let compteur = 0;
-        listePlanning.forEach(item => {
-            let cibleOk = false;
-            if (echelle === "PROJET") cibleOk = true;
-            if (echelle === "OUVRAGE" && item.ouvrage === cible) cibleOk = true;
-            if (echelle === "STRUCTURE") { let frg = cible.split(" ||| "); if (item.ouvrage === frg[0] && item.structure === frg[1]) cibleOk = true; }
-
-            if (cibleOk) { item.date_debut = debut; item.date_fin = fin; item.duree = calculerDureeJours(debut, fin); compteur++; }
-        });
-        rechargerTout(); alert("⚡ Fait ! " + compteur + " lignes planifiées.");
-    }
-
+    
     function rechargerTout() {
         trierDonnees(); genererSegments(); afficherTableauPlanning(); calculerRecapitulatifsGantt();
         localStorage.setItem(cleStockagePlanning, JSON.stringify(listePlanning));
@@ -274,6 +255,45 @@
         let containerStructure = document.getElementById('segmentStructures'); containerStructure.innerHTML = "";
         uniqueStructures.forEach(str => { let btn = document.createElement('button'); btn.className = `segment-btn ${filtreStructureActif === str ? 'active' : ''}`; btn.innerText = str; btn.onclick = () => { filtreStructureActif = str; rechargerTout(); }; containerStructure.appendChild(btn); });
     }
+function executerHackFlemmard() {
+ try {
+  let echelle = document.getElementById('hackEchelle').value;
+  let cible = document.getElementById('hackCible').value;
+  let debut = document.getElementById('hackDebut').value;
+  let fin = document.getElementById('hackFin').value;
+  if(!debut || !fin) { alert("⚠️ Dates manquantes !"); return; }
+  if(new Date(fin) < new Date(debut)) { alert("⚠️ Chronologie invalide."); return; }
+  
+  let compteur = 0;
+  
+  listePlanning.forEach(item => {
+   let cibleOk = false; // <-- CRUCIAL : Correction du bug d'origine (Déclaration de la variable)
+   if (echelle === "PROJET") cibleOk = true;
+   if (echelle === "OUVRAGE" && item.ouvrage === cible) cibleOk = true;
+   if (echelle === "STRUCTURE") { 
+    let frg = cible.split(" ||| "); 
+    if (item.ouvrage === frg[0] && item.structure === frg[1]) cibleOk = true; 
+   }
+   
+   if (cibleOk) { 
+    item.date_debut = debut; 
+    item.date_fin = fin; 
+    item.duree = calculerDureeJours(debut, fin); 
+    compteur++; 
+   }
+  });
+  
+  // 1. Sauvegarde locale immédiate
+  rechargerTout(); 
+  
+  // 2. Le pop-up de signalement fonctionne à nouveau !
+  alert(" 🎉 Succès ! " + compteur + " lignes planifiées avec succès sur ce lot ! ⚡");
+  
+ } catch (err) {
+  console.error(err);
+  alert(" ❌ Une erreur interne a bloqué l'enregistrement.");
+ }
+}
 
     function afficherTableauPlanning() {
         let tbody = document.getElementById('tbodyPlanning'); tbody.innerHTML = "";
