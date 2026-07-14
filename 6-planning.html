@@ -267,12 +267,13 @@ function executerHackFlemmard() {
   let compteur = 0;
   
   listePlanning.forEach(item => {
-   let cibleOk = false; // <-- CRUCIAL : Correction du bug d'origine (Déclaration de la variable)
+   let cibleOk = false;
    if (echelle === "PROJET") cibleOk = true;
    if (echelle === "OUVRAGE" && item.ouvrage === cible) cibleOk = true;
    if (echelle === "STRUCTURE") { 
     let frg = cible.split(" ||| "); 
-    if (item.ouvrage === frg[0] && item.structure === frg[1]) cibleOk = true; 
+    // CORRECTION CRUCIALE : Lecture ciblée des index du tableau de découpe [0] et [1]
+    if (frg.length >= 2 && item.ouvrage === frg[0] && item.structure === frg[1]) cibleOk = true; 
    }
    
    if (cibleOk) { 
@@ -283,16 +284,24 @@ function executerHackFlemmard() {
    }
   });
   
-  // 1. Sauvegarde locale immédiate
+  // Sauvegarde locale et rafraîchissement complet
   rechargerTout(); 
   
-  // 2. Le pop-up de signalement fonctionne à nouveau !
   alert(" 🎉 Succès ! " + compteur + " lignes planifiées avec succès sur ce lot ! ⚡");
   
  } catch (err) {
-  console.error(err);
-  alert(" ❌ Une erreur interne a bloqué l'enregistrement.");
+  console.error("Erreur Planification Express:", err);
+  alert(" ❌ Une erreur interne de syntaxe a bloqué l'enregistrement.");
  }
+}
+
+function rechargerTout() {
+ trierDonnees(); 
+ genererSegments(); 
+ afficherTableauPlanning(); 
+ calculerRecapitulatifsGantt();
+ // Enregistrement avec la clé dynamique réalignée sur le projet actif
+ localStorage.setItem(cleStockagePlanning, JSON.stringify(listePlanning));
 }
 
     function afficherTableauPlanning() {
