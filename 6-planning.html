@@ -108,77 +108,58 @@
  let cleStockagePlanning = `planning_${idProjetCourant}`;
  let cleStockageBDQE = `bdqe_${idProjetCourant}`;
  
- // INFRASTRUCTURE CRITIQUE : Propulsion automatique immédiate du planning vers le Cloud
- async function pousserPlanningVersSupabase() {
-  try {
-   let baseProjets = localStorage.getItem("classeur_maitre_projets_lee") || "[]";
-   let baseUsers = localStorage.getItem("matrice_utilisateurs_rbac_gc") || "[]";
-   let masterFiche = localStorage.getItem("base_donnees_fiche_projet_maitre") || "{}";
-   let toutesLesChartes = {};
-   try {
-    JSON.parse(baseProjets).forEach(p => {
-     let cle = `charte_administrative_${p.id}`; if(localStorage.getItem(cle)) toutesLesChartes[p.id] = JSON.parse(localStorage.getItem(cle));
+ // Fonction pour extraire un planning isolé depuis le gros paquet Cloud sans saturer la mémoire
+async function chargerPlanningDepuisCloud() {
+ try {
+  const { data, error } = await supabaseClient.from('app_database').select('data').eq('id', 1).single();
+  if (error) throw error;
+  if (data && data.data) {
+   let paquet = data.data;
+   let planningsIsolees = paquet.planningIsolees || {};
+   
+   let bdqeInitial = localStorage.getItem(cleStockageBDQE);
+   let listeBaseBDQE = bdqeInitial ? JSON.parse(bdqeInitial) : [];
+   
+   // Si le planning de ce projet existe sur le Cloud, on le charge
+   if (planningsIsolees[idProjetCourant]) {
+    listePlanning = planningsIsolees[idProjetCourant];
+    listeBaseBDQE.forEach(baseItem => {
+     let existe = listePlanning.find(plItem => plItem.code_bdqe === baseItem.code_bdqe && plItem.designation === baseItem.designation);
+     if(!existe) { listePlanning.push({ ...baseItem, date_debut: "", date_fin: "", duree: 0 }); }
     });
-   } catch(e) {}
-   
-   // Capture de la modification du planning courant dans le paquet global
-   localStorage.setItem(cleStockagePlanning, JSON.stringify(listePlanning));
-   
-   // Recherche de l'historique de tous les plannings des autres projets pour ne rien détruire
-   let planningsIsolees = {};
-   try {
-    JSON.parse(baseProjets).forEach(p => {
-     let cleP = `planning_${p.id}`; if(localStorage.getItem(cleP)) planningsIsolees[p.id] = JSON.parse(localStorage.getItem(cleP));
-    });
-   } catch(e){}
-   
-   // Recomposition de l'écosystème global
-   let paquetGlobalData = { 
-    projets: JSON.parse(baseProjets), utilisateurs: JSON.parse(baseUsers), ficheMaitrePapa: JSON.parse(masterFiche), chartesIsolees: toutesLesChartes, planningIsolees: planningsIsolees 
-   };
-   
-   // Écrasement sécurisé de la ligne cloud
-   const { error } = await supabaseClient.from('app_database').update({ data: paquetGlobalData }).eq('id', 1);
-   if (error) throw error;
-   console.log("🚀 Synchronisation ascendante du calendrier validée sur Supabase.");
-  } catch (err) { console.error("Erreur Envoi Calendrier Cloud:", err); }
- }
+   } else {
+    // Sinon, on l'initialise à partir du BDQE
+    listePlanning = listeBaseBDQE.map(item => { return { ...item, date_debut: "", date_fin: "", duree: 0 }; });
+   }
+   rechargerTout();
+  }
+ } catch (err) { console.error("Erreur de téléchargement direct du planning:", err); }
+}
 
- window.onload = function() {
-  let userRoleActuel = localStorage.getItem("session_user_role") || "agents";
-  let userLotsAutorises = [];
-  try { userLotsAutorises = JSON.parse(localStorage.getItem("session_user_lots")) || []; } catch(e) {}
-  
-  if (userRoleActuel === "agents") {
-   alert(" Accès Refusé : Privilèges requis insuffisants pour modifier le calendrier d'exécution. 🔒");
-   window.location.href = "3_accueil.html"; return;
-  }
-  
-  if (userRoleActuel === "cadres" || (userRoleActuel === "controle" && !userLotsAutorises.includes(String(idProjetCourant)))) {
-   let formSaisie = document.getElementById('formSaisieTache') || document.querySelector('.form-group') || document.getElementById('formPlanning');
-   if (formSaisie) formSaisie.style.display = 'none';
-   let alerte = document.createElement('div');
-   alerte.style.cssText = "background:#eff6ff; color:#1e40af; padding:10px; border-radius:6px; font-weight:bold; margin-bottom:15px; border:1px solid #bfdbfe; font-size:13px; max-width:1120px; margin: 10px auto;";
-   alerte.innerText = " Mode Consultation Uniquement (Lecture Seule 🔒 Calendrier Direction / Périmètre non affecté)";
-   if (formSaisie) formSaisie.parentNode.insertBefore(alerte, formSaisie); else document.body.insertBefore(alerte, document.body.firstChild);
-   let ths = document.querySelectorAll('table th'); if(ths.length > 0 && ths[ths.length - 1].innerText.includes('Actions')) { ths[ths.length - 1].style.display = 'none'; }
-  }
-  
-  let planningSauve = localStorage.getItem(cleStockagePlanning);
-  let bdqeInitial = localStorage.getItem(cleStockageBDQE);
-  let listeBaseBDQE = bdqeInitial ? JSON.parse(bdqeInitial) : [];
-  
-  if (planningSauve) {
-   listePlanning = JSON.parse(planningSauve);
-   listeBaseBDQE.forEach(baseItem => {
-    let existe = listePlanning.find(plItem => plItem.code_bdqe === baseItem.code_bdqe && plItem.designation === baseItem.designation);
-    if(!existe) { listePlanning.push({ ...baseItem, date_debut: "", date_fin: "", duree: 0 }); }
-   });
-  } else {
-   listePlanning = listeBaseBDQE.map(item => { return { ...item, date_debut: "", date_fin: "", duree: 0 }; });
-  }
-  rechargerTout(); actualiserOptionsHack();
- };
+window.onload = async function() {
+ let userRoleActuel = localStorage.getItem("session_user_role") || "agents";
+ let userLotsAutorises = [];
+ try { userLotsAutorises = JSON.parse(localStorage.getItem("session_user_lots")) || []; } catch(e) {}
+ 
+ if (userRoleActuel === "agents") {
+  alert(" Accès Refusé : Privilèges requis insuffisants pour modifier le calendrier d'exécution. 🔒");
+  window.location.href = "3_accueil.html"; return;
+ }
+ 
+ if (userRoleActuel === "cadres" || (userRoleActuel === "controle" && !userLotsAutorises.includes(String(idProjetCourant)))) {
+  let formSaisie = document.getElementById('formSaisieTache') || document.querySelector('.form-group') || document.getElementById('formPlanning');
+  if (formSaisie) formSaisie.style.display = 'none';
+  let alerte = document.createElement('div');
+  alerte.style.cssText = "background:#eff6ff; color:#1e40af; padding:10px; border-radius:6px; font-weight:bold; margin-bottom:15px; border:1px solid #bfdbfe; font-size:13px; max-width:1120px; margin: 10px auto;";
+  alerte.innerText = " Mode Consultation Uniquement (Lecture Seule 🔒 Calendrier Direction / Périmètre non affecté)";
+  if (formSaisie) formSaisie.parentNode.insertBefore(alerte, formSaisie); else document.body.insertBefore(alerte, document.body.firstChild);
+  let ths = document.querySelectorAll('table th'); if(ths.length > 0 && ths[ths.length - 1].innerText.includes('Actions')) { ths[ths.length - 1].style.display = 'none'; }
+ }
+ 
+ // Lancement de l'aspiration Cloud directe au lieu de lire la mémoire locale saturée
+ await chargerPlanningDepuisCloud();
+ actualiserOptionsHack();
+};
 
  function trierDonnees() {
   listePlanning.sort((a, b) => {
@@ -238,9 +219,19 @@
  }
 
  function rechargerTout() {
-  trierDonnees(); genererSegments(); afficherTableauPlanning(); calculerRecapitulatifsGantt();
-  localStorage.setItem(cleStockagePlanning, JSON.stringify(listePlanning));
+ try {
+  trierDonnees(); 
+  genererSegments(); 
+  afficherTableauPlanning(); 
+  calculerRecapitulatifsGantt();
+  
+  // NOTE EXPERT : On n'écrit plus dans le localStorage saturé pour éviter le crash !
+  // La sauvegarde se fait désormais de manière illimitée directement sur Supabase Cloud.
+ } catch (err) {
+  console.error("Erreur au rafraîchissement global:", err);
  }
+}
+
 
  function genererSegments() {
   let uniqueOuvrages = ["TOUS", ...new Set(listePlanning.map(item => item.ouvrage).filter(Boolean))];
