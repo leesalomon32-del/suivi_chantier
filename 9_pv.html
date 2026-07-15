@@ -60,11 +60,10 @@
  </div>
 
  <!-- TABLEAU MAITRE RE-ALIGNE CELLULE PAR CELLULE -->
- <table class="entete-master">
+  <table class="entete-master">
   <tr>
    <td class="lbl-gray" style="width: 180px;">Objet du Marché :</td>
-   <td id="viewObjet" style="font-weight:bold; color:var(--secondary-color);">-</td>
-   <td style="width: 95px; text-align: center; border: 1px solid #cbd5e1; padding: 2px;" id="pvLogoMO"></td>
+   <td id="viewObjet" style="font-weight:bold; color:var(--secondary-color);" colspan="2">-</td>
   </tr>
   <tr>
    <td class="lbl-gray">Bailleur / Financement :</td>
@@ -74,7 +73,7 @@
   <tr>
    <td class="lbl-gray">Maître d'Ouvrage :</td>
    <td id="viewMO">-</td>
-   <td style="width: 95px; text-align: center; border: 1px solid #cbd5e1; padding: 2px;" id="pvLogoMOD"></td>
+   <td style="width: 95px; text-align: center; border: 1px solid #cbd5e1; padding: 2px;" id="pvLogoMO"></td>
   </tr>
   <tr>
    <td class="lbl-gray">Maître d'Œuvre :</td>
@@ -88,8 +87,7 @@
   </tr>
   <tr>
    <td class="lbl-gray">N° de Contrat / Marché :</td>
-   <td id="viewNumContrat" style="font-family:monospace; color:var(--secondary-color); font-weight: bold;">-</td>
-   <td style="background: #f1f5f9; border: 1px solid #cbd5e1;"></td>
+   <td id="viewNumContrat" style="font-family:monospace; color:var(--secondary-color); font-weight: bold;" colspan="2">-</td>
   </tr>
  </table>
 
@@ -173,13 +171,12 @@ window.onload = function() {
             if(elEnt) elEnt.innerText = n.entreprise || m.entreprise || "-";
             if(document.getElementById('viewNumContrat')) document.getElementById('viewNumContrat').innerText = n.numContrat || m.numContrat || "-";
             
-            // Injection millimétrée des 5 logos distincts sans décalage
+            // Distribution parfaite des 4 logos sur les lignes 2, 3, 4 et 5
             let sourceLogos = pActuel && pActuel.type === 'ENFANT' ? m : n;
             let styleStyle = 'style="max-height:35px; max-width:100%; object-fit:contain; vertical-align:middle;"';
             
-            if(document.getElementById('pvLogoMO') && sourceLogos.logoMO_html) document.getElementById('pvLogoMO').innerHTML = sourceLogos.logoMO_html.replace('<img', `<img ${styleStyle}`);
             if(document.getElementById('pvLogoFin') && sourceLogos.logoFin_html) document.getElementById('pvLogoFin').innerHTML = sourceLogos.logoFin_html.replace('<img', `<img ${styleStyle}`);
-            if(document.getElementById('pvLogoMOD')) document.getElementById('pvLogoMOD').innerHTML = sourceLogos.logoMOD_html || `🏢 <br><span style="font-size:8px;font-weight:bold;color:#64748b;">UGP MEAH</span>`;
+            if(document.getElementById('pvLogoMO') && sourceLogos.logoMO_html) document.getElementById('pvLogoMO').innerHTML = sourceLogos.logoMO_html.replace('<img', `<img ${styleStyle}`);
             if(document.getElementById('pvLogoMOE') && sourceLogos.logoMOE_html) document.getElementById('pvLogoMOE').innerHTML = sourceLogos.logoMOE_html.replace('<img', `<img ${styleStyle}`);
             if(document.getElementById('pvLogoEntreprise') && sourceLogos.logoEnterprise_html) document.getElementById('pvLogoEntreprise').innerHTML = sourceLogos.logoEnterprise_html.replace('<img', `<img ${styleStyle}`);
             
