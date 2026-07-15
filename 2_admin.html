@@ -473,7 +473,6 @@ function afficherTableauUtilisateurs() {
 async function supprimerUser(id) { 
     if(confirm("Supprimer ce compte ?")) { await effacerDonneeDB("utilisateurs", id); await chargerArbreProjetsEtUtilisateurs(); } 
 }
-
 async function exporterFichierClasseurJsonLocal() {
     let projets = await lireToutesLesDonneesDB("projets");
     let utilisateurs = await lireToutesLesDonneesDB("utilisateurs");
@@ -492,34 +491,44 @@ async function exporterFichierClasseurJsonLocal() {
     alert("Base exportée !");
 }
 
-async function importerFichierClasseurJsonLocal(input) {
-    if (input.files && input.files) {
+function importerFichierClasseurJsonLocal(input) {
+    if (input.files && input.files[0]) {
         let reader = new FileReader();
         reader.onload = async function(e) {
             try {
                 let paquet = JSON.parse(e.target.result);
-                if (!paquet.projets || !paquet.utilisateurs) return alert("Fichier invalide.");
-                if (confirm("Écraser TOUTES les données ?")) {
+                if (!paquet.projets || !paquet.utilisateurs) return alert("Fichier JSON master invalide ou incomplet.");
+                
+                if (confirm("⚠️ ATTENTION : Valider l'importation ? Cela va écraser toutes vos données actuelles de l'application localement.")) {
                     await initialiserLeMeubleDB();
-                    await dbInstance.transaction(["projets"], "readwrite").objectStore("projets").clear();
-                    await dbInstance.transaction(["utilisateurs"], "readwrite").objectStore("utilisateurs").clear();
-                    await dbInstance.transaction(["dossiers_techniques"], "readwrite").objectStore("dossiers_techniques").clear();
-                    for(let prj of paquet.projets) await ecrireDonneeDB("projets", prj);
-                    for(let usr of paquet.utilisateurs) await ecrireDonneeDB("utilisateurs", usr);
+                    
+                    // Nettoyage sécurisé des tiroirs de stockage
+                    let transactionNettoyage = dbInstance.transaction(["projets", "utilisateurs", "dossiers_techniques"], "readwrite");
+                    transactionNettoyage.objectStore("projets").clear();
+                    transactionNettoyage.objectStore("utilisateurs").clear();
+                    transactionNettoyage.objectStore("dossiers_techniques").clear();
+
+                    // Remplissage progressif du nouveau meuble
+                    for(let prj of paquet.projets) { await ecrireDonneeDB("projets", prj); }
+                    for(let usr of paquet.utilisateurs) { await ecrireDonneeDB("utilisateurs", usr); }
+                    
                     if (paquet.chartesIsolees) { for (let id in paquet.chartesIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.chartesIsolees[id], `charte_administrative_${id}`); }
                     if (paquet.bdqeIsolees) { for (let id in paquet.bdqeIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.bdqeIsolees[id], `bdqe_${id}`); }
                     if (paquet.ccpmsIsolees) { for (let id in paquet.ccpmsIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.ccpmsIsolees[id], `ccpms_${id}`); }
                     if (paquet.suiviIsolees) { for (let id in paquet.suiviIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.suiviIsolees[id], `suivi_${id}`); }
                     if (paquet.planningIsolees) { for (let id in paquet.planningIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.planningIsolees[id], `planning_${id}`); }
-                    alert("Restauration réussie !"); window.location.reload();
+                    
+                    alert("Restauration réussie ! Le meuble IndexedDB est à jour. ✔️"); 
+                    window.location.reload();
                 }
-            } catch (err) { alert("Erreur JSON"); }
+            } catch (err) { 
+                alert("Erreur de décodage : le fichier JSON est corrompu ou mal formé."); 
+            }
         };
-        reader.readAsText(input.files);
+        reader.readAsText(input.files[0]);
     }
 }
 </script>
 </body>
 </html>
-
 
