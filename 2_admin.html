@@ -149,12 +149,7 @@
  </div>
  </div>
 </div>
-
-/**
- * =========================================================================
- * ADMINISTRATION : ACCÈS AU MEUBLE DE STOCKAGE GÉANT INDEXEDDB
- * =========================================================================
- */
+<script>
 const DB_NAME = "GenieCivilPro_DB";
 const DB_VERSION = 1;
 let dbInstance = null;
@@ -175,8 +170,7 @@ function initialiserLeMeubleDB() {
 function lireDonneeDB(tiroir, cle) {
     return new Promise((resolve) => {
         let transaction = dbInstance.transaction([tiroir], "readonly");
-        let magasin = transaction.objectStore(tiroir);
-        let requete = magasin.get(cle);
+        let requete = transaction.objectStore(tiroir).get(cle);
         requete.onsuccess = () => resolve(requete.result);
         requete.onerror = () => resolve(null);
     });
@@ -185,8 +179,7 @@ function lireDonneeDB(tiroir, cle) {
 function lireToutesLesDonneesDB(tiroir) {
     return new Promise((resolve) => {
         let transaction = dbInstance.transaction([tiroir], "readonly");
-        let magasin = transaction.objectStore(tiroir);
-        let requete = magasin.getAll();
+        let requete = transaction.objectStore(tiroir).getAll();
         requete.onsuccess = () => resolve(requete.result || []);
         requete.onerror = () => resolve([]);
     });
@@ -205,8 +198,7 @@ function ecrireDonneeDB(tiroir, objet, cleOptionnelle) {
 function effacerDonneeDB(tiroir, cle) {
     return new Promise((resolve) => {
         let transaction = dbInstance.transaction([tiroir], "readwrite");
-        let magasin = transaction.objectStore(tiroir);
-        let requete = magasin.delete(cle);
+        let requete = transaction.objectStore(tiroir).delete(cle);
         requete.onsuccess = () => resolve(true);
         requete.onerror = () => resolve(false);
     });
@@ -227,9 +219,7 @@ window.onload = async function() {
 };
 
 async function chargerArbreProjetsEtUtilisateurs() {
-    // Suppression complète des faux exemples parasites !
     listeProjetsGlobal = await lireToutesLesDonneesDB("projets");
-    
     listeProjetsGlobal.forEach(p => { 
         if(p.type === 'PAPA') { 
             if(etatsAccordéonAdmin[p.id] === undefined) etatsAccordéonAdmin[p.id] = true; 
@@ -258,15 +248,12 @@ async function chargerArbreProjetsEtUtilisateurs() {
 
 function renderAccordéonSidebarSelection() {
     let container = document.getElementById('accordeonProjetsAdmin'); 
-    if(!container) return; 
-    container.innerHTML = "";
-    
+    if(!container) return; container.innerHTML = "";
     let racines = listeProjetsGlobal.filter(p => p.type === 'PAPA' || p.type === 'CLASSIQUE');
     if(racines.length === 0) {
         container.innerHTML = "<div style='padding:10px;font-size:12px;color:#94a3b8;text-align:center;'>Aucun lot enregistré. Créez-en un à droite.</div>";
         return;
     }
-    
     racines.forEach(r => {
         let divP = document.createElement('div'); 
         let estSelectionne = idProjetSelectionneAdmin == r.id ? 'selected' : '';
@@ -275,7 +262,6 @@ function renderAccordéonSidebarSelection() {
         divP.innerHTML = `<span>🏢 ${r.nom}</span> ${fleche}`;
         divP.onclick = function() { selectionnerProjetEnLigneAdmin(r.id); }; 
         container.appendChild(divP);
-        
         if (r.type === 'PAPA') {
             listeProjetsGlobal.filter(p => p.type === 'ENFANT' && p.parentId == r.id).forEach(e => {
                 let divE = document.createElement('div'); 
@@ -288,6 +274,7 @@ function renderAccordéonSidebarSelection() {
         }
     });
 }
+
 function toggleDossierAdmin(pId, ev) { 
     ev.stopPropagation(); 
     etatsAccordéonAdmin[pId] = !etatsAccordéonAdmin[pId]; 
@@ -303,28 +290,23 @@ async function selectionnerProjetEnLigneAdmin(id) {
 async function basculerDonneesVersProjetSelectionne(id) {
     let p = listeProjetsGlobal.find(i => i.id == id); 
     if(!p) return;
-    
     document.getElementById('titreCharteActive').innerText = `I. Charte Contractuelle (Lot : ${p.nom.toUpperCase()})`;
     document.getElementById('cfgObjet').value = p.nom || "";
-    
     let d = await lireDonneeDB("dossiers_techniques", `charte_administrative_${id}`) || {};
     let m = {};
     if (p.type === 'ENFANT' && p.parentId) {
         m = await lireDonneeDB("dossiers_techniques", `charte_administrative_${p.parentId}`) || {};
     }
-    
     document.getElementById('cfgFinancement').value = d.financement || m.financement || "";
     document.getElementById('cfgMO').value = d.mo || m.mo || "-"; 
     document.getElementById('cfgMOE').value = d.moe || m.moe || "-";
     document.getElementById('cfgEnterprise').value = d.entreprise || m.entreprise || "-"; 
     document.getElementById('cfgNumContrat').value = d.numContrat || m.numContrat || "-";
-    
     let displayUploader = p.type === 'PAPA' ? 'inline-flex' : 'none';
     document.getElementById('btnUploadMO').style.display = displayUploader; 
     document.getElementById('btnUploadFin').style.display = displayUploader;
     document.getElementById('btnUploadMOE').style.display = displayUploader; 
     document.getElementById('btnUploadEnt').style.display = displayUploader;
-    
     let sourceLogos = p.type === 'ENFANT' ? m : d;
     document.getElementById('preview_logoMO').innerHTML = sourceLogos.logoMO_html || ""; 
     document.getElementById('preview_logoFin').innerHTML = sourceLogos.logoFin_html || "";
@@ -335,13 +317,8 @@ async function basculerDonneesVersProjetSelectionne(id) {
 async function sauvegarderDonneesProjetSelectionne() {
     let nomSaisi = document.getElementById('cfgObjet').value.trim(); 
     if(!nomSaisi) return alert("Désignation manquante !");
-    
     let p = listeProjetsGlobal.find(i => i.id == idProjetSelectionneAdmin); 
-    if(p) { 
-        p.nom = nomSaisi; 
-        await ecrireDonneeDB("projets", p);
-    }
-    
+    if(p) { p.nom = nomSaisi; await ecrireDonneeDB("projets", p); }
     let charteData = { 
         financement: document.getElementById('cfgFinancement').value.trim(), 
         mo: document.getElementById('cfgMO').value.trim(), 
@@ -353,24 +330,19 @@ async function sauvegarderDonneesProjetSelectionne() {
         logoMOE_html: document.getElementById('preview_logoMOE').innerHTML, 
         logoEnterprise_html: document.getElementById('preview_logoEnterprise').innerHTML 
     };
-    
     await ecrireDonneeDB("dossiers_techniques", charteData, `charte_administrative_${idProjetSelectionneAdmin}`);
-    alert(`Charte du lot enregistrée localement.`); 
+    alert(`Charte du lot configurée.`); 
     await chargerArbreProjetsEtUtilisateurs();
 }
-
 function genererCheckboxesLotsArbreAccordéon() {
     let box = document.getElementById('boxCheckboxesLotsAssignes'); 
-    if(!box) return; 
-    box.innerHTML = "";
-    
+    if(!box) return; box.innerHTML = "";
     listeProjetsGlobal.filter(p => p.type === 'PAPA' || p.type === 'CLASSIQUE').forEach(r => {
         let divP = document.createElement('div'); 
         divP.style.cssText = "display:flex; align-items:center; justify-content:space-between; font-weight:bold; color:var(--primary-dark); background:#f1f5f9; padding:5px 8px; border-radius:4px; width:100%; box-sizing:border-box; margin-top:2px;";
         let flecheM = r.type === 'PAPA' ? `<span style="font-size:9px; cursor:pointer; background:#cbd5e1; padding:2px 4px; border-radius:3px;" onclick="toggleDossierMatrixAssign(${r.id}, event)">${etatsAccordéonMatrixAssign[r.id]?'▼ masquer':'▲ déplier'}</span>` : '';
         divP.innerHTML = `<label style="display:inline-flex; align-items:center; gap:5px;"><input type="checkbox" name="assignationLot" value="${r.id}"> 🏢 ${r.nom}</label> ${flecheM}`; 
         box.appendChild(divP);
-        
         if (r.type === 'PAPA') {
             listeProjetsGlobal.filter(p => p.type === 'ENFANT' && p.parentId == r.id).forEach(e => {
                 let divE = document.createElement('div'); 
@@ -384,8 +356,7 @@ function genererCheckboxesLotsArbreAccordéon() {
 }
 
 function toggleDossierMatrixAssign(papaId, event) { 
-    event.preventDefault(); 
-    event.stopPropagation(); 
+    event.preventDefault(); event.stopPropagation(); 
     etatsAccordéonMatrixAssign[papaId] = !etatsAccordéonMatrixAssign[papaId]; 
     genererCheckboxesLotsArbreAccordéon(); 
 }
@@ -416,20 +387,13 @@ function gererAffichageSelectParent() {
     let row = document.getElementById('rowSelectParent'); 
     if(type === 'ENFANT') { 
         row.style.display = 'flex'; 
-        let select = document.getElementById('projParentId'); 
-        select.innerHTML = ""; 
-        listeProjetsGlobal.filter(p => p.type === 'PAPA').forEach(p => { 
-            select.innerHTML += `<option value="${p.id}">${p.nom}</option>`; 
-        }); 
-    } else { 
-        row.style.display = 'none'; 
-    } 
+        let select = document.getElementById('projParentId'); select.innerHTML = ""; 
+        listeProjetsGlobal.filter(p => p.type === 'PAPA').forEach(p => { select.innerHTML += `<option value="${p.id}">${p.nom}</option>`; }); 
+    } else { row.style.display = 'none'; } 
 }
 
 function afficherTableauProjets() {
-    let tbody = document.getElementById('tbodyProjetsAdminList'); 
-    if(!tbody) return; 
-    tbody.innerHTML = "";
+    let tbody = document.getElementById('tbodyProjetsAdminList'); if(!tbody) return; tbody.innerHTML = "";
     listeProjetsGlobal.forEach(p => {
         let tr = document.createElement('tr'); 
         let txtType = p.type === 'PAPA' ? 'Père' : p.type === 'ENFANT' ? 'Enfant' : 'Classique';
@@ -444,24 +408,18 @@ async function enregistrerOuModifierProjetFerme() {
     let idEdit = document.getElementById('editProjetId').value;
     let parentId = type === 'ENFANT' ? parseInt(document.getElementById('projParentId').value) : null; 
     if(!nom) return alert("Désignation manquante !");
-    
     if(idEdit === "") { 
         let nouveauProj = { id: Date.now(), nom, type, parentId, photoEmplacement: "", bloc_notes: "" };
         await ecrireDonneeDB("projets", nouveauProj);
     } else { 
         let item = listeProjetsGlobal.find(p => p.id == idEdit); 
-        if(item) { 
-            item.nom = nom; item.type = type; item.parentId = parentId; 
-            await ecrireDonneeDB("projets", item);
-        } 
+        if(item) { item.nom = nom; item.type = type; item.parentId = parentId; await ecrireDonneeDB("projets", item); } 
     }
-    reinitialiserFormulaireProjet(); 
-    await chargerArbreProjetsEtUtilisateurs();
+    reinitialiserFormulaireProjet(); await chargerArbreProjetsEtUtilisateurs();
 }
 
 function preparerModifProjet(id) {
-    let p = listeProjetsGlobal.find(i => i.id == id); 
-    if(!p) return; 
+    let p = listeProjetsGlobal.find(i => i.id == id); if(!p) return; 
     document.getElementById('editProjetId').value = p.id; 
     document.getElementById('projNom').value = p.nom; 
     document.getElementById('projType').value = p.type;
@@ -472,16 +430,13 @@ function preparerModifProjet(id) {
 }
 
 function reinitialiserFormulaireProjet() { 
-    document.getElementById('editProjetId').value = ""; 
-    document.getElementById('projNom').value = ""; 
-    document.getElementById('projType').value = "PAPA"; 
-    document.getElementById('btnSaveProjet').innerText = "Valider la Structure"; 
-    document.getElementById('btnAnnulerProjet').style.display = "none"; 
+    document.getElementById('editProjetId').value = ""; document.getElementById('projNom').value = ""; document.getElementById('projType').value = "PAPA"; 
+    document.getElementById('btnSaveProjet').innerText = "Valider la Structure"; document.getElementById('btnAnnulerProjet').style.display = "none"; 
     gererAffichageSelectParent(); 
 }
 
 async function supprimerProjetFerme(id) { 
-    if(confirm("Supprimer ce lot définitivement du meuble de stockage ?")) { 
+    if(confirm("Supprimer ce lot définitivement ?")) { 
         await effacerDonneeDB("projets", id);
         await effacerDonneeDB("dossiers_techniques", `charte_administrative_${id}`);
         await effacerDonneeDB("dossiers_techniques", `bdqe_${id}`);
@@ -491,50 +446,38 @@ async function supprimerProjetFerme(id) {
         await chargerArbreProjetsEtUtilisateurs(); 
     } 
 }
-
 async function ajouterNouvelUtilisateurRbac() {
     let login = document.getElementById('usrLogin').value.trim(); 
     let pass = document.getElementById('usrPass').value.trim(); 
     let role = document.getElementById('usrRole').value;
     let checkboxes = document.querySelectorAll('input[name="assignationLot"]:checked'); 
-    let lots = []; 
-    checkboxes.forEach(cb => lots.push(cb.value));
-    
-    if(!login || !pass || lots.length === 0) return alert(" Remplissez l'identifiant, le mot de passe et assignez au moins un lot ! "); 
-    
+    let lots = []; checkboxes.forEach(cb => lots.push(cb.value));
+    if(!login || !pass || lots.length === 0) return alert("Remplissez les champs !"); 
     let nouvelUser = { id: Date.now(), login, pass, role, lots };
     await ecrireDonneeDB("utilisateurs", nouvelUser);
-    
-    document.getElementById('usrLogin').value = ""; 
-    document.getElementById('usrPass').value = ""; 
+    document.getElementById('usrLogin').value = ""; document.getElementById('usrPass').value = ""; 
     document.querySelectorAll('input[name="assignationLot"]:checked').forEach(cb => cb.checked = false); 
     await chargerArbreProjetsEtUtilisateurs();
 }
 
 function afficherTableauUtilisateurs() {
-    let tbody = document.getElementById('tbodyUsersAdmin'); 
-    if(!tbody) return; 
-    tbody.innerHTML = "";
+    let tbody = document.getElementById('tableUsersAdmin').querySelector('tbody'); if(!tbody) return; tbody.innerHTML = "";
     listeUtilisateursRBAC.forEach(u => {
         let cb = u.role === 'admin' ? '#fee2e2;color:#dc2626' : u.role === 'cadres' ? '#eff6ff;color:#1e40af' : '#dcfce7;color:#15803d';
         let txtLots = u.lots.map(id => { let p = listeProjetsGlobal.find(i => i.id == id); return p ? p.nom : id; }).join(", ");
-        let btn = u.login === 'admin' ? '<i>Maitre</i>' : `<button class="btn btn-danger" style="padding:2px 6px; font-size:10px;" onclick="supprimerUser(${u.id})">🗑</button> `; 
+        let btn = u.login === 'admin' ? '<i>Maitre</i>' : `<button class="btn btn-danger" style="padding:2px 6px; font-size:10px;" onclick="supprimerUser(${u.id})">🗑</button>`; 
         tbody.innerHTML += `<tr><td><b>${u.login}</b></td><td><span class="badge-role" style="background:${cb}">${u.role}</span></td><td style="font-size:10px; font-weight:600; color:#475569; max-width:320px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${txtLots}</td><td style="text-align:center;">${btn}</td></tr>`;
     });
 }
 
 async function supprimerUser(id) { 
-    if(confirm("Supprimer définitivement ce compte ?")) { 
-        await effacerDonneeDB("utilisateurs", id);
-        await chargerArbreProjetsEtUtilisateurs(); 
-    } 
+    if(confirm("Supprimer ce compte ?")) { await effacerDonneeDB("utilisateurs", id); await chargerArbreProjetsEtUtilisateurs(); } 
 }
 
 async function exporterFichierClasseurJsonLocal() {
     let projets = await lireToutesLesDonneesDB("projets");
     let utilisateurs = await lireToutesLesDonneesDB("utilisateurs");
     let chartesIsolees = {}; let bdqeIsolees = {}; let ccpmsIsolees = {}; let suiviIsolees = {}; let planningIsolees = {};
-    
     for (let p of projets) {
         let charte = await lireDonneeDB("dossiers_techniques", `charte_administrative_${p.id}`); if(charte) chartesIsolees[p.id] = charte;
         let bdqe = await lireDonneeDB("dossiers_techniques", `bdqe_${p.id}`); if(bdqe) bdqeIsolees[p.id] = bdqe;
@@ -542,15 +485,11 @@ async function exporterFichierClasseurJsonLocal() {
         let suivi = await lireDonneeDB("dossiers_techniques", `suivi_${p.id}`); if(suivi) suiviIsolees[p.id] = suivi;
         let planning = await lireDonneeDB("dossiers_techniques", `planning_${p.id}`); if(planning) planningIsolees[p.id] = planning;
     }
-    
-    let paquetGlobalData = { 
-        dateExport: new Date().toISOString(), projets, utilisateurs, chartesIsolees, bdqeIsolees, ccpmsIsolees, suiviIsolees, planningIsolees 
-    };
-    
+    let paquetGlobalData = { dateExport: new Date().toISOString(), projets, utilisateurs, chartesIsolees, bdqeIsolees, ccpmsIsolees, suiviIsolees, planningIsolees };
     let blob = new Blob([JSON.stringify(paquetGlobalData, null, 2)], { type: "application/json" });
     let lien = document.createElement("a"); lien.href = URL.createObjectURL(blob); lien.download = `GENIE_CIVIL_PRO_DATABASE_MASTER.json`;
     document.body.appendChild(lien); lien.click(); document.body.removeChild(lien);
-    alert(" Base globale et modules complets exportés depuis IndexedDB ! ");
+    alert("Base exportée !");
 }
 
 async function importerFichierClasseurJsonLocal(input) {
@@ -559,27 +498,28 @@ async function importerFichierClasseurJsonLocal(input) {
         reader.onload = async function(e) {
             try {
                 let paquet = JSON.parse(e.target.result);
-                if (!paquet.projets || !paquet.utilisateurs) return alert(" Fichier invalide.");
-                if (confirm(" ⚠ ATTENTION : Cela va écraser TOUTES les données actuelles de votre meuble IndexedDB. Confirmer ? ")) {
+                if (!paquet.projets || !paquet.utilisateurs) return alert("Fichier invalide.");
+                if (confirm("Écraser TOUTES les données ?")) {
+                    await initialiserLeMeubleDB();
                     await dbInstance.transaction(["projets"], "readwrite").objectStore("projets").clear();
                     await dbInstance.transaction(["utilisateurs"], "readwrite").objectStore("utilisateurs").clear();
                     await dbInstance.transaction(["dossiers_techniques"], "readwrite").objectStore("dossiers_techniques").clear();
-
                     for(let prj of paquet.projets) await ecrireDonneeDB("projets", prj);
                     for(let usr of paquet.utilisateurs) await ecrireDonneeDB("utilisateurs", usr);
-
                     if (paquet.chartesIsolees) { for (let id in paquet.chartesIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.chartesIsolees[id], `charte_administrative_${id}`); }
                     if (paquet.bdqeIsolees) { for (let id in paquet.bdqeIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.bdqeIsolees[id], `bdqe_${id}`); }
                     if (paquet.ccpmsIsolees) { for (let id in paquet.ccpmsIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.ccpmsIsolees[id], `ccpms_${id}`); }
                     if (paquet.suiviIsolees) { for (let id in paquet.suiviIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.suiviIsolees[id], `suivi_${id}`); }
                     if (paquet.planningIsolees) { for (let id in paquet.planningIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.planningIsolees[id], `planning_${id}`); }
-                    
-                    alert(" Restauration locale réussie ! ✔"); 
-                    window.location.reload();
+                    alert("Restauration réussie !"); window.location.reload();
                 }
-            } catch (err) { alert(" Erreur de lecture du fichier JSON."); }
+            } catch (err) { alert("Erreur JSON"); }
         };
         reader.readAsText(input.files);
     }
 }
 </script>
+</body>
+</html>
+
+
