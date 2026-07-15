@@ -77,10 +77,10 @@
      <div class="form-group"><label>Numéro de Contrat Principal</label><input type="text" id="cfgNumContrat" class="input-control"></div>
      <div class="card-title" style="margin-top:2px; font-size:11px;">Logos Officiels Marché</div>
      <div class="logo-upload-grid">
-      <div class="logo-upload-box"><label style="font-size:9px;font-weight:bold;cursor:pointer;color:var(--accent-blue);" id="btnUploadMO">MO<input type="file" style="display:none" onchange="convertirLogoBinaire(this, 'logoMO')"></label><div id="preview_logoMO" style="margin-top:2px; max-height:24px;"></div></div>
-      <div class="logo-upload-box"><label style="font-size:9px;font-weight:bold;cursor:pointer;color:var(--accent-blue);" id="btnUploadFin">Bailleur<input type="file" style="display:none" onchange="convertirLogoBinaire(this, 'logoFin')"></label><div id="preview_logoFin" style="margin-top:2px; max-height:24px;"></div></div>
-      <div class="logo-upload-box"><label style="font-size:9px;font-weight:bold;cursor:pointer;color:var(--accent-blue);" id="btnUploadMOE">MOE<input type="file" style="display:none" onchange="convertirLogoBinaire(this, 'logoMOE')"></label><div id="preview_logoMOE" style="margin-top:2px; max-height:24px;"></div></div>
-      <div class="logo-upload-box"><label style="font-size:9px;font-weight:bold;cursor:pointer;color:var(--accent-blue);" id="btnUploadEnt">Ent.<input type="file" style="display:none" onchange="convertirLogoBinaire(this, 'logoEntreprise')"></label><div id="preview_logoEntreprise" style="margin-top:2px; max-height:24px;"></div></div>
+      <div class="logo-upload-box"><label style="font-size:9px;font-weight:bold;cursor:pointer;color:var(--accent-blue);">MO<input type="file" style="display:none" onchange="convertirLogoBinaire(this, 'logoMO')"></label><div id="preview_logoMO" style="margin-top:2px; max-height:24px;"></div></div>
+      <div class="logo-upload-box"><label style="font-size:9px;font-weight:bold;cursor:pointer;color:var(--accent-blue);">Bailleur<input type="file" style="display:none" onchange="convertirLogoBinaire(this, 'logoFin')"></label><div id="preview_logoFin" style="margin-top:2px; max-height:24px;"></div></div>
+      <div class="logo-upload-box"><label style="font-size:9px;font-weight:bold;cursor:pointer;color:var(--accent-blue);">MOE<input type="file" style="display:none" onchange="convertirLogoBinaire(this, 'logoMOE')"></label><div id="preview_logoMOE" style="margin-top:2px; max-height:24px;"></div></div>
+      <div class="logo-upload-box"><label style="font-size:9px;font-weight:bold;cursor:pointer;color:var(--accent-blue);">Ent.<input type="file" style="display:none" onchange="convertirLogoBinaire(this, 'logoEntreprise')"></label><div id="preview_logoEntreprise" style="margin-top:2px; max-height:24px;"></div></div>
      </div>
      <button class="btn btn-success" style="justify-content:center; margin-top:5px;" onclick="sauvegarderDonneesProjetSelectionne()">Enregistrer la Charte Contractuelle</button>
     </div>
@@ -237,7 +237,7 @@ async function chargerArbreProjetsEtUtilisateurs() {
     listeUtilisateursRBAC = await lireToutesLesDonneesDB("utilisateurs");
     if(listeUtilisateursRBAC.length === 0) {
         listeUtilisateursRBAC = [{ id: 1, login: "admin", pass: "mada2026", role: "admin", lots: ["101", "102", "103"] }];
-        await ecrireDonneeDB("utilisateurs", listeUtilisateursRBAC[0]);
+        await ecrireDonneeDB("utilisateurs", listeUtilisateursRBAC);
     }
     
     renderAccordéonSidebarSelection(); 
@@ -268,8 +268,8 @@ function toggleDossierAdmin(pId, ev) { ev.stopPropagation(); etatsAccordéonAdmi
 function selectionnerProjetEnLigneAdmin(id) { idProjetSelectionneAdmin = id; renderAccordéonSidebarSelection(); basculerDonneesVersProjetSelectionne(id); }
 async function basculerDonneesVersProjetSelectionne(id) {
     let p = listeProjetsGlobal.find(i => i.id == id); if(!p) return;
-    document.getElementById('titreCharteActive').innerText = `I. Charte Contractuelle (Lot : ${p.nom.toUpperCase()})`;
     document.getElementById('cfgObjet').value = p.nom || "";
+    document.getElementById('titreCharteActive').innerText = `I. Charte Contractuelle (Lot : ${p.nom.toUpperCase()})`;
     
     let d = await lireDonneeDB("dossiers_techniques", `charte_administrative_${id}`) || {};
     let m = {}; if (p.type === 'ENFANT' && p.parentId) { m = await lireDonneeDB("dossiers_techniques", `charte_administrative_${p.parentId}`) || {}; }
@@ -280,19 +280,23 @@ async function basculerDonneesVersProjetSelectionne(id) {
     document.getElementById('cfgEnterprise').value = d.entreprise || m.entreprise || "-"; 
     document.getElementById('cfgNumContrat').value = d.numContrat || m.numContrat || "-";
     
+    // Rendu stable et instantané à l'écran des 4 aperçus d'images mémorisées (Alignement strict des IDs)
     let sourceLogos = p.type === 'ENFANT' ? m : d;
     document.getElementById('preview_logoMO').innerHTML = sourceLogos.logoMO_html || ""; 
     document.getElementById('preview_logoFin').innerHTML = sourceLogos.logoFin_html || "";
     document.getElementById('preview_logoMOE').innerHTML = sourceLogos.logoMOE_html || ""; 
-    document.getElementById('preview_logoEnterprise').innerHTML = sourceLogos.logoEnterprise_html || "";
+    document.getElementById('preview_logoEntreprise').innerHTML = sourceLogos.logoEnterprise_html || "";
 }
 
-// FORCE LA PRÉVISUALISATON INSTANTANÉE EN CELLULE DÈS LE CHOIX DU FICHIER
+// CORRECTION CHIRURGICALE : Chargement et prévisualisation immédiate dans la cellule cible
 function convertirLogoBinaire(input, cibleId) {
     if (input.files && input.files[0]) {
         let reader = new FileReader();
         reader.onload = function(e) {
-            document.getElementById(`preview_${cibleId}`).innerHTML = `<img src="${e.target.result}" style="max-height:24px; max-width:100%; object-fit:contain; vertical-align:middle;">`;
+            let boiteApercu = document.getElementById(`preview_${cibleId}`);
+            if (boiteApercu) {
+                boiteApercu.innerHTML = `<img src="${e.target.result}" style="max-height:24px; max-width:100%; object-fit:contain; vertical-align:middle;">`;
+            }
         };
         reader.readAsDataURL(input.files[0]);
     }
@@ -307,7 +311,7 @@ async function sauvegarderDonneesProjetSelectionne() {
         financement: document.getElementById('cfgFinancement').value.trim(), mo: document.getElementById('cfgMO').value.trim(), moe: document.getElementById('cfgMOE').value.trim(),
         entreprise: document.getElementById('cfgEnterprise').value.trim(), numContrat: document.getElementById('cfgNumContrat').value.trim(),
         logoMO_html: document.getElementById('preview_logoMO').innerHTML, logoFin_html: document.getElementById('preview_logoFin').innerHTML,
-        logoMOE_html: document.getElementById('preview_logoMOE').innerHTML, logoEnterprise_html: document.getElementById('preview_logoEnterprise').innerHTML
+        logoMOE_html: document.getElementById('preview_logoMOE').innerHTML, logoEnterprise_html: document.getElementById('preview_logoEntreprise').innerHTML
     };
     await ecrireDonneeDB("dossiers_techniques", charteData, `charte_administrative_${idProjetSelectionneAdmin}`);
     alert(`Charte contractuelle et aperçus d'images enregistrés localement ! 💾 ✔️`);
@@ -379,7 +383,7 @@ async function exporterFichierClasseurJsonLocal() {
 }
 
 function importerFichierClasseurJsonLocal(input) {
-    if (input.files && input.files) {
+    if (input.files && input.files[0]) {
         let reader = new FileReader();
         reader.onload = async function(e) {
             try {
@@ -400,7 +404,7 @@ function importerFichierClasseurJsonLocal(input) {
                 }
             } catch (err) { alert("Erreur de décodage."); }
         };
-        reader.readAsText(input.files);
+        reader.readAsText(input.files[0]);
     }
 }
 </script>
