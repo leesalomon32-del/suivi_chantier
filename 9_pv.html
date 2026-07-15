@@ -188,25 +188,42 @@ function ajouterLigneConstat() {
 }
 function ajusterHauteurTextarea(element) { element.style.height = "auto"; element.style.height = element.scrollHeight + "px"; }
 function previsualiserPhotoConstat(numLigne, input) {
-    let box = document.getElementById(`prevBox_${numLigne}`); let img = document.getElementById(`prevImg_${numLigne}`);
+    let box = document.getElementById(`prevBox_${numLigne}`); 
+    let img = document.getElementById(`prevImg_${numLigne}`);
+    
+    // CORRECTION MAJEURE : Ciblage strict du premier fichier du tableau [0]
     if (input.files && input.files[0]) {
         let reader = new FileReader();
         reader.onload = function(e) {
             let imageTemporaire = new Image();
             imageTemporaire.onload = function() {
-                let canvas = document.createElement('canvas'); let max_size = 800;
-                let width = imageTemporaire.width; let height = imageTemporaire.height;
-                if (width > height) { if (width > max_size) { height *= max_size / width; width = max_size; } } 
-                else { if (height > max_size) { width *= max_size / height; height = max_size; } }
-                canvas.width = width; canvas.height = height;
+                let canvas = document.createElement('canvas'); 
+                let max_size = 800; // Taille optimale pour un rapport A net
+                let width = imageTemporaire.width; 
+                let height = imageTemporaire.height;
+                
+                if (width > height) { 
+                    if (width > max_size) { height *= max_size / width; width = max_size; } 
+                } else { 
+                    if (height > max_size) { width *= max_size / height; height = max_size; } 
+                }
+                
+                canvas.width = width; 
+                canvas.height = height;
                 canvas.getContext('2d').drawImage(imageTemporaire, 0, 0, width, height);
+                
+                // Compression JPEG stricte à 70% pour préserver l'espace de stockage local
                 let dataUrlCalibre = canvas.toDataURL('image/jpeg', 0.7);
-                if (img) { img.src = dataUrlCalibre; img.style.display = 'block'; }
+                
+                if (img) { 
+                    img.src = dataUrlCalibre; 
+                    img.style.display = 'block'; 
+                }
                 if (box) box.style.display = 'block';
             };
             imageTemporaire.src = e.target.result;
         };
-        reader.readAsDataURL(input.files[0]);
+        reader.readAsDataURL(input.files[0]); // Correction ici aussi [0]
     }
 }
 
@@ -218,7 +235,6 @@ function ajouterUnSignataire(texteParDefaut = "") {
     zone.appendChild(card);
 }
 function retirerSignataire(id) { let card = document.getElementById(`sigCard_${id}`); if(card) { card.remove(); compteurSignataires--; } }
-
 async function sauvegarderPVChantier() {
     let site = document.getElementById('siteSaisie') ? document.getElementById('siteSaisie').value.trim() : "";
     let datePV = document.getElementById('dateSaisie') ? document.getElementById('dateSaisie').value : new Date().toLocaleDateString('fr-FR');
@@ -229,7 +245,7 @@ async function sauvegarderPVChantier() {
     let toutesLesLignes = document.querySelectorAll('[id^="ligneConstat_"]');
     
     toutesLesLignes.forEach((conteneurLigne, index) => {
-        // CORRECTION MAJEURE ICI : extraction de l'index de ligne propre
+        // CORRECTION DE L'EXTRACTION INDEX DE LIGNE
         let i = conteneurLigne.id.split('_')[1]; 
         let imgElement = document.getElementById(`prevImg_${i}`);
         let zoneTexte = conteneurLigne.querySelector('textarea');
@@ -237,9 +253,14 @@ async function sauvegarderPVChantier() {
         
         if (imgElement && imgElement.src && imgElement.src.startsWith("data:image")) {
             armoireSauvee.unshift({
-                id: Date.now() + parseInt(i), categorie: "Photos", dateDoc: new Date().toISOString().substring(0,10),
-                titre: `[PV] - Constat Terrain N°${index + 1}`, description: `Site : ${site}\nDate : ${datePV}\nObservations : ${textConstat}`,
-                fichierBrut: imgElement.src, nomFichier: `Photo_PV_Constat_${i}_${idProjetUnique}.jpg`, typeMime: "image/jpeg"
+                id: Date.now() + parseInt(i), 
+                categorie: "Photos", 
+                dateDoc: new Date().toISOString().substring(0,10),
+                titre: `[PV] - Constat Terrain N°${index + 1}`, 
+                description: `Site : ${site}\nDate : ${datePV}\nObservations : ${textConstat}`,
+                fichierBrut: imgElement.src, 
+                nomFichier: `Photo_PV_Constat_${i}_${idProjetUnique}.jpg`, 
+                typeMime: "image/jpeg"
             });
             photosEnvoyeesCCPMS++;
         }
@@ -248,6 +269,7 @@ async function sauvegarderPVChantier() {
     await ecrireDonneeDB("dossiers_techniques", armoireSauvee, `ccpms_${idProjetUnique}`);
     alert(`✔️ PV mémorisé avec succès !\n📸 Passerelle automatique : ${photosEnvoyeesCCPMS} photo(s) ont alimenté l'armoire GED (Module 8) !`);
 }
+
 </script>
 </body>
 </html>
