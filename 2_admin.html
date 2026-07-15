@@ -1,3 +1,155 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>Génie Civil Pro - Administration Avancée</title>
+ <style>
+ :root {
+ --primary-dark: #0f172a;
+ --sidebar-bg: #1e293b;
+ --accent-blue: #2563eb;
+ --accent-amber: #d97706;
+ --success-green: #16a34a;
+ --danger-red: #ef4444;
+ --bg-light: #f1f5f9;
+ --text-dark: #334155;
+ --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
+ }
+ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-light); color: var(--text-dark); margin: 0; padding: 15px; height: 100vh; overflow: hidden; box-sizing: border-box; }
+ .admin-main-layout { display: grid; grid-template-columns: 310px 1fr; height: calc(100vh - 75px); gap: 15px; margin-top: 10px; }
+ .admin-sidebar-select { background: var(--sidebar-bg); color: #f1f5f9; border-radius: 8px; padding: 15px; display: flex; flex-direction: column; overflow-y: auto; box-sizing: border-box; }
+ .admin-header { display: flex; justify-content: space-between; align-items: center; background: white; padding: 12px 20px; border-radius: 8px; box-shadow: var(--card-shadow); border-left: 4px solid var(--primary-dark); height: 50px; box-sizing: border-box; }
+ .admin-header h1 { margin: 0; font-size: 18px; color: var(--primary-dark); font-weight: 900; text-transform: uppercase; }
+ .btn { padding: 6px 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; color: white; font-size: 11px; transition: background 0.2s; display: inline-flex; align-items: center; gap: 5px; text-transform: uppercase; }
+ .btn-primary { background-color: var(--accent-blue); }
+ .btn-success { background-color: var(--success-green); }
+ .btn-danger { background-color: var(--danger-red); }
+ .btn-secondary { background-color: #64748b; }
+ .layout-grid-workspace { display: flex; flex-direction: column; gap: 15px; overflow-y: auto; height: 100%; padding-right: 5px; box-sizing: border-box; }
+ .grid-two-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; shrink: 0; }
+ .admin-card { background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; box-shadow: var(--card-shadow); display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; }
+ .card-title { font-size: 12px; font-weight: bold; text-transform: uppercase; color: var(--primary-dark); border-bottom: 2px solid #e2e8f0; padding-bottom: 4px; margin-bottom: 2px; letter-spacing: 0.5px; }
+ .form-group { display: flex; flex-direction: column; gap: 3px; }
+ .form-group label { font-size: 11px; font-weight: bold; color: #475569; text-transform: uppercase; }
+ .input-control { width: 100%; padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; outline: none; box-sizing: border-box; }
+ .proj-node { padding: 8px; border-radius: 4px; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; color: #cbd5e1; }
+ .proj-node:hover { background: #334155; color: white; }
+ .proj-node.selected { background: var(--accent-blue); color: white; font-weight: bold; }
+ .proj-node-child { margin-left: 15px; border-left: 1px dashed #475569; padding-left: 8px; }
+ .proj-node-child.hidden { display: none; }
+ .arrow-toggle { font-size: 9px; padding: 2px 6px; background: #334155; border-radius: 4px; cursor: pointer; color: white; }
+ .rbac-tree-wrapper { background: #f8fafc; padding: 8px; border-radius: 6px; border: 1px solid #cbd5e1; max-height: 140px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+ .logo-upload-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+ .logo-upload-box { border: 1px dashed #cbd5e1; padding: 6px; border-radius: 6px; background: #f8fafc; text-align: center; font-size: 10px; min-height: 50px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+ .scrolling-table-wrapper { max-height: 130px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 6px; width: 100%; }
+ table { width: 100%; border-collapse: collapse; }
+ th, td { border: 1px solid #e5e7eb; padding: 6px 8px; text-align: left; font-size: 11px; vertical-align: middle; }
+ th { background-color: var(--primary-dark); color: white; position: sticky; top: 0; z-index: 10; }
+ tr:nth-child(even) { background-color: #f9fafb; }
+ .badge-role { padding: 2px 5px; border-radius: 4px; font-weight: bold; font-size: 9px; text-transform: uppercase; }
+ </style>
+</head>
+<body>
+<div class="admin-container" style="height: 100%; display: flex; flex-direction: column;">
+ <div class="admin-header">
+ <div>
+ <h1>Bureau d'Administration et Configuration Globale ⚙</h1>
+ <div style="font-size:12px; color:#64748b;">Gestion hors-ligne des structures de lots et comptes de terrain</div>
+ </div>
+ <button class="btn btn-secondary" onclick="window.location.href='3_accueil.html'">« Accéder au Tableau de Bord Accueil</button>
+ </div>
+ <div class="admin-main-layout">
+ <div class="admin-sidebar-select">
+ <div style="font-size:11px; font-weight:bold; text-transform:uppercase; color:#94a3b8; margin-bottom:8px; letter-spacing:0.5px;">Sélectionner le Lot Actif</div>
+ <div style="font-size:10px; color:#d97706; font-weight:bold; margin-bottom:10px; line-height:1.2;">Cliquez sur un lot pour modifier ses chartes administratives.</div>
+ <div id="accordeonProjetsAdmin" style="flex-grow:1; display:flex; flex-direction:column; gap:2px;"></div>
+ </div>
+ <div class="layout-grid-workspace">
+ <div class="grid-two-cols">
+ <div class="admin-card">
+ <div class="card-title" id="titreCharteActive">I. Charte Contractuelle (Sélectionnez un lot)</div>
+ <div class="form-group"><label>Objet Global du Marché / Nom du Lot</label><input type="text" id="cfgObjet" class="input-control"></div>
+ <div class="form-group"><label>Bailleur de Fonds / Financement</label><input type="text" id="cfgFinancement" class="input-control"></div>
+ <div class="form-group"><label>Maître d'Ouvrage (MO)</label><input type="text" id="cfgMO" class="input-control"></div>
+ <div class="form-group"><label>Mission de Contrôle / Maître d'Œuvre (MOE)</label><input type="text" id="cfgMOE" class="input-control"></div>
+ <div class="form-group"><label>Entreprise Titulaire</label><input type="text" id="cfgEnterprise" class="input-control"></div>
+ <div class="form-group"><label>Numéro de Contrat Principal</label><input type="text" id="cfgNumContrat" class="input-control"></div>
+ <div class="card-title" style="margin-top:2px; font-size:11px;">Logos Officiels Marché</div>
+ <div class="logo-upload-grid">
+ <div class="logo-upload-box"><label style="font-size:9px;font-weight:bold;cursor:pointer;color:var(--accent-blue);" id="btnUploadMO">MO<input type="file" style="display:none" onchange="convertirLogoBinaire(this, 'logoMO')"></label><div id="preview_logoMO" style="margin-top:2px;"></div></div>
+ <div class="logo-upload-box"><label style="font-size:9px;font-weight:bold;cursor:pointer;color:var(--accent-blue);" id="btnUploadFin">Bailleur<input type="file" style="display:none" onchange="convertirLogoBinaire(this, 'logoFin')"></label><div id="preview_logoFin" style="margin-top:2px;"></div></div>
+ <div class="logo-upload-box"><label style="font-size:9px;font-weight:bold;cursor:pointer;color:var(--accent-blue);" id="btnUploadMOE">MOE<input type="file" style="display:none" onchange="convertirLogoBinaire(this, 'logoMOE')"></label><div id="preview_logoMOE" style="margin-top:2px;"></div></div>
+ <div class="logo-upload-box"><label style="font-size:9px;font-weight:bold;cursor:pointer;color:var(--accent-blue);" id="btnUploadEnt">Ent.<input type="file" style="display:none" onchange="convertirLogoBinaire(this, 'logoEntreprise')"></label><div id="preview_logoEnterprise" style="margin-top:2px;"></div></div>
+ </div>
+ <button class="btn btn-success" style="justify-content:center;" onclick="sauvegarderDonneesProjetSelectionne()">Enregistrer la Charte Contractuelle</button>
+ </div>
+ <div class="admin-card">
+ <div class="card-title">II. Création & Structuration de l'Arbre des Lots</div>
+ <input type="hidden" id="editProjetId" value="">
+ <div class="form-group"><label>Désignation Littérale du Lot</label><input type="text" id="projNom" class="input-control" placeholder="ex: Lot 1 - Arrondissement 4"></div>
+ <div class="form-group">
+ <label>Classification Technique</label>
+ <select id="projType" class="input-control" onchange="gererAffichageSelectParent()">
+ <option value="PAPA">Projet Père (Marché Global Centralisé)</option>
+ <option value="ENFANT">Projet Enfant (Sous-lot dépendant d'un Projet Père) ↳</option>
+ <option value="CLASSIQUE">Projet Classique (Chantier Autonome)</option>
+ </select>
+ </div>
+ <div class="form-group" id="rowSelectParent" style="display:none;"><label>Rattachement Hiérarchique</label><select id="projParentId" class="input-control"></select></div>
+ <div style="display:flex; gap:10px;">
+ <button class="btn btn-primary" id="btnSaveProjet" onclick="enregistrerOuModifierProjetFerme()">Valider la Structure ➕</button>
+ <button class="btn btn-secondary" id="btnAnnulerProjet" style="display:none;" onclick="reinitialiserFormulaireProjet()">Annuler</button>
+ </div>
+ <div class="card-title" style="margin-top:3px; font-size:11px;">Lots Actuellement Enregistrés</div>
+ <div class="scrolling-table-wrapper"><table><thead><tr><th>Désignation</th><th>Type</th><th>Actions</th></tr></thead><tbody id="tbodyProjetsAdminList"></tbody></table></div>
+ </div>
+ </div>
+ <div class="admin-card" style="shrink: 0; padding-bottom: 20px;">
+ <div class="card-title">III. Matrice de Sécurité Multi-Rôles (Comptes Agents de Terrain)</div>
+ <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:12px;">
+ <div class="form-group"><label>Identifiant de Connexion</label><input type="text" id="usrLogin" class="input-control" placeholder="ex: agent.boeny"></div>
+ <div class="form-group"><label>Mot de passe secret</label><input type="text" id="usrPass" class="input-control" placeholder="ex: mada2026"></div>
+ <div class="form-group">
+ <label>Privilèges</label>
+ <select id="usrRole" class="input-control">
+ <option value="cadres">Cadre (Rapports, Fiche Accueil - Lecture seule reste)</option>
+ <option value="controle">Ingénieur de Contrôle (Écriture libre lots affectés)</option>
+ <option value="agents">Agent de Terrain (Avancement, CCPMS sur lots affectés)</option>
+ </select>
+ </div>
+ </div>
+ <div class="form-group" style="margin-top: 5px;">
+ <label style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2px;">
+ <span style="color: var(--accent-blue); font-weight: bold;">Assignation Périmétrique des Lots</span>
+ <div style="display:flex; gap:5px; align-items:center;">
+ <input type="text" id="searchFilterLots" class="input-control" placeholder="Filtrer..." style="width:100px; padding:2px 5px; font-size:11px;" oninput="filtrerArbreCheckboxesLots()">
+ <button class="btn btn-secondary" style="padding:2px 5px; font-size:9px;" onclick="basculerToutCocherLots(true)">Tout Cocher</button>
+ <button class="btn btn-secondary" style="padding:2px 5px; font-size:9px;" onclick="basculerToutCocherLots(false)">Décocher</button>
+ </div>
+ </label>
+ <div class="rbac-tree-wrapper" id="boxCheckboxesLotsAssignes"></div>
+ </div>
+ <div style="text-align:right; margin-top: 2px;"><button class="btn btn-primary" style="padding:6px 16px;" onclick="ajouterNouvelUtilisateurRbac()">Enregistrer le Compte Agent</button></div>
+ <div class="card-title" style="margin-top:5px; font-size:11px;">Comptes Déployés & Périmètres Accordés</div>
+ <div class="scrolling-table-wrapper" style="max-height: 140px;"><table id="tableUsersAdmin"><thead><tr><th>Identifiant</th><th>Classification Rôle</th><th>Lots Affectés</th><th style="text-align:center;width:60px;">Actions</th></tr></thead><tbody id="tbodyUsersAdmin"></tbody></table></div>
+ </div>
+ <div class="admin-card" style="border-top: 4px solid #7c3aed; margin-top: 10px; flex-direction: column; gap: 10px; padding: 12px 15px; display: flex; width: 100%; box-sizing: border-box;">
+ <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+ <div>
+ <div style="font-size: 12px; font-weight: bold; color: var(--primary-dark); text-transform: uppercase;"> Passerelle d'Import/Export Instantané de l'Écosystème</div>
+ <div style="font-size: 11px; color: #64748b;">Générez ou restaurez un fichier global de secours hors-ligne.</div>
+ </div>
+ <div style="display: flex; gap: 8px;">
+ <button class="btn" style="background: #0284c7; padding: 8px 14px; font-size: 11px;" onclick="exporterFichierClasseurJsonLocal()">EXPORTER LE FICHIER JSON MASTER</button>
+ <label class="btn" style="background: #16a34a; padding: 8px 14px; font-size: 11px; margin: 0; cursor: pointer; color: white;">IMPORTER UN FICHIER JSON MASTER <input type="file" style="display: none;" onchange="importerFichierClasseurJsonLocal(this)"></label>
+ </div>
+ </div>
+ </div>
+ </div>
+ </div>
+</div>
+
 /**
  * =========================================================================
  * ADMINISTRATION : ACCÈS AU MEUBLE DE STOCKAGE GÉANT INDEXEDDB
