@@ -19,6 +19,7 @@
  .btn { padding: 6px 14px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; color: white; font-size: 12px; text-decoration: none; }
  .btn-secondary { background-color: #475569; }
  .btn-primary { background-color: var(--accent-blue); }
+ 
  .page-pdf-paysage { width: 1120px; height: 730px; margin: 0 auto 20px auto; background: white; padding: 20px 25px; border-radius: 4px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); box-sizing: border-box; display: flex; flex-direction: column; gap: 5px; page-break-after: always; position: relative; }
  .page-pdf-paysage.auto-height { height: auto; min-height: 730px; }
  .header-main-title { display: flex; justify-content: space-between; align-items: center; }
@@ -45,11 +46,12 @@
  .scurve-frame { width: 100%; height: 190px; background: #ffffff; border: 1px solid var(--border-color); border-radius: 6px; margin-bottom: 5px; }
  .site-ventil-list { display: flex; flex-direction: column; gap: 5px; margin-bottom: 5px; }
  .site-ventil-row { border-bottom: 1px dashed #e2e8f0; padding-bottom: 3px; page-break-inside: avoid !important; }
+ .section-title { font-size: 11px; font-weight: bold; text-transform: uppercase; color: var(--primary-blue); margin-top: 3px; margin-bottom: 2px; }
  @media print {
- body { padding: 0; background: none; }
- .top-navbar, .remarques-area { border: none !important; box-shadow: none !important; background: transparent !important; }
- .top-navbar { display: none !important; }
- .page-pdf-paysage { box-shadow: none; margin: 0; border: none; padding: 0; width: 100%; height: 100%; }
+  body { padding: 0; background: none; }
+  .top-navbar, .remarques-area { border: none !important; box-shadow: none !important; background: transparent !important; }
+  .top-navbar { display: none !important; }
+  .page-pdf-paysage { box-shadow: none; margin: 0; border: none; padding: 0; width: 100%; height: 100%; }
  }
  </style>
 </head>
@@ -70,7 +72,6 @@
  </div>
  <div class="market-sub" id="topMarketLabel">Marché Actif : -</div>
  
- <!-- CARTOUCHE ALIGNÉ SUR CELUI DE L'ADMIN ET DU PV -->
  <table class="entete-master-logos">
   <tr><td class="lbl-gray-logo">Objet du Marché :</td><td id="lblObjetMarche" style="color:var(--primary-blue); font-weight:bold;" colspan="2">-</td></tr>
   <tr><td class="lbl-gray-logo">Bailleur / Financement :</td><td id="lblBailleur">-</td><td class="logo-box-recap" id="logoFin_box"></td></tr>
@@ -110,19 +111,23 @@
  </div>
 
  <div style="margin-top:2px;">
+  <div class="section-title">Observations de la Direction & Points Critiques de Saisie</div>
   <textarea id="txtRemarquesExécutives" class="remarques-area" rows="2" placeholder="Saisir ici les points bloquants ou observations terrain à faire remonter au bailleur..." onchange="sauvegarderRemarquesLocales(this.value)"></textarea>
  </div>
+ <div class="section-title">IV. Preuves Visuelles Récentes (Module CCPMS)</div>
  <div class="ccpms-strip" id="rowPhotosGED"></div>
 </div>
 
-<!-- ==================== PAGE 2 : COURBE EN S & VENTILATION ==================== -->
+<!-- ==================== ICI LA PAGE 2 : COURBE EN S & VENTILATION DES SITES ==================== -->
 <div class="page-pdf-paysage auto-height">
  <div class="header-main-title">
   <h1 style="font-size:18px;">Analyses Géoplanning & Trajectoires Contraignantes</h1>
   <div class="status-badge" style="font-size:11px;">Graphiques</div>
  </div>
  <div class="market-sub" id="page2MarketLabel">Suivi d'avancement graphique consolidé du marché — Projet : -</div>
+ <div class="section-title" id="titleHeaderS">V. Courbe en S : Trajectoire Globale</div>
  <div class="scurve-frame"><svg id="svgS" style="width:100%; height:100%;" xmlns="http://w3.org"></svg></div>
+ <div class="section-title" id="titleBlocVI">VI. Avancement Physique Ventilé par Grand Ouvrage / Site</div>
  <div class="site-ventil-list" id="boxVentilationOuvrages"></div>
 </div>
 <script>
@@ -163,11 +168,11 @@ let typeProjetActuel = "ENFANT";
 
 window.onload = function() {
     initialiserLeMeubleDB().then(() => {
-        chargerRrenseignementsEtLogosHerites();
+        chargerRenseignementsEtLogosHerites();
         extraire4PhotosCCPMS();
     });
 };
-async function chargerRrenseignementsEtLogosHerites() {
+async function chargerRenseignementsEtLogosHerites() {
     let listeProjets = await lireToutesLesDonneesDB("projets");
     let pActuel = listeProjets.find(i => i.id == idProjetActif);
     if(pActuel) typeProjetActuel = pActuel.type;
@@ -190,7 +195,7 @@ async function chargerRrenseignementsEtLogosHerites() {
     document.getElementById('lblNumContrat').innerText = d.numContrat || m.numContrat || "-";
     
     let sourceLogos = pActuel && pActuel.type === 'ENFANT' ? m : d;
-    let styleStyle = 'style="max-height:28px; max-width:100%; object-fit:contain;"';
+    let styleStyle = 'style="max-height:28px; max-width:100%; object-fit:contain; vertical-align:middle;"';
     if(sourceLogos.logoFin_html) document.getElementById('logoFin_box').innerHTML = sourceLogos.logoFin_html.replace('<img', `<img ${styleStyle}`);
     if(sourceLogos.logoMO_html) document.getElementById('logoMO_box').innerHTML = sourceLogos.logoMO_html.replace('<img', `<img ${styleStyle}`);
     if(sourceLogos.logoMOE_html) document.getElementById('logoMOE_box').innerHTML = sourceLogos.logoMOE_html.replace('<img', `<img ${styleStyle}`);
@@ -209,50 +214,40 @@ async function extraire4PhotosCCPMS() {
     for (let i = 0; i < 4; i++) {
         let card = document.createElement('div'); card.className = "ccpms-photo-card";
         if(photosOnly[i]) card.innerHTML = `<img src="${photosOnly[i].fichierBrut}" class="ccpms-img"><div class="ccpms-meta">${photosOnly[i].titre}</div>`;
-        else card.innerHTML = `<div style="margin:auto;font-size:11px;color:#94a3b8;font-style:italic;">Emplacement Photo CCPMS</div>`;
+        else card.innerHTML = `<div style="margin:auto;font-size:11px;color:#94a3b8;font-style:italic;">Emplacement Photo</div>`;
         container.appendChild(card);
     }
 }
 async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
-    let listB = await lireDonneeDB("dossiers_techniques", `bdqe_${idProjetActif}`) || [];
-    let listPl = await lireDonneeDB("dossiers_techniques", `planning_${idProjetActif}`) || [];
-    let listS = await lireDonneeDB("dossiers_techniques", `suivi_${idProjetActif}`) || [];
-    let listAv = await lireDonneeDB("dossiers_techniques", `avenants_${idProjetActif}`) || [];
+    let listB = await lireDonneeDB("dossiers_technical", `bdqe_${idProjetActif}`) || [];
+    let listPl = await lireDonneeDB("dossiers_technical", `planning_${idProjetActif}`) || [];
+    let listS = await lireDonneeDB("dossiers_technical", `suivi_${idProjetActif}`) || [];
+    let listAv = await lireDonneeDB("dossiers_technical", `avenants_${idProjetActif}`) || [];
     
     if (typeProjetActuel === "PAPA") {
         let enfants = listeProjets.filter(item => item.type === "ENFANT" && item.parentId == idProjetActif);
         for(let enf of enfants) {
-            listB = listB.concat(await lireDonneeDB("dossiers_techniques", `bdqe_${enf.id}`) || []);
-            listPl = listPl.concat(await lireDonneeDB("dossiers_techniques", `planning_${enf.id}`) || []);
-            listS = listS.concat(await lireDonneeDB("dossiers_techniques", `suivi_${enf.id}`) || []);
-            listAv = listAv.concat(await lireDonneeDB("dossiers_techniques", `avenants_${enf.id}`) || []);
+            listB = listB.concat(await lireDonneeDB("dossiers_technical", `bdqe_${enf.id}`) || []);
+            listPl = listPl.concat(await lireDonneeDB("dossiers_technical", `planning_${enf.id}`) || []);
+            listS = listS.concat(await lireDonneeDB("dossiers_technical", `suivi_${enf.id}`) || []);
+            listAv = listAv.concat(await lireDonneeDB("dossiers_technical", `avenants_${enf.id}`) || []);
         }
     }
     
-    // 1. Calcul et injection des bornes du calendrier
     let dMin = null, dMax = null;
     listPl.forEach(i => { if(!i.date_debut || !i.date_fin) return; let d1 = new Date(i.date_debut), d2 = new Date(i.date_fin); if(!dMin || d1 < dMin) dMin = d1; if(!dMax || d2 > dMax) dMax = d2; });
-    
     if(dMin && dMax) {
         dMin.setHours(0,0,0,0); dMax.setHours(0,0,0,0);
         document.getElementById('valOS').innerText = dMin.toLocaleDateString('fr-FR');
         document.getElementById('valFin').innerText = dMax.toLocaleDateString('fr-FR');
     } else {
-        document.getElementById('valOS').innerText = "-";
-        document.getElementById('valFin').innerText = "-";
-        return;
+        document.getElementById('valOS').innerText = "-"; document.getElementById('valFin').innerText = "-"; return;
     }
     
-    // 2. Calcul des enveloppes budgétaires
-    let budgetInitialTotal = 0;
-    listB.forEach(item => { budgetInitialTotal += parseFloat(item.total) || 0; });
-    
-    let budgetAvenantsTotal = 0;
-    listAv.forEach(item => { budgetAvenantsTotal += parseFloat(item.total_av) || 0; });
-    
+    let budgetInitialTotal = 0; listB.forEach(item => { budgetInitialTotal += parseFloat(item.total) || 0; });
+    let budgetAvenantsTotal = 0; listAv.forEach(item => { budgetAvenantsTotal += parseFloat(item.total_av) || 0; });
     let budgetRéviséTotal = budgetInitialTotal + budgetAvenantsTotal;
     
-    // INJECTION DU BUDGET DANS LES BLOCS EN FACE DU FINANCEMENT
     document.getElementById('valMntInit').innerText = budgetInitialTotal.toLocaleString('fr-FR') + " Ar";
     document.getElementById('valMntAv').innerText = (budgetAvenantsTotal >= 0 ? "+ " : "") + budgetAvenantsTotal.toLocaleString('fr-FR') + " Ar";
     document.getElementById('valMntRev').innerText = budgetRéviséTotal.toLocaleString('fr-FR') + " Ar";
@@ -261,7 +256,7 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
     listB.forEach(item => {
         if (!item.ouvrage || !item.code_bdqe) return;
         let cleUnique = `${item.ouvrage.trim().toLowerCase()}_${item.code_bdqe.trim().toLowerCase()}`;
-        let mnt = parseFloat(item.total) || 0; dictionnaireFinancier[cleUnique] = (dictionnaireFinancier[cleUnique] || 0) + mnt;
+        dictionnaireFinancier[cleUnique] = (dictionnaireFinancier[cleUnique] || 0) + (parseFloat(item.total) || 0);
     });
     
     let totalJrs = Math.round((dMax - dMin) / (1000*60*60*24)) + 1;
@@ -269,6 +264,7 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
     let jrsEcoules = Math.max(0, Math.min(totalJrs, Math.round((auj - dMin) / (1000*60*60*24))));
     document.getElementById('valTempsPct').innerText = totalJrs > 0 ? Math.round((jrsEcoules / totalJrs)*100) + " %" : "0 %";
     document.getElementById('valJrsRestants').innerText = Math.max(0, totalJrs - jrsEcoules) + " J";
+
     function calculerPrevuALaDate(dateCible) {
         let totalCumulePrevuAr = 0;
         listPl.forEach(tache => {
@@ -286,16 +282,17 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
         });
         return budgetInitialTotal > 0 ? (totalCumulePrevuAr / budgetInitialTotal) * 100 : 0;
     }
-    
+
     let tPhyPrevu = calculerPrevuALaDate(auj); let tFinPrevu = tPhyPrevu * 0.96;
-    let totalLignes = 0, sumPhyReel = 0, mntM = 0, mntR = 0;
-    listS.forEach(i => { if (i.quantite_contrat > 0) { totalLignes++; let pL = Math.min((i.qte_realisee / i.quantite_contrat)*100, 100); sumPhyReel += pL; mntM += (i.total_contrat||0); mntR += ((i.total_contrat||0)*(pL/100)); } });
+    let totalLignes = 0, sumPhyReel = 0;
+    listS.forEach(i => { if (i.quantite_contrat > 0) { totalLignes++; sumPhyReel += Math.min((i.qte_realisee / i.quantite_contrat)*100, 100); } });
     let tPhyReel = totalLignes > 0 ? (sumPhyReel / totalLignes) : 0;
     
     document.getElementById('barPhyPrevu').style.width = tPhyPrevu + "%"; document.getElementById('barPhyReel').style.width = tPhyReel + "%";
     document.getElementById('txtPhyComp').innerText = `P: ${tPhyPrevu.toFixed(1)}% | R: ${tPhyReel.toFixed(1)}%`;
     document.getElementById('barFinPrevu').style.width = tFinPrevu + "%"; document.getElementById('barFinReel').style.width = tFinReel + "%";
     document.getElementById('txtFinComp').innerText = `P: ${tFinPrevu.toFixed(1)}% | R: ${tFinReel.toFixed(1)}%`;
+    document.getElementById('titleHeaderS').innerText = `V. COURBE EN S : TRAJECTOIRE GLOBALE (PRÉVU ${tPhyPrevu.toFixed(1)}% VS RÉEL ${tPhyReel.toFixed(1)}%)`;
 
     let svg = document.getElementById('svgS'), pointsPath = "";
     for(let j=0; j<=40; j++) {
@@ -317,7 +314,6 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
         ventilBox.appendChild(row);
     });
 }
-
 </script>
 </body>
 </html>
