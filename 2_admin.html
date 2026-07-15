@@ -488,27 +488,65 @@ async function exporterFichierClasseurJsonLocal() {
     let blob = new Blob([JSON.stringify(paquetGlobalData, null, 2)], { type: "application/json" });
     let lien = document.createElement("a"); lien.href = URL.createObjectURL(blob); lien.download = `GENIE_CIVIL_PRO_DATABASE_MASTER.json`;
     document.body.appendChild(lien); lien.click(); document.body.removeChild(lien);
-    alert("Base exportée !");
+    alert("Base complète et logos compilés localement ! ✔️");
 }
 
+// FONCTION REPARÉE : Convertit et stocke proprement les logos au format binaire à l'écran
+function convertirLogoBinaire(input, cibleId) {
+    if (input.files && input.files[0]) {
+        let reader = new FileReader();
+        reader.onload = function(e) {
+            let imgHTML = `<img src="${e.target.result}" style="max-height:24px; max-width:100%; object-fit:contain;">`;
+            document.getElementById(`preview_${cibleId}`).innerHTML = imgHTML;
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+// FONCTION INTERNE REPARÉE : Sauvegarde en local les 4 logos dans le meuble
+async function sauvegarderDonneesProjetSelectionne() {
+    let nomSaisi = document.getElementById('cfgObjet').value.trim();
+    if(!nomSaisi) return alert("Désignation du lot manquante !");
+    
+    let projets = await lireToutesLesDonneesDB("projets");
+    let p = projets.find(i => i.id == idProjetSelectionneAdmin);
+    if(p) { p.nom = nomSaisi; await ecrireDonneeDB("projets", p); }
+    
+    let charteData = {
+        financement: document.getElementById('cfgFinancement').value.trim(),
+        mo: document.getElementById('cfgMO').value.trim(),
+        moe: document.getElementById('cfgMOE').value.trim(),
+        entreprise: document.getElementById('cfgEnterprise').value.trim(),
+        numContrat: document.getElementById('cfgNumContrat').value.trim(),
+        logoMO_html: document.getElementById('preview_logoMO').innerHTML,
+        logoFin_html: document.getElementById('preview_logoFin').innerHTML,
+        logoMOE_html: document.getElementById('preview_logoMOE').innerHTML,
+        logoEnterprise_html: document.getElementById('preview_logoEntreprise').innerHTML
+    };
+    
+    await ecrireDonneeDB("dossiers_techniques", charteData, `charte_administrative_${idProjetSelectionneAdmin}`);
+    if (idProjetSelectionneAdmin == 101) {
+        await ecrireDonneeDB("dossiers_techniques", { objet: nomSaisi, ...charteData }, "base_donnees_fiche_projet_maitre");
+    }
+    alert(`Charte contractuelle et logos du lot enregistrés en local ! 💾 ✔️`);
+    chargerArbreProjetsEtUtilisateurs();
+}
 function importerFichierClasseurJsonLocal(input) {
     if (input.files && input.files[0]) {
         let reader = new FileReader();
         reader.onload = async function(e) {
             try {
                 let paquet = JSON.parse(e.target.result);
-                if (!paquet.projets || !paquet.utilisateurs) return alert("Fichier JSON master invalide ou incomplet.");
+                if (!paquet.projets || !paquet.utilisateurs) return alert("Fichier JSON invalide.");
                 
-                if (confirm("⚠️ ATTENTION : Valider l'importation ? Cela va écraser toutes vos données actuelles de l'application localement.")) {
+                if (confirm("⚠️ ATTENTION : Cela va écraser toutes vos données actuelles. Confirmer l'importation locale ?")) {
                     await initialiserLeMeubleDB();
                     
-                    // Nettoyage sécurisé des tiroirs de stockage
-                    let transactionNettoyage = dbInstance.transaction(["projets", "utilisateurs", "dossiers_techniques"], "readwrite");
-                    transactionNettoyage.objectStore("projets").clear();
-                    transactionNettoyage.objectStore("utilisateurs").clear();
-                    transactionNettoyage.objectStore("dossiers_techniques").clear();
+                    let tx = dbInstance.transaction(["projets", "utilisateurs", "dossiers_techniques"], "readwrite");
+                    tx.objectStore("projets").clear();
+                    tx.objectStore("utilisateurs").clear();
+                    tx.objectStore("dossiers_techniques").clear();
 
-                    // Remplissage progressif du nouveau meuble
                     for(let prj of paquet.projets) { await ecrireDonneeDB("projets", prj); }
                     for(let usr of paquet.utilisateurs) { await ecrireDonneeDB("utilisateurs", usr); }
                     
@@ -518,11 +556,11 @@ function importerFichierClasseurJsonLocal(input) {
                     if (paquet.suiviIsolees) { for (let id in paquet.suiviIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.suiviIsolees[id], `suivi_${id}`); }
                     if (paquet.planningIsolees) { for (let id in paquet.planningIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.planningIsolees[id], `planning_${id}`); }
                     
-                    alert("Restauration réussie ! Le meuble IndexedDB est à jour. ✔️"); 
+                    alert("Restauration et import des logos réussis ! ✔️"); 
                     window.location.reload();
                 }
             } catch (err) { 
-                alert("Erreur de décodage : le fichier JSON est corrompu ou mal formé."); 
+                alert("Erreur de lecture ou fichier corrompu."); 
             }
         };
         reader.readAsText(input.files[0]);
@@ -531,4 +569,3 @@ function importerFichierClasseurJsonLocal(input) {
 </script>
 </body>
 </html>
-
