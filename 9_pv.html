@@ -1,396 +1,225 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Génie Civil Pro - Procès-Verbal de Chantier Isolé</title>
-    <style>
-        :root {
-            --primary-color: #0f172a;
-            --secondary-color: #3b82f6;
-            --success-color: #16a34a;
-            --bg-color: #f8fafc;
-            --text-color: #111827;
-        }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 20px; }
-        .container { max-width: 1100px; margin: 0 auto; background: white; padding: 30px; border-radius: 4px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-        
-        .top-navbar { display: flex; justify-content: space-between; align-items: center; background: #0f172a; color: white; padding: 15px 20px; border-radius: 6px; margin-bottom: 25px; }
-        .top-navbar-title { font-weight: bold; font-size: 16px; text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
-        .nav-buttons { display: flex; gap: 10px; }
-        
-        .btn { padding: 8px 15px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; color: white; display: inline-flex; align-items: center; gap: 5px; font-size: 13px; }
-        .btn-success { background-color: var(--success-color); }
-        .btn-primary { background-color: var(--secondary-color); }
-        .btn-secondary { background-color: #64748b; }
-
-        .entete-master { width: 100%; border-collapse: collapse; margin-bottom: 25px; }
-        .entete-master td { border: 1px solid #cbd5e1; padding: 8px 12px; font-size: 12px; vertical-align: middle; }
-        .lbl-gray { background-color: #f8fafc; font-weight: bold; width: 150px; color: #334155; }
-        .logo-box { width: 80px; text-align: center; padding: 4px !important; }
-        .pv-titre-cadre { text-align: center; border-top: 2px solid #1e3a8a; border-bottom: 2px solid #1e3a8a; padding: 10px 0; margin-bottom: 25px; }
-        .pv-titre-input { width: 90%; border: none; font-size: 16px; font-weight: bold; color: #1e3a8a; text-align: center; text-transform: uppercase; outline: none; }
-        
-        .meta-saisie-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 15px; margin-bottom: 25px; background: #f8fafc; padding: 12px; border-radius: 4px; border: 1px solid #e2e8f0; }
-        .field-row { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: bold; }
-        .field-row input { padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 4px; flex-grow: 1; font-size: 13px; }
-
-        .table-constats { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        .table-constats th { background-color: #0f172a; color: white; padding: 10px; font-size: 12px; text-align: left; }
-        .table-constats td { border: 1px solid #cbd5e1; padding: 8px; font-size: 13px; vertical-align: top; }
-        .textarea-cell { width: 98%; border: none; resize: none; font-family: inherit; font-size: 13px; outline: none; min-height: 40px; overflow-y: hidden; }
-        
-        .signatures-section { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 30px; }
-        .signature-card { border: 1px dashed #cbd5e1; padding: 12px; text-align: center; border-radius: 4px; position: relative; background: #f8fafc; }
-        .signature-title-input { width: 90%; border: none; background: transparent; text-align: center; font-weight: bold; font-size: 13px; outline: none; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-bottom: 45px; resize: none; overflow: hidden; }
-        .btn-del-sig { position: absolute; top: 2px; right: 2px; cursor: pointer; color: #ef4444; font-weight: bold; font-size: 14px; background: none; border: none; }
-
-        @media print {
-            body { padding: 0; background: white; }
-            .container { box-shadow: none; padding: 0; max-width: 100%; }
-            .top-navbar, .btn, .btn-del-sig, input[type="file"], #formActionsPV { display: none !important; }
-            input, textarea { border: none !important; background: transparent !important; resize: none !important; }
-            .signature-card { border: none !important; background: transparent !important; }
-            tr { page-break-inside: avoid !important; }
-        }
-    </style>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>Génie Civil Pro - Procès-Verbal de Visite</title>
+ <style>
+ :root {
+ --primary-dark: #0f172a;
+ --sidebar-bg: #1e293b;
+ --accent-red: #ef4444;
+ --accent-blue: #2563eb;
+ --success-green: #16a34a;
+ --bg-light: #f8fafc;
+ --text-dark: #334155;
+ --border-color: #cbd5e1;
+ --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
+ }
+ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-light); color: var(--text-dark); margin: 0; padding: 20px; height: 100vh; overflow: hidden; box-sizing: border-box; }
+ .pv-container { max-width: 100%; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: var(--card-shadow); height: calc(100vh - 40px); display: flex; flex-direction: column; gap: 12px; box-sizing: border-box; }
+ .pv-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid var(--accent-red); padding-bottom: 8px; flex-shrink: 0; }
+ .pv-header h1 { margin: 0; color: var(--primary-dark); font-size: 18px; font-weight: 900; }
+ .toggle-form-btn { width: 100%; background: #f1f5f9; border: 1px dashed var(--accent-red); color: var(--accent-red); padding: 8px; font-weight: bold; border-radius: 6px; cursor: pointer; text-align: center; font-size: 12px; text-transform: uppercase; transition: background 0.2s; flex-shrink: 0; }
+ .toggle-form-btn:hover { background: #fee2e2; }
+ .form-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; background: #f8fafc; padding: 15px; border-radius: 6px; border: 1px solid var(--border-color); flex-shrink: 0; display: none; align-items: flex-end; }
+ .form-group.open { display: grid; }
+ .form-field { display: flex; flex-direction: column; gap: 3px; }
+ .form-field label { font-size: 11px; font-weight: bold; color: var(--primary-dark); text-transform: uppercase; }
+ .form-field input, .form-field textarea { padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px; outline: none; background: white; font-family: inherit; }
+ .btn { padding: 8px 14px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; color: white; font-size: 11px; display: inline-flex; align-items: center; gap: 5px; text-transform: uppercase; height: 33px; box-sizing: border-box; justify-content: center; }
+ .btn-danger { background-color: var(--accent-red); }
+ .btn-secondary { background-color: #64748b; }
+ .filter-section { background: #f8fafc; padding: 8px 12px; border-radius: 6px; border: 1px solid #e2e8f0; flex-shrink: 0; display: flex; flex-direction: column; gap: 4px; }
+ .filter-title { font-weight: bold; color: #64748b; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+ .segment-btn { background: white; border: 1px solid var(--accent-red); color: var(--accent-red); padding: 6px 12px; border-radius: 20px; cursor: pointer; font-size: 12px; font-weight: bold; margin-right: 5px; text-transform: uppercase; }
+ .segment-btn.active { background: var(--accent-red); color: white; }
+ .pv-grid-scroll { flex-grow: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; padding: 5px; border: 1px solid var(--border-color); border-radius: 8px; }
+ .pv-card { background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display: flex; flex-direction: column; gap: 6px; border-top: 4px solid var(--accent-red); position: relative; }
+ .pv-card-title { font-weight: bold; font-size: 14px; color: var(--primary-dark); }
+ .pv-card-meta { font-size: 11px; color: #64748b; font-weight: 600; display: flex; justify-content: space-between; }
+ .pv-card-text { font-size: 12px; color: var(--text-dark); background: #f8fafc; padding: 8px; border-radius: 4px; border-left: 2px solid #cbd5e1; max-height: 80px; overflow-y: auto; white-space: pre-line; }
+ .btn-card-action { padding: 4px 8px; font-size: 10px; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; color: white; }
+ </style>
 </head>
 <body>
-<div class="container">
-    <div class="top-navbar">
-        <div class="top-navbar-title">📋 Compte-Rendu & Procès-Verbal</div>
-        <div class="nav-buttons">
-            <button class="btn btn-secondary" onclick="window.location.href='3_accueil.html'">« Retour Accueil</button>
-            <button class="btn btn-success" onclick="sauvegarderPVChantier()">💾 Sauvegarder le PV</button>
-            <button class="btn btn-primary" onclick="window.print()">🖨️ Imprimer en PDF</button>
-        </div>
-    </div>
-
-    <!-- TABLEAU MAITRE D'EN-TÊTE AUTOMATIQUE -->
-            <!-- TABLEAU MAITRE D'EN-TÊTE AUTOMATIQUE AVEC LOGOS ALIGNÉS -->
-    <table class="entete-master" style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-        <tr>
-            <td class="lbl-gray" style="width: 180px;">Objet du Marché :</td>
-            <td id="viewObjet" style="font-weight:bold; color:var(--primary-blue);">-</td>
-            <td style="width: 80px; text-align: center; border: 1px solid #cbd5e1; padding: 2px;" id="pvLogoMO"></td>
-        </tr>
-        <tr>
-            <td class="lbl-gray">Bailleur / Financement :</td>
-            <td id="viewFinancement">-</td>
-            <td style="width: 80px; text-align: center; border: 1px solid #cbd5e1; padding: 2px;" id="pvLogoFin"></td>
-        </tr>
-        <tr>
-            <td class="lbl-gray">Maître d'Ouvrage :</td>
-            <td id="viewMO">-</td>
-            <td style="width: 80px; text-align: center; border: 1px solid #cbd5e1; padding: 2px;" id="pvLogoMOE"></td>
-        </tr>
-        <tr>
-            <td class="lbl-gray">Maître d'Œuvre :</td>
-            <td id="viewMOE">-</td>
-            <td style="width: 80px; text-align: center; border: 1px solid #cbd5e1; padding: 2px;" id="pvLogoEntreprise"></td>
-        </tr>
-        <tr>
-            <td class="lbl-gray">Entreprise Titulaire :</td>
-            <td id="viewEntreprise" colspan="2">-</td>
-        </tr>
-        <tr>
-            <td class="lbl-gray">N° de Contrat / Marché :</td>
-            <td id="viewNumContrat" style="font-family:monospace; color:var(--accent-blue);" colspan="2">-</td>
-        </tr>
-    </table>
-
-        
-    <div class="pv-titre-cadre">
-        <input type="text" id="titrePV" class="pv-titre-input" value="PV DE CONSTATATION DE VISITE DE CHANTIER">
-    </div>
-
-    <div class="meta-saisie-grid">
-        <div class="field-row"><label>Date :</label><input type="text" id="dateSaisie" placeholder="Ex: 28/06/2026"></div>
-        <div class="field-row"><label>Site :</label><input type="text" id="siteSaisie" placeholder="Ex: CSB II Ambohipo"></div>
-    </div>
-
-    <table class="table-constats" id="tableConstatsBody">
-        <thead>
-            <tr>
-                <th style="width: 40px; text-align: center;">N°</th>
-                <th style="width: 350px;">Constats</th>
-                <th style="width: 350px;">Observations / Recommandations</th>
-                <th style="width: 250px;">Photos Illustratives</th>
-            </tr>
-        </thead>
-        <tbody id="tbodyConstats"></tbody>
-    </table>
-
-    <div id="formActionsPV" style="margin-bottom: 30px;">
-        <button class="btn btn-primary" onclick="ajouterLigneConstat()">➕ Ajouter une ligne de constat</button>
-    </div>
-
-    <div class="signatures-section" id="zoneSignatures"></div>
-    
-    <div id="formActionsPV" style="text-align: center; margin-top: 20px;">
-        <button class="btn btn-secondary" onclick="ajouterUnSignataire()">👥 Ajouter un signataire</button>
-    </div>
+<div class="pv-container">
+ <div class="pv-header">
+  <div>
+   <h1 id="txtTitreLotPV">Registre des PV de Visite — Liaison CCPMS</h1>
+   <div style="font-size:11px; color:#64748b; font-weight:bold; margin-top:2px;" id="txtLabelSousTitreLot">Chargement des rapports de chantier...</div>
+  </div>
+  <button class="btn btn-secondary" onclick="window.location.href='3_accueil.html'">« Retour Console Accueil</button>
+ </div>
+ <button class="toggle-form-btn" onclick="basculerAffichageFormulaireTiroir()">Rédiger un Nouveau Procès-Verbal de Visite 📝</button>
+ <div class="form-group" id="formPvLigne">
+  <div class="form-field"><label>Date de la Visite</label><input type="date" id="inDate"></div>
+  <div class="form-field" style="grid-column: span 2;"><label>Rédacteur / Visiteur</label><input type="text" id="inRedacteur" placeholder="Ex: Ing. Andriantsilavo"></div>
+  <div class="form-field" style="grid-column: span 2;"><label>Objet du PV / Étape Chantier</label><input type="text" id="inObjet" placeholder="Ex: Réception des armatures"></div>
+  <div class="form-field" style="grid-column: span 3;"><label>Observations littérales / Instructions</label><textarea id="inObservations" rows="3" placeholder="Saisir les remarques..."></textarea></div>
+  <div class="form-field" style="grid-column: span 2;"><label>📸 Joindre l'Image du Constat (Optionnel)</label><input type="file" id="inPhotoPv" accept="image/*"></div>
+  <div style="grid-column: 1 / -1; text-align: right;"><button class="btn btn-danger" onclick="enregistrerNouveauPVManuel()">Signer & Enregistrer le PV ➕</button></div>
+ </div>
+ <div class="filter-section">
+  <div class="filter-title">🔍 Segment : Filtrer l'historique par Visiteur</div>
+  <div class="segment-container" id="boxSegmentsRedacteursPv" style="overflow-x:auto; white-space:nowrap; flex-wrap:nowrap; padding-bottom:3px;"></div>
+ </div>
+ <div class="pv-grid-scroll" id="containerPvCardsGrid"></div>
 </div>
 <script>
-    let compteurLignes = 0;
-    let compteurSignataires = 0;
-    const MAX_SIGNATAIRES = 12;
+const DB_NAME = "GenieCivilPro_DB";
+const DB_VERSION = 1;
+let dbInstance = null;
 
-        // --- CONNECTEURS GLOBAUX SÉCURISÉS ---
-    let idProjetUnique = localStorage.getItem("id_projet_en_cours_de_saisie_temporaire") || "101";
-    let cleStockageCCPMS = `ccpms_${idProjetUnique}`;
+function initialiserLeMeubleDB() {
+    return new Promise((resolve, reject) => {
+        let requete = indexedDB.open(DB_NAME, DB_VERSION);
+        requete.onsuccess = function(e) { dbInstance = e.target.result; resolve(dbInstance); };
+        requete.onerror = function() { reject("Meuble bloqué."); };
+    });
+}
 
-         window.onload = function() {
-        if (localStorage.getItem("session_securisee_active_gc") !== "VALIDE") {
-            window.location.href = "1_login.html"; return;
-        }
+function lireDonneeDB(tiroir, cle) {
+    return new Promise((resolve) => {
+        if(!dbInstance) return resolve(null);
+        let tx = dbInstance.transaction([tiroir], "readonly");
+        let req = tx.objectStore(tiroir).get(cle);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => resolve(null);
+    });
+}
 
-        // 1. RE-LECTURE DE L'ARMOIRE MAÎTRESSE ET ALIMENTATION DU CADRE CONTRACTUEL
-        let masterSauve = localStorage.getItem("base_donnees_fiche_projet_maitre");
-        let classeurGlobal = localStorage.getItem("classeur_maitre_projets_lee") ? JSON.parse(localStorage.getItem("classeur_maitre_projets_lee")) : [];
-        let idProjetUnique = localStorage.getItem("id_projet_en_cours_de_saisie_temporaire") || "101";
-        let pActuel = classeurGlobal.find(i => i.id == idProjetUnique);
+function ecrireDonneeDB(tiroir, objet, cleOptionnelle) {
+    return new Promise((resolve) => {
+        if(!dbInstance) return resolve(false);
+        let tx = dbInstance.transaction([tiroir], "readwrite");
+        let req = cleOptionnelle !== undefined ? tx.objectStore(tiroir).put(objet, cleOptionnelle) : tx.objectStore(tiroir).put(objet);
+        req.onsuccess = () => resolve(true);
+        req.onerror = () => resolve(false);
+    });
+}
 
-        if (masterSauve) {
-            let n = JSON.parse(masterSauve);
-            
-            let objetPVText = n.objet || "-";
-            if (pActuel && pActuel.type === "ENFANT" && pActuel.parentId) {
-                let papa = classeurGlobal.find(i => i.id == pActuel.parentId);
-                if (papa) objetPVText = `${papa.nom.toUpperCase()} — LOT : ${pActuel.nom.toUpperCase()}`;
+let listePV = [];
+let filtreRedacteurActuel = "TOUS";
+let idProjetCourant = localStorage.getItem("id_projet_en_cours_de_saisie_temporaire") || "101";
+const CLE_PV_PROJET = `pv_${idProjetCourant}`;
+
+function basculerAffichageFormulaireTiroir() {
+    let form = document.getElementById('formPvLigne');
+    let btn = document.querySelector('.toggle-form-btn');
+    form.classList.toggle('open');
+    if (form.classList.contains('open')) {
+        btn.innerText = "Fermer la Console de Rédaction ❌";
+        btn.style.cssText = "background:#fee2e2; color:var(--accent-red); border-color:var(--accent-red);";
+    } else {
+        btn.innerText = "Rédiger un Nouveau Procès-Verbal de Visite 📝";
+        btn.style.cssText = "background:#f1f5f9; color:var(--accent-red); border-color:var(--accent-red);";
+    }
+}
+window.onload = function() {
+    if (localStorage.getItem("session_securisee_active_gc") !== "VALIDE") { window.location.href = "1_login.html"; return; }
+    document.getElementById('inDate').value = new Date().toISOString().substring(0,10);
+    initialiserLeMeubleDB().then(async () => {
+        let tx = dbInstance.transaction(["projets"], "readonly");
+        let req = tx.objectStore("projets").getAll();
+        req.onsuccess = async function() {
+            let lot = req.result.find(p => p.id == idProjetCourant);
+            if (lot) {
+                document.getElementById('txtTitreLotPV').innerText = "Registre des PV — " + lot.nom.toUpperCase();
+                document.getElementById('txtLabelSousTitreLot').innerText = `ID du lot : ${idProjetCourant} | Archives légales`;
             }
-
-            // Alignement strict sur tes vrais ID d'en-tête
-            if(document.getElementById('viewObjet')) document.getElementById('viewObjet').innerText = objetPVText;
-            if(document.getElementById('viewFinancement')) document.getElementById('viewFinancement').innerText = n.financement || "-";
-            if(document.getElementById('viewMO')) document.getElementById('viewMO').innerText = n.mo || "-";
-            if(document.getElementById('viewMOE')) document.getElementById('viewMOE').innerText = n.moe || "-";
-            if(document.getElementById('viewEntreprise Titulaire')) document.getElementById('viewEntreprise Titulaire').innerText = n.entreprise || "-";
-            if(document.getElementById('viewNumContrat')) document.getElementById('viewNumContrat').innerText = n.numContrat || "-";
-            
-            // Injection automatique des 4 logos officiels
-            if(document.getElementById('pvLogoMO')) document.getElementById('pvLogoMO').innerHTML = n.logoMO_html || "<b>MAÎTRE D'OUVRAGE</b>";
-            if(document.getElementById('pvLogoFin')) document.getElementById('pvLogoFin').innerHTML = n.logoFin_html || "<b>BAILLEUR DE FONDS</b>";
-            if(document.getElementById('pvLogoMOE')) document.getElementById('pvLogoMOE').innerHTML = n.logoMOE_html || "<b>MISSION DE CONTROLE</b>";
-            if(document.getElementById('pvLogoEntreprise')) document.getElementById('pvLogoEntreprise').innerHTML = n.logoEntreprise_html || "<b>ENTREPRISE TITULAIRE</b>";
-        }
-
-        // 2. PRÉ-REMPLISSAGE AUTOMATIQUE DU CHAMP SITE
-        let elSite = document.getElementById('siteSaisie');
-        if(elSite && pActuel) {
-            elSite.value = pActuel.nom.toUpperCase();
-        }
-
-        // 3. MATRICE DE RESTRICTION POUR LES CADRES (LECTURE SEULE)
-        let roleSession = localStorage.getItem("session_user_role") || "agents";
-        if (roleSession === "cadres") {
-            let btnAjout = document.getElementById('btnAjouterLigneConstat'); if(btnAjout) btnAjout.style.display = 'none';
-            let btnSave = document.querySelector('.btn-success'); if(btnSave) btnSave.innerHTML = "🔒 PV en Lecture Seule (Cadre)";
-        }
-
-        // RELANCE DE TES FONCTIONS INTERNES D'ORIGINE POUR FEUILLETER LE TABLEAU DE SAISIE
-        if(typeof recupererEnteteFicheProjetAccueil === "function") {
-            recupererEnteteFicheProjetAccueil();
-        } else if(typeof rechargerTout === "function") {
-            rechargerTout();
-        }
-    };
-   
-
-
-
-   function recupererEnteteFicheProjetAccueil() {
-    let classeurGlobal = localStorage.getItem("classeur_maitre_projets_lee") ? JSON.parse(localStorage.getItem("classeur_maitre_projets_lee")) : [];
-    let idProjetUnique = localStorage.getItem("id_projet_en_cours_de_saisie_temporaire") || "101";
-    let pActuel = classeurGlobal.find(i => i.id == idProjetUnique);
-
-    if (pActuel) {
-        // Lecture de la charte de ce lot précis
-        let charteSpecifique = localStorage.getItem(`charte_administrative_${idProjetUnique}`);
-        let d = charteSpecifique ? JSON.parse(charteSpecifique) : {};
-
-        // Récupération de l'héritage du vrai père
-        let m = {};
-        if (pActuel.type === 'ENFANT' && pActuel.parentId) {
-            let parentSauve = localStorage.getItem(`charte_administrative_${pActuel.parentId}`);
-            if (parentSauve) m = JSON.parse(parentSauve);
-        }
-        
-        let objetPVText = pActuel.nom.toUpperCase();
-        if (pActuel.type === "ENFANT" && pActuel.parentId) {
-            let papa = classeurGlobal.find(i => i.id == pActuel.parentId);
-            if (papa) objetPVText = `${papa.nom.toUpperCase()} — LOT : ${pActuel.nom.toUpperCase()}`;
-        }
-
-        // Injection rigoureuse des textes isolés
-        if(document.getElementById('viewObjet')) document.getElementById('viewObjet').innerText = objetPVText;
-        if(document.getElementById('viewFinancement')) document.getElementById('viewFinancement').innerText = d.financement || m.financement || "-";
-        if(document.getElementById('viewMO')) document.getElementById('viewMO').innerText = d.mo || m.mo || "-";
-        if(document.getElementById('viewMOE')) document.getElementById('viewMOE').innerText = d.moe || m.moe || "-";
-        
-        let elEnt = document.getElementById('viewEntreprise') || document.getElementById('viewEntreprise Titulaire');
-        if(elEnt) elEnt.innerText = d.entreprise || m.entreprise || "-";
-        if(document.getElementById('viewNumContrat')) document.getElementById('viewNumContrat').innerText = d.numContrat || m.numContrat || "-";
-        
-        // Injection des logos du lot ou du père hérité
-        let sourceLogos = pActuel.type === 'ENFANT' ? m : d;
-        let styleStyle = 'style="max-height:24px; max-width:100%; object-fit:contain; vertical-align:middle;"';
-        if(document.getElementById('pvLogoMO') && sourceLogos.logoMO_html) document.getElementById('pvLogoMO').innerHTML = sourceLogos.logoMO_html.replace('<img', `<img ${styleStyle}`);
-        if(document.getElementById('pvLogoFin') && sourceLogos.logoFin_html) document.getElementById('pvLogoFin').innerHTML = sourceLogos.logoFin_html.replace('<img', `<img ${styleStyle}`);
-        if(document.getElementById('pvLogoMOE') && sourceLogos.logoMOE_html) document.getElementById('pvLogoMOE').innerHTML = sourceLogos.logoMOE_html.replace('<img', `<img ${styleStyle}`);
-        if(document.getElementById('pvLogoEntreprise') && sourceLogos.logoEntreprise_html) document.getElementById('pvLogoEntreprise').innerHTML = sourceLogos.logoEntreprise_html.replace('<img', `<img ${styleStyle}`);
-    }
-
-    if(typeof afficherTableauConstats === "function") afficherTableauConstats();
-}
-
-
-
-    function ajouterLigneConstat() {
-        compteurLignes++;
-        let tbody = document.getElementById('tbodyConstats');
-        let tr = document.createElement('tr');
-        tr.id = `ligneConstat_${compteurLignes}`;
-
-        tr.innerHTML = `
-            <td style="text-align:center; font-weight:bold; padding-top:12px;">${compteurLignes}</td>
-            <td><textarea class="textarea-cell" placeholder="Saisir le constat visuel..." oninput="ajusterHauteurTextarea(this)"></textarea></td>
-            <td><textarea class="textarea-cell" placeholder="Directives / Recommandations..." oninput="ajusterHauteurTextarea(this)"></textarea></td>
-            <td>
-                <input type="file" accept="image/*" id="imgInput_${compteurLignes}" onchange="previsualiserPhotoConstat(${compteurLignes}, this)">
-                <div id="prevBox_${compteurLignes}" style="margin-top:5px; max-width:200px; display:none;">
-                    <img id="prevImg_${compteurLignes}" style="width:100%; max-height:120px; object-fit:contain; border-radius:4px; border:1px solid #cbd5e1;">
-                </div>
-            </td>
-        `;
-        tbody.appendChild(tr);
-    }
-
-    function ajusterHauteurTextarea(element) {
-        element.style.height = "auto";
-        element.style.height = element.scrollHeight + "px";
-    }
-</script>
-<script>
-   function previsualiserPhotoConstat(numLigne, input) {
-    let box = document.getElementById(`prevBox_${numLigne}`);
-    let img = document.getElementById(`prevImg_${numLigne}`);
-    
-    if (input.files && input.files[0]) {
-        let reader = new FileReader();
-        reader.onload = function(e) {
-            let imageTemporaire = new Image();
-            imageTemporaire.onload = function() {
-                // Création du Canvas de redimensionnement
-                let canvas = document.createElement('canvas');
-                let max_size = 800; // Taille optimale pour un rapport A4 paysage net
-                let width = imageTemporaire.width;
-                let height = imageTemporaire.height;
-
-                if (width > height) {
-                    if (width > max_size) { height *= max_size / width; width = max_size; }
-                } else {
-                    if (height > max_size) { width *= max_size / height; height = max_size; }
-                }
-                canvas.width = width;
-                canvas.height = height;
-
-                let ctx = canvas.getContext('2d');
-                ctx.drawImage(imageTemporaire, 0, 0, width, height);
-
-                // Compression JPEG stricte à 70% (Divise le poids par 50 !)
-                let dataUrlCalibre = canvas.toDataURL('image/jpeg', 0.7);
-                
-                // Injection dans ta balise image d'origine
-                if (img) {
-                    img.src = dataUrlCalibre;
-                    img.style.display = 'block';
-                }
-                if (box) box.style.display = 'block';
-            };
-            imageTemporaire.src = e.target.result;
+            listePV = await lireDonneeDB("dossiers_techniques", CLE_PV_PROJET) || [];
+            rechargerToutPv();
         };
-        reader.readAsDataURL(input.files[0]);
-    }
-}
- 
+    });
+};
 
-    function ajouterUnSignataire(texteParDefaut = "") {
-        if (compteurSignataires >= MAX_SIGNATAIRES) { alert("Limite de 12 signataires."); return; }
-        compteurSignataires++;
-        let zone = document.getElementById('zoneSignatures'); let card = document.createElement('div');
-        card.className = "signature-card"; card.id = `sigCard_${compteurSignataires}`;
-        let placeHolderText = texteParDefaut || "Nom du responsable\nFonction / Entité";
-        card.innerHTML = `<button class="btn-del-sig" onclick="retirerSignataire(${compteurSignataires})">&times;</button><textarea class="signature-title-input" rows="2" style="text-align:center;" oninput="ajusterHauteurTextarea(this)">${placeHolderText}</textarea><div style="font-size:11px; color:#a1a1aa; font-style:italic;">(Signature & Cachet)</div>`;
-        zone.appendChild(card);
-    }
+function enregistrerNouveauPVManuel() {
+    let datePv = document.getElementById('inDate').value;
+    let redacteur = document.getElementById('inRedacteur').value.trim();
+    let objet = document.getElementById('inObjet').value.trim();
+    let observations = document.getElementById('inObservations').value.trim();
+    let fileInput = document.getElementById('inPhotoPv');
+    if (!datePv || !redacteur || !objet || !observations) return alert("Veuillez remplir tous les champs !");
 
-    function retirerSignataire(id) { let card = document.getElementById(`sigCard_${id}`); if(card) { card.remove(); compteurSignataires--; } }
-
-    // --- LE PONT D'ÉTIANCHÉITÉ AUTOMATIQUE VERS LA GED CCPMS DU SOUS-PROJET ACTIF ---
-       // --- LE PONT D'ÉTANCHÉITÉ ET D'ENREGISTREMENT DU PV CORRIGÉ ---
-   function sauvegarderPVChantier() {
-    let titre = "PV de Constat";
-    let elSite = document.getElementById('siteSaisie');
-    let site = elSite ? elSite.value.trim() : "";
-    let elDate = document.querySelector('input[type="date"]') || document.querySelector('input[placeholder*="2026"]');
-    let datePV = elDate ? elDate.value : new Date().toLocaleDateString('fr-FR');
+    let uniqueId = Date.now();
+    let dateFr = new Date(datePv).toLocaleDateString('fr-FR');
     
-    if(!site) { 
-        alert("⚠️ Veuillez renseigner le nom du site avant d'enregistrer !"); 
-        return; 
-    }
-
-    let photosEnvoyeesCCPMS = 0;
-    
-    // CORRECTION ICI : Utilisation stricte de la variable idProjetUnique déclarée au sommet de ton script
-    let idUniquePourSauvegarde = localStorage.getItem("id_projet_en_cours_de_saisie_temporaire") || "101";
-    let ccpmsSauve = localStorage.getItem(`ccpms_${idUniquePourSauvegarde}`);
-    let listeCCPMS = ccpmsSauve ? JSON.parse(ccpmsSauve) : [];
-
-    let toutesLesLignes = document.querySelectorAll('[id^="ligneConstat_"]');
-    
-    toutesLesLignes.forEach((conteneurLigne, index) => {
-        let i = conteneurLigne.id.split('_')[1]; 
-        let imgElement = document.getElementById(`prevImg_${i}`);
-        
-        let zoneTexte = conteneurLigne.querySelector('textarea');
-        let textConstat = zoneTexte ? zoneTexte.value.trim() : "";
-
-        if (imgElement && imgElement.src && imgElement.src.startsWith("data:image")) {
-            let nouvelleFichePhoto = {
-                id: Date.now() + parseInt(i),
+    if (fileInput.files && fileInput.files[0]) {
+        let reader = new FileReader();
+        reader.onload = async function(e) {
+            let imgData = e.target.result;
+            // 1. Enregistrement local dans le registre des PV
+            let nouveauPV = { id: uniqueId, datePv: dateFr, redacteur, objet, observations, photo: imgData };
+            listePV.unshift(nouveauPV);
+            
+            // 2. MAGIE : Copie automatique instantanée dans l'armoire GED CCPMS (Module 8)
+            let armoireGed = await lireDonneeDB("dossiers_techniques", `ccpms_${idProjetCourant}`) || [];
+            armoireGed.unshift({
+                id: uniqueId,
                 categorie: "Photos",
                 dateDoc: new Date().toISOString().substring(0,10),
-                titre: `[PV] - Constat Terrain N°${index + 1}`,
-                description: `Site : ${site}\nDate de visite : ${datePV}\nObservations : ${textConstat}`,
-                fichierBrut: imgElement.src,
-                nomFichier: `Photo_PV_Constat_${i}_${idUniquePourSauvegarde}.jpg`,
+                titre: `[Lien PV] - ${objet}`,
+                description: `Photo automatique injectée depuis le PV rédigé par ${redacteur}.`,
+                fichierBrut: imgData,
+                nomFichier: `Photo_PV_${uniqueId}.jpg`,
                 typeMime: "image/jpeg"
-            };
-            listeCCPMS.unshift(nouvelleFichePhoto);
-            photosEnvoyeesCCPMS++;
-        }
-    });
-    
-    // Sauvegarde physique locale et étanche
-    localStorage.setItem(`ccpms_${idUniquePourSauvegarde}`, JSON.stringify(listeCCPMS)); 
-    
-    alert(`💾 Succès total !\nLe Procès-Verbal a été enregistré en mémoire.\n📸 Automatisation : ${photosEnvoyeesCCPMS} photo(s) illustrative(s) ont alimenté l'armoire CCPMS de ce projet !`);
-    // COMPORTEMENT CLOUD : Propulsion instantanée du PV dans la banque de données globale
-    if (typeof parent.pousserModificationTerrainVersCloudMiroir === 'function') {
-        parent.pousserModificationTerrainVersCloudMiroir();
+            });
+            await ecrireDonneeDB("dossiers_techniques", armoireGed, `ccpms_${idProjetCourant}`);
+            
+            finaliserSauvegardePV();
+        };
+        reader.readAsDataURL(fileInput.files[0]);
     } else {
-        let baseProjets = localStorage.getItem("classeur_maitre_projets_lee") || "[]";
-        let baseUsers = localStorage.getItem("matrice_utilisateurs_rbac_gc") || "[]";
-        let masterFiche = localStorage.getItem("base_donnees_fiche_projet_maitre") || "{}";
-        let paquetGlobalData = { dateExport: new Date().toISOString(), projets: JSON.parse(baseProjets), utilisateurs: JSON.parse(baseUsers), ficheMaitrePapa: JSON.parse(masterFiche) };
-        localStorage.setItem("CLOUD_MIRROR_SNAPSHOT", JSON.stringify(paquetGlobalData));
+        let nouveauPV = { id: uniqueId, datePv: dateFr, redacteur, objet, observations, photo: "" };
+        listePV.unshift(nouveauPV);
+        finaliserSauvegardePV();
     }
-
 }
- 
- 
+
+async function finaliserSauvegardePV() {
+    document.getElementById('inObjet').value = ""; document.getElementById('inObservations').value = ""; document.getElementById('inPhotoPv').value = "";
+    await rechargerToutPv(); basculerAffichageFormulaireTiroir();
+}
+function supprimerPV(id) {
+    if (confirm("Supprimer ce procès-verbal du registre local ? (La photo restera archivée dans la GED)")) {
+        listePV = listePV.filter(p => p.id !== id); rechargerToutPv();
+    }
+}
+
+function imprimerFichePV(id) {
+    let pv = listePV.find(p => p.id === id); if (!pv) return;
+    let fenetre = window.open("", "_blank");
+    let zonePhotoHTML = pv.photo ? `<br><h3><b>Pièce jointe photographique :</b></h3><img src="${pv.photo}" style="max-width:100%;max-height:300px;border-radius:4px;border:1px solid #cbd5e1;">` : "";
+    fenetre.document.write(`<html><head><title>PV_${pv.id}</title><style>body{font-family:sans-serif;padding:30px;line-height:1.6;} .entete{border-bottom:2px solid black;padding-bottom:10px;margin-bottom:20px;} h1{font-size:20px;text-transform:uppercase;} .bloc{background:#f8fafc;padding:15px;border:1px solid #cbd5e1;border-radius:4px;white-space:pre-line;}</style></head><body><div class="entete"><h2>PV DE VISITE DE CHANTIER</h2><div><b>Date :</b> ${pv.datePv}</div><div><b>Rédacteur :</b> ${pv.redacteur}</div></div><h3><b>Objet :</b> ${pv.objet}</h3><div class="bloc"><b>Observations :</b>\n\n${pv.observations}</div>${zonePhotoHTML}<br><br><div style="display:flex;justify-content:space-between;"><div>Signature Inspecteur</div><div>Signature Entreprise</div></div><script>window.print();<\/script></body></html>`);
+    fenetre.document.close();
+}
+
+async function rechargerToutPv() {
+    genererBoutonsSegmentsPv(); afficherGrilleCardsPV();
+    await ecrireDonneeDB("dossiers_techniques", listePV, CLE_PV_PROJET);
+}
+
+function genererBoutonsSegmentsPv() {
+    let container = document.getElementById('boxSegmentsRedacteursPv'); if (!container) return; container.innerHTML = "";
+    let VisiteursUniques = ["TOUS", ...new Set(listePV.map(item => item.redacteur).filter(Boolean))];
+    VisiteursUniques.forEach(v => {
+        let btn = document.createElement('button'); btn.className = `segment-btn ${filtreRedacteurActuel === v ? 'active' : ''}`; btn.innerText = v.toUpperCase();
+        btn.onclick = function() { filtreRedacteurActuel = v; afficherGrilleCardsPV(); }; container.appendChild(btn);
+    });
+}
+
+function afficherGrilleCardsPV() {
+    let grid = document.getElementById('containerPvCardsGrid'); if (!grid) return; grid.innerHTML = "";
+    let listeFiltree = filtreRedacteurActuel === "TOUS" ? listePV : listePV.filter(p => p.redacteur === filtreRedacteurActuel);
+    if (listeFiltree.length === 0) { grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; color:#94a3b8; padding:40px; font-style:italic; font-size:13px;">Aucun procès-verbal enregistré.</div>`; return; }
+    listeFiltree.forEach(pv => {
+        let miniatureHTML = pv.photo ? `<div style="height:60px; overflow:hidden; border-radius:4px; margin-top:4px;"><img src="${pv.photo}" style="width:100%; height:100%; object-fit:cover;"></div>` : "";
+        let card = document.createElement('div'); card.className = "pv-card";
+        card.innerHTML = `<div class="pv-card-title">${pv.objet}</div><div class="pv-card-meta"><span>✍️ ${pv.redacteur}</span><span>📅 ${pv.datePv}</span></div><div class="pv-card-text">${pv.observations}</div>${miniatureHTML}<div style="display:flex; justify-content:space-between; margin-top:auto; padding-top:5px;"><button class="btn-card-action" style="background:var(--accent-blue);" onclick="imprimerFichePV(${pv.id})">🖨️ Imprimer</button><button class="btn-card-action" style="background:var(--accent-red);" onclick="supprimerPV(${pv.id})">🗑 Retirer</button></div>`;
+        grid.appendChild(card);
+    });
+}
 </script>
 </body>
 </html>
