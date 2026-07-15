@@ -3,10 +3,10 @@
 <head>
  <meta charset="UTF-8">
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
- <title>Génie Civil Pro - Planning & Gantt</title>
+ <title>Génie Civil Pro - Planning & Diagramme de Gantt</title>
  <style>
  :root {
- --primary-color: #0f172a;
+ --primary-dark: #0f172a;
  --sidebar-bg: #1e293b;
  --accent-blue: #2563eb;
  --accent-amber: #d97706;
@@ -17,82 +17,99 @@
  --border-color: #cbd5e1;
  --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
  }
- body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-light); color: var(--text-dark); margin: 0; padding: 20px; height: 100vh; overflow: hidden; box-sizing: border-box; }
- .gantt-container { max-width: 100%; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: var(--card-shadow); height: calc(100vh - 40px); display: flex; flex-direction: column; gap: 12px; box-sizing: border-box; }
- h1 { color: var(--primary-color); border-bottom: 3px solid #64748b; padding-bottom: 10px; margin-top: 0; font-size: 18px; font-weight: 900; }
- .toggle-form-btn { width: 100%; background: #f1f5f9; border: 1px dashed var(--accent-blue); color: var(--accent-blue); padding: 8px; font-weight: bold; border-radius: 6px; cursor: pointer; text-align: center; font-size: 12px; text-transform: uppercase; transition: background 0.2s; flex-shrink: 0; }
+ body { padding: 15px; height: 100vh; overflow: hidden; box-sizing: border-box; background-color: var(--bg-light); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+ .planning-container { max-width: 100%; margin: 0 auto; background: white; padding: 15px; border-radius: 8px; box-shadow: var(--card-shadow); height: calc(100vh - 30px); display: flex; flex-direction: column; gap: 12px; box-sizing: border-box; }
+ .planning-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #64748b; padding-bottom: 8px; flex-shrink: 0; }
+ .planning-header h1 { margin: 0; color: var(--primary-dark); font-size: 18px; font-weight: 900; }
+ .toggle-form-btn { width: 100%; background: #f1f5f9; border: 1px dashed #64748b; color: #64748b; padding: 8px; font-weight: bold; border-radius: 6px; cursor: pointer; text-align: center; font-size: 12px; text-transform: uppercase; transition: background 0.2s; flex-shrink: 0; }
  .toggle-form-btn:hover { background: #e2e8f0; }
- .form-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; background: #f8fafc; padding: 15px; border-radius: 6px; border: 1px solid var(--border-color); flex-shrink: 0; display: none; align-items: flex-end; }
- .form-group.open { display: grid; }
- .form-field { display: flex; flex-direction: column; gap: 3px; }
- .form-field label { font-size: 11px; font-weight: bold; color: var(--primary-dark); text-transform: uppercase; }
- .form-field input, .form-field select { padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px; outline: none; background: white; }
- .btn { padding: 8px 14px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; color: white; font-size: 11px; display: inline-flex; align-items: center; gap: 5px; text-transform: uppercase; height: 33px; box-sizing: border-box; justify-content: center; }
- .btn-primary { background-color: var(--accent-blue); }
- .btn-secondary { background-color: #64748b; }
- .btn-danger { background-color: var(--danger-red); }
+ .form-saisie-inline { background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; align-items: flex-end; flex-shrink: 0; display: none; }
+ .form-saisie-inline.open { display: grid; }
+ .form-cell { display: flex; flex-direction: column; gap: 3px; }
+ .form-cell label { font-size: 10px; font-weight: bold; color: var(--primary-dark); text-transform: uppercase; }
+ .form-cell input, .form-cell select { padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px; outline: none; background: white; box-sizing: border-box; width: 100%; }
  .filter-section { background: #f8fafc; padding: 8px 12px; border-radius: 6px; border: 1px solid #e2e8f0; flex-shrink: 0; display: flex; flex-direction: column; gap: 4px; }
  .filter-title { font-weight: bold; color: #64748b; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
- .segment-btn { background: white; border: 1px solid var(--accent-blue); color: var(--accent-blue); padding: 6px 12px; border-radius: 20px; cursor: pointer; font-size: 12px; font-weight: bold; margin-right: 5px; }
+ .segment-btn { background: white; border: 1px solid var(--accent-blue); color: var(--accent-blue); padding: 6px 12px; border-radius: 20px; cursor: pointer; font-size: 12px; font-weight: bold; margin-right: 5px; text-transform: uppercase; }
  .segment-btn.active { background: var(--accent-blue); color: white; }
  .workspace-table-scroll { flex-grow: 1; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; }
  table { width: 100%; border-collapse: collapse; }
- th { background-color: var(--primary-color); color: white; position: sticky; top: 0; z-index: 10; padding: 10px; font-size: 11px; text-transform: uppercase; text-align: left; }
- td { border-bottom: 1px solid #e2e8f0; padding: 8px; font-size: 13px; vertical-align: middle; }
+ th { background-color: var(--primary-dark); color: white; position: sticky; top: 0; z-index: 10; padding: 8px; font-size: 11px; text-transform: uppercase; text-align: left; }
+ td { border-bottom: 1px solid #e2e8f0; padding: 6px 8px; font-size: 12px; vertical-align: middle; }
  tr:nth-child(even) { background-color: #f8fafc; }
- .gantt-bar-container { background: #e2e8f0; border-radius: 4px; height: 14px; width: 100%; position: relative; overflow: hidden; }
- .gantt-bar-fill { background: var(--accent-blue); height: 100%; border-radius: 4px; position: absolute; }
+ .gantt-wrapper-cell { width: 150px; min-width: 120px; }
+ .gantt-track-bg { background: #e2e8f0; border-radius: 10px; height: 12px; width: 100%; position: relative; overflow: hidden; box-shadow: inset 0 1px 2px rgba(0,0,0,0.1); }
+ .gantt-bar-fill { height: 100%; border-radius: 10px; position: absolute; transition: width 0.3s ease; }
+ .task-blue { background: linear-gradient(90deg, #3b82f6, #1d4ed8); }
+ .task-amber { background: linear-gradient(90deg, #f59e0b, #b45309); }
+ .task-green { background: linear-gradient(90deg, #10b981, #047857); }
+ .txt-right { text-align: right; font-weight: 600; }
+ .total-banner-box { background: var(--primary-dark); border-radius: 8px; padding: 12px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: bold; color: white; flex-shrink: 0; border-top: 4px solid #64748b; }
+ .btn { padding: 6px 12px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; color: white; font-size: 11px; display: inline-flex; align-items: center; gap: 5px; text-transform: uppercase; }
+ .btn-secondary { background-color: #64748b; }
+ .input-inline-table { width: 120px; padding: 4px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 12px; text-align: center; }
  @media (max-width: 768px) {
- body { padding: 5px; }
- .gantt-container { height: calc(100vh - 10px); padding: 10px; gap: 8px; }
- th:nth-child(1), td:nth-child(1) { display: none; }
+ th:nth-child(1), td:nth-child(1), th:nth-child(3), td:nth-child(3) { display: none; }
+ .gantt-wrapper-cell { width: 90px; min-width: 90px; }
  }
  </style>
 </head>
 <body>
-<div class="gantt-container">
- <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; flex-shrink: 0;">
-  <h1 style="margin:0;">Module 6 : Calendrier d'Exécution & Avancement Gantt 📅</h1>
-  <button class="btn btn-secondary" onclick="window.location.href='3_accueil.html'">« Retour Accueil</button>
+<div class="planning-container">
+ <div class="planning-header">
+ <div>
+  <h1 id="txtTitreLotPlanning">Calendrier d'Exécution & Diagramme de Gantt Local</h1>
+  <div style="font-size:11px; color:#64748b; font-weight:bold; margin-top:2px;" id="txtLabelSousTitreLot">Chargement du calendrier en cours...</div>
  </div>
- <button class="toggle-form-btn" onclick="basculerAffichageFormulaireTiroir()">Ouvrir les Outils de Planification Globale 🛠️</button>
- 
- <!-- TIROIR DES INJECTIONS RAPIDES DE MASSES -->
- <div class="form-group" id="formPlanningLigne">
-  <div style="grid-column: 1 / -1; font-weight: bold; color: var(--accent-blue); border-bottom: 1px dashed var(--border-color); padding-bottom: 5px; margin-bottom: 5px;">
-   Injection automatique de dates par lots de tâches
-  </div>
-  <div class="form-field"><label>Date Début Globale</label><input type="date" id="bulkDebut"></div>
-  <div class="form-field"><label>Date Fin Globale</label><input type="date" id="bulkFin"></div>
-  <div style="grid-column: span 3; display: flex; gap: 8px; justify-content: flex-end;">
-   <button class="btn" style="background:#0284c7;" onclick="appliquerDatesEnMasse('projet')">Tout le Projet 🌍</button>
-   <button class="btn" style="background:var(--accent-amber);" onclick="appliquerDatesEnMasse('ouvrage')">Par Ouvrage Actif 🏗️</button>
-  </div>
+ <button class="btn btn-secondary" onclick="window.location.href='3_accueil.html'">« Retour Console Accueil</button>
  </div>
-
+ <button class="toggle-form-btn" onclick="basculerAffichageFormulaireTiroir()">Ouvrir les Outils de Planification de Masse & Cascade 📅</button>
+ <div class="form-saisie-inline" id="formSaisiePlanningLigne">
+  <div style="grid-column: 1 / -1; display:flex; justify-content:space-between; align-items:center; border-bottom:1px dashed #64748b; padding-bottom:5px; margin-bottom:5px;">
+   <label style="color:#64748b; font-weight:bold;">Planification Globale Automatique par Lot, Ouvrage ou Structure</label>
+  </div>
+  <div class="form-cell" style="grid-column: span 2;">
+   <label>Périmètre d'application</label>
+   <select id="cfgScopePlanning" onchange="gererChangementCibleScopePlanning()">
+    <option value="LOT_ENTIER">Tout le Projet / Lot Actuel 🏢</option>
+    <option value="PAR_OUVRAGE">Par Grand Ouvrage / Site Spécifique 💼</option>
+    <option value="PAR_STRUCTURE">Par Structure / Partie Ciblée ↳</option>
+   </select>
+  </div>
+  <div class="form-cell" style="grid-column: span 2; display:none;" id="rowScopeOuvrage"><label>Sélectionner l'Ouvrage Cible</label><select id="selectScopeOuvrageNom"></select></div>
+  <div class="form-cell" style="grid-column: span 2; display:none;" id="rowScopeStructure"><label>Sélectionner la Structure Cible</label><select id="selectScopeStructureNom"></select></div>
+  <div class="form-cell"><label>Date de Début</label><input type="date" id="cfgDateDebutMasse"></div>
+  <div class="form-cell"><label>Date de Fin Contractuelle</label><input type="date" id="cfgDateFinMasse"></div>
+  <button class="btn" style="background:#64748b; padding:8px; justify-content:center; font-size:11px; height:31px; color:white;" onclick="appliquerPlanificationDeMasseCascade()">Propager le Calendrier 🚀</button>
+ </div>
  <div class="filter-section">
-  <div class="filter-title">🔍 Segment : Filtrer le Calendrier par Ouvrage</div>
+  <div class="filter-title">1️⃣ Filtrer par Grand Ouvrage :</div>
   <div class="segment-container" id="boxSegmentsOuvragesPlanning" style="overflow-x:auto; white-space:nowrap; flex-wrap:nowrap; padding-bottom:3px;"></div>
+  <div class="filter-title" style="margin-top:2px;">2️⃣ Affiner par Structure / Partie :</div>
+  <div class="segment-container" id="boxSegmentsStructuresPlanning" style="overflow-x:auto; white-space:nowrap; flex-wrap:nowrap; padding-bottom:3px;"></div>
  </div>
  <div class="workspace-table-scroll">
-  <table id="tablePlanningGantt">
+  <table id="tableSuiviPlanning">
    <thead>
     <tr>
-     <th style="width:180px;">Ouvrage / Site</th>
-     <th style="width:75px;">Code</th>
-     <th>Désignation de la Tâche</th>
-     <th style="width:100px;">Début</th>
-     <th style="width:100px;">Fin Prévue</th>
-     <th style="width:90px; text-align:center;">Durée (J)</th>
-     <th style="width:180px;">Visualisation Chronologique Gantt</th>
-     <th style="width:45px; text-align:center;" class="col-action-modification">Origine</th>
+     <th style="width:150px;">Ouvrage / Site</th>
+     <th style="width:65px;">Code</th>
+     <th>Désignation des Travaux</th>
+     <th style="width:130px; color:var(--accent-blue);">Date Début</th>
+     <th style="width:130px; color:var(--accent-blue);">Date Fin Attendue</th>
+     <th style="width:85px; text-align:center;">Durée (Jrs)</th>
+     <th style="width:160px; text-align:center;">Barre Temporelle Gantt Graphique</th>
     </tr>
    </thead>
-   <tbody id="tbodyPlanningGrid"></tbody>
+   <tbody id="tbodyLignesPlanningGrid"></tbody>
   </table>
  </div>
+ <div class="total-banner-box">
+  <div>Date de Démarrage Initiale : <span id="txtCalculDateDebutLot" style="color:var(--accent-blue);">-</span></div>
+  <div>Date d'Achèvement Contractuelle : <span id="txtCalculDateFinLot" style="color:var(--success-green);">-</span></div>
+  <div style="font-size:12px; color:#cbd5e1;">Durée Globale Consolidée : <span id="txtCalculDureeGlobaleLot" style="color:#fcd34d; font-size:14px; font-weight:900;">0 jours</span></div>
+ </div>
 </div>
-
 <script>
 const DB_NAME = "GenieCivilPro_DB";
 const DB_VERSION = 1;
@@ -126,160 +143,193 @@ function ecrireDonneeDB(tiroir, objet, cleOptionnelle) {
     });
 }
 
-function effacerDonneeDB(tiroir, cle) {
-    return new Promise((resolve) => {
-        if(!dbInstance) return resolve(false);
-        let tx = dbInstance.transaction([tiroir], "readwrite");
-        let req = tx.objectStore(tiroir).delete(cle);
-        req.onsuccess = () => resolve(true);
-        req.onerror = () => resolve(false);
-    });
-}
-
-let listePlanning = [];
+let listePlanningComplet = []; 
 let filtreOuvrageActif = "TOUS";
+let filtreStructureActif = "TOUS";
 let idProjetCourant = localStorage.getItem("id_projet_en_cours_de_saisie_temporaire") || "101";
 const CLE_PLANNING_PROJET = `planning_${idProjetCourant}`;
+const CLE_BDQE_PROJET = `bdqe_${idProjetCourant}`;
+const CLE_AVENANTS_PROJET = `avenants_${idProjetCourant}`;
 
 function basculerAffichageFormulaireTiroir() {
-    let form = document.getElementById('formPlanningLigne');
+    let form = document.getElementById('formSaisiePlanningLigne');
     let btn = document.querySelector('.toggle-form-btn');
     form.classList.toggle('open');
     if (form.classList.contains('open')) {
-        btn.innerText = "Fermer la Console de Planification ❌";
+        btn.innerText = "Fermer la Console de Planification de Masse ❌";
         btn.style.cssText = "background:#fee2e2; color:var(--danger-red); border-color:var(--danger-red);";
     } else {
-        btn.innerText = "Ouvrir les Outils de Planification 🛠";
-        btn.style.cssText = "background:#f1f5f9; color:var(--accent-blue); border-color:var(--accent-blue);";
+        btn.innerText = "Ouvrir les Outils de Planification de Masse & Cascade 📅";
+        btn.style.cssText = "background:#f1f5f9; color:#64748b; border-color:#64748b;";
     }
 }
+
+function gererChangementCibleScopePlanning() {
+    let scope = document.getElementById('cfgScopePlanning').value;
+    document.getElementById('rowScopeOuvrage').style.display = (scope === "PAR_OUVRAGE") ? "flex" : "none";
+    document.getElementById('rowScopeStructure').style.display = (scope === "PAR_STRUCTURE") ? "flex" : "none";
+}
 window.onload = function() {
-    let userRoleActuel = localStorage.getItem("session_user_role") || "agents";
-    let userLotsAutorises = [];
-    try { userLotsAutorises = JSON.parse(localStorage.getItem("session_user_lots")) || []; } catch(e) {}
-    
+    if (localStorage.getItem("session_securisee_active_gc") !== "VALIDE") {
+        window.location.href = "1_login.html"; return;
+    }
     initialiserLeMeubleDB().then(async () => {
-        if (userRoleActuel === "agents" || (userRoleActuel === "controle" && !userLotsAutorises.includes(String(idProjetCourant)))) {
-            window.modeLectureSeuleActive = true;
+        let listeProjetsGlobal = await lireToutesLesDonneesDB("projets");
+        let lotActuel = listeProjetsGlobal.find(p => p.id == idProjetCourant);
+        if (lotActuel) {
+            document.getElementById('txtTitreLotPlanning').innerText = "Planning d'Exécution & Gantt — " + lotActuel.nom.toUpperCase();
+            document.getElementById('txtLabelSousTitreLot').innerText = `ID unique : ${idProjetCourant} | Type : ${lotActuel.type}`;
         }
+        let role = localStorage.getItem("session_user_role") || "agents";
+        let lotsAutorises = JSON.parse(localStorage.getItem("session_user_lots") || "[]");
+        if (role === "agents" || (role === "controle" && !lotsAutorises.includes(String(idProjetCourant)))) {
+            document.querySelector('.toggle-form-btn').style.display = 'none';
+            document.getElementById('formSaisiePlanningLigne').style.display = 'none';
+            let bandeauAlerte = document.createElement('div');
+            bandeauAlerte.style.cssText = "background:#eff6ff; color:#1e40af; padding:10px; border-radius:6px; font-weight:bold; margin-bottom:5px; border:1px solid #bfdbfe; font-size:11px; text-align:center; flex-shrink:0;";
+            bandeauAlerte.innerText = " Mode Consultation Uniquement (Lecture Seule 🔒 Accès Terrain Restreints)";
+            document.body.insertBefore(bandeauAlerte, document.body.firstChild);
+            window.modeLectureSeulePlanning = true;
+        }
+        let listeBDQEOrigine = await lireDonneeDB("dossiers_techniques", CLE_BDQE_PROJET) || [];
+        let listeAvenantsOrigine = await lireDonneeDB("dossiers_techniques", CLE_AVENANTS_PROJET) || [];
+        let planningsEnregistres = await lireDonneeDB("dossiers_techniques", CLE_PLANNING_PROJET) || [];
         
-        let planningSauve = await lireDonneeDB("dossiers_techniques", CLE_PLANNING_PROJET) || [];
-        let bdqeInitial = await lireDonneeDB("dossiers_techniques", CLE_BDQE_PROJET) || [];
+        listePlanningComplet = [];
+        let toutesLesTachesMarché = [...listeBDQEOrigine];
+        listeAvenantsOrigine.forEach(av => { if (av.est_nouveau) toutesLesTachesMarché.push(av); });
         
-        listePlanning = bdqeInitial.map(ligneBdqe => {
-            let ancienneTache = planningSauve.find(p => p.code_gantt === ligneBdqe.code_bdqe);
-            return {
-                ouvrage: ligneBdqe.ouvrage,
-                code_gantt: ligneBdqe.code_bdqe,
-                designation: ligneBdqe.designation,
-                date_debut: ancienneTache ? ancienneTache.date_debut : "",
-                date_fin: ancienneTache ? ancienneTache.date_fin : ""
-            };
+        toutesLesTachesMarché.forEach(tache => {
+            let calendrierSauve = planningsEnregistres.find(p => p.code_bdqe === tache.code_bdqe && p.ouvrage === tache.ouvrage);
+            listePlanningComplet.push({
+                ouvrage: tache.ouvrage,
+                code_bdqe: tache.code_bdqe,
+                structure: tache.structure || "-",
+                designation: tache.designation,
+                date_debut: calendrierSauve ? calendrierSauve.date_debut : "",
+                date_fin: calendrierSauve ? calendrierSauve.date_fin : ""
+            });
         });
         
-        rechargerTout();
+        let selectOuv = document.getElementById('selectScopeOuvrageNom');
+        let selectStr = document.getElementById('selectScopeStructureNom');
+        if (selectOuv && selectStr) {
+            selectOuv.innerHTML = [...new Set(listePlanningComplet.map(i => i.ouvrage).filter(Boolean))].map(o => `<option value="${o}">${o.toUpperCase()}</option>`).join("");
+            selectStr.innerHTML = [...new Set(listePlanningComplet.map(i => i.structure).filter(Boolean))].map(s => `<option value="${s}">${s.toUpperCase()}</option>`).join("");
+        }
+        rechargerToutPlanning();
     });
 };
 
-function formatArgent(nombre) {
-    if (nombre === null || nombre === undefined || isNaN(nombre)) return "0,00";
-    return nombre.toLocaleString('fr-FR', { minimumFractionDigits: 2 });
+function lireToutesLesDonneesDB(tiroir) {
+    return new Promise((resolve) => {
+        if(!dbInstance) return resolve([]);
+        let tx = dbInstance.transaction([tiroir], "readonly");
+        let req = tx.objectStore(tiroir).getAll();
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = () => resolve([]);
+    });
+}
+function capturerSaisieDirectePlanning(index, champ, valeur) {
+    if(window.modeLectureSeulePlanning) return;
+    listePlanningComplet[index][champ] = valeur;
+    rechargerToutPlanning();
+}
+
+function appliquerPlanificationDeMasseCascade() {
+    if(window.modeLectureSeulePlanning) return;
+    let scope = document.getElementById('cfgScopePlanning').value;
+    let dateDebut = document.getElementById('cfgDateDebutMasse').value;
+    let dateFin = document.getElementById('cfgDateFinMasse').value;
+    if (!dateDebut || !dateFin) return alert("Veuillez sélectionner les dates !");
+    if (new Date(dateDebut) > new Date(dateFin)) return alert("La date de début doit être antérieure à la date de fin.");
+    
+    let compteurImpact = 0;
+    let cibleOuvrage = document.getElementById('selectScopeOuvrageNom').value;
+    let cibleStructure = document.getElementById('selectScopeStructureNom').value;
+    
+    listePlanningComplet.forEach(tache => {
+        let ok = false;
+        if (scope === "LOT_ENTIER") ok = true;
+        else if (scope === "PAR_OUVRAGE" && tache.ouvrage === cibleOuvrage) ok = true;
+        else if (scope === "PAR_STRUCTURE" && tache.structure === cibleStructure) ok = true;
+        if (ok) { tache.date_debut = dateDebut; tache.date_fin = dateFin; compteurImpact++; }
+    });
+    alert(`Calendrier propagé sur ${compteurImpact} tâches.`);
+    basculerAffichageFormulaireTiroir(); rechargerToutPlanning();
 }
 
 function trierPlanningAlphanumerique() {
-    listePlanning.sort((a, b) => {
-        let comp = a.ouvrage.localeCompare(b.ouvrage, 'fr', { sensitivity: 'base' });
-        if (comp !== 0) return comp;
-        let partsA = String(a.code_gantt).split(/[\.,]/).map(Number);
-        let partsB = String(b.code_gantt).split(/[\.,]/).map(Number);
+    listePlanningComplet.sort((a, b) => {
+        let comp = a.ouvrage.localeCompare(b.ouvrage, 'fr', { sensitivity: 'base' }); if (comp !== 0) return comp;
+        let partsA = String(a.code_bdqe).split(/[\.,]/).map(Number); let partsB = String(b.code_bdqe).split(/[\.,]/).map(Number);
         for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
             let numA = partsA[i] || 0; let numB = partsB[i] || 0; if (numA !== numB) return numA - numB;
         }
         return 0;
     });
 }
-
-async function modifierDatesTacheInline(index, champ, valeur) {
-    if(window.modeLectureSeuleActive) return;
-    listePlanning[index][champ] = valeur;
-    await ecrireDonneeDB("dossiers_techniques", listePlanning, CLE_PLANNING_PROJET);
-    afficherGrillePlanningGantt();
-}
-
-// LA FONCTION TANT RECHERCHÉE : Injection rapide en un clic !
-async function appliquerDatesEnMasse(type) {
-    if(window.modeLectureSeuleActive) return;
-    let deb = document.getElementById('bulkDebut').value;
-    let fin = document.getElementById('bulkFin').value;
-    if(!deb || !fin) return alert("Veuillez sélectionner une date de début et de fin dans la console.");
-
-    let compteur = 0;
-    listePlanning.forEach(item => {
-        if (type === 'projet') {
-            item.date_debut = deb; item.date_fin = fin; compteur++;
-        } else if (type === 'ouvrage' && item.ouvrage === filtreOuvrageActif) {
-            item.date_debut = deb; item.date_fin = fin; compteur++;
+async function rechargerToutPlanning() {
+    trierPlanningAlphanumerique(); genererBoutonsSegmentsOuvrages(); genererBoutonsSegmentsStructures(); afficherGrillePlanningGanttHTML();
+    let dateMinLot = null; let dateMaxLot = null;
+    listePlanningComplet.forEach(t => {
+        if (t.date_debut && t.date_fin) {
+            let d1 = new Date(t.date_debut); let d2 = new Date(t.date_fin);
+            if (!dateMinLot || d1 < dateMinLot) dateMinLot = d1; if (!dateMaxLot || d2 > dateMaxLot) dateMaxLot = d2;
         }
     });
-
-    if (compteur === 0 && type === 'ouvrage') {
-        return alert("Aucune tâche modifiée. Assurez-vous d'avoir sélectionné une pastille d'Ouvrage spécifique en dessous (pas 'TOUS').");
+    if (dateMinLot && dateMaxLot) {
+        let cumul = Math.ceil(Math.abs(dateMaxLot - dateMinLot) / (1000 * 60 * 60 * 24)) + 1;
+        document.getElementById('txtCalculDateDebutLot').innerText = dateMinLot.toLocaleDateString('fr-FR');
+        document.getElementById('txtCalculDateFinLot').innerText = dateMaxLot.toLocaleDateString('fr-FR');
+        document.getElementById('txtCalculDureeGlobaleLot').innerText = cumul + " jours";
+    } else {
+        document.getElementById('txtCalculDateDebutLot').innerText = "-"; document.getElementById('txtCalculDateFinLot').innerText = "-"; document.getElementById('txtCalculDureeGlobaleLot').innerText = "0 jours";
     }
-
-    await ecrireDonneeDB("dossiers_techniques", listePlanning, CLE_PLANNING_PROJET);
-    alert(`Succès : Dates appliquées à ${compteur} tâches simultanément.`);
-    basculerAffichageFormulaireTiroir();
-    afficherGrillePlanningGantt();
-}
-async function rechargerTout() {
-    trierPlanningAlphanumerique(); 
-    genererBoutonsSegmentsOuvrages(); 
-    afficherGrillePlanningGantt();
+    try { await ecrireDonneeDB("dossiers_techniques", listePlanningComplet, CLE_PLANNING_PROJET); } catch (err) {}
 }
 
 function genererBoutonsSegmentsOuvrages() {
     let container = document.getElementById('boxSegmentsOuvragesPlanning'); if (!container) return; container.innerHTML = "";
-    let ouvs = ["TOUS", ...new Set(listePlanning.map(item => item.ouvrage).filter(Boolean))];
+    let ouvs = ["TOUS", ...new Set(listePlanningComplet.map(item => item.ouvrage).filter(Boolean))];
     ouvs.forEach(ouv => {
         let btn = document.createElement('button'); btn.className = `segment-btn ${filtreOuvrageActif === ouv ? 'active' : ''}`; btn.innerText = ouv.toUpperCase();
-        btn.onclick = function() { filtreOuvrageActif = ouv; afficherGrillePlanningGantt(); }; container.appendChild(btn);
+        btn.onclick = function() { filtreOuvrageActif = ouv; filtreStructureActif = "TOUS"; rechargerToutPlanning(); }; container.appendChild(btn);
     });
 }
 
-function afficherGrillePlanningGantt() {
-    let tbody = document.getElementById('tbodyPlanningGrid'); if (!tbody) return; tbody.innerHTML = "";
-    if (listePlanning.length === 0) { tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#94a3b8; padding:30px; font-style:italic;">Le bordereau BDQE de ce lot est vide. Veuillez d'abord y saisir vos prix.</td></tr>`; return; }
-    
-    // Recherche des dates extrêmes uniquement sur les tâches qui ont des dates configurées
-    let globalMin = null; let globalMax = null;
-    listePlanning.forEach(item => {
-        if(item.date_debut && item.date_fin) {
-            let d1 = new Date(item.date_debut); let d2 = new Date(item.date_fin);
-            if (!globalMin || d1 < globalMin) globalMin = d1; if (!globalMax || d2 > globalMax) globalMax = d2;
-        }
+function genererBoutonsSegmentsStructures() {
+    let container = document.getElementById('boxSegmentsStructuresPlanning'); if (!container) return; container.innerHTML = "";
+    let sub = filtreOuvrageActif === "TOUS" ? listePlanningComplet : listePlanningComplet.filter(item => item.ouvrage === filtreOuvrageActif);
+    let structs = ["TOUS", ...new Set(sub.map(item => item.structure).filter(Boolean))];
+    structs.forEach(str => {
+        let btn = document.createElement('button'); btn.className = `segment-btn ${filtreStructureActif === str ? 'active' : ''}`; btn.innerText = str.toUpperCase();
+        btn.onclick = function() { filtreStructureActif = str; rechargerToutPlanning(); }; container.appendChild(btn);
     });
-    let dTotaleProject = globalMin && globalMax ? Math.ceil(Math.abs(globalMax - globalMin) / (1000*60*60*24)) + 1 : 1;
+}
 
-    listePlanning.forEach((item, index) => {
+function afficherGrillePlanningGanttHTML() {
+    let tbody = document.getElementById('tbodyLignesPlanningGrid'); if (!tbody) return; tbody.innerHTML = "";
+    listePlanningComplet.forEach((item, index) => {
         if (filtreOuvrageActif !== "TOUS" && item.ouvrage !== filtreOuvrageActif) return;
+        if (filtreStructureActif !== "TOUS" && item.structure !== filtreStructureActif) return;
         
-        let dureeTache = 0; let pctLeft = 0; let pctWidth = 0;
-        let inputDebutHTML = `<input type="date" value="${item.date_debut}" onchange="modifierDatesTacheInline(${index}, 'date_debut', this.value)" ${window.modeLectureSeuleActive ? 'disabled':''}>`;
-        let inputFinHTML = `<input type="date" value="${item.date_fin}" onchange="modifierDatesTacheInline(${index}, 'date_fin', this.value)" ${window.modeLectureSeuleActive ? 'disabled':''}>`;
-        
-        if(item.date_debut && item.date_fin) {
-            let tDebut = new Date(item.date_debut); let tFin = new Date(item.date_fin);
-            dureeTache = Math.ceil(Math.abs(tFin - tDebut) / (1000*60*60*24)) + 1;
-            pctLeft = dTotaleProject > 1 ? ((tDebut - globalMin) / (1000*60*60*24)) / dTotaleProject * 100 : 0;
-            pctWidth = dTotaleProject > 1 ? dureeTache / dTotaleProject * 100 : 100;
+        let dureeTache = "-";
+        let ganttBarHTML = `<div style="font-size:10px; color:#cbd5e1; text-align:center; font-style:italic;">Calendrier non défini</div>`;
+        if (item.date_debut && item.date_fin) {
+            let debut = new Date(item.date_debut); let fin = new Date(item.date_fin);
+            dureeTache = Math.ceil(Math.abs(fin - debut) / (1000 * 60 * 60 * 24)) + 1;
+            let aujourdhui = new Date(); let progressionPct = 0; let couleurJauge = "task-blue";
+            if (aujourdhui > fin) { progressionPct = 100; couleurJauge = "task-green"; } 
+            else if (aujourdhui >= debut && aujourdhui <= fin) {
+                progressionPct = Math.min(Math.round((Math.ceil((aujourdhui - debut) / (1000 * 60 * 60 * 24)) / dureeTache) * 100), 100);
+                if (progressionPct > 80) couleurJauge = "task-amber";
+            }
+            ganttBarHTML = `<div style="display:flex; flex-direction:column; gap:2px; width:100%;"><div class="gantt-track-bg"><div class="gantt-bar-fill ${couleurJauge}" style="width: ${progressionPct}%;"></div></div><div style="display:flex; justify-content:space-between; font-size:9px; font-weight:bold; color:#64748b;"><span>${progressionPct}% temps</span><span>${dureeTache} jrs</span></div></div>`;
         }
-
-        let barreGanttHTML = item.date_debut && item.date_fin 
-            ? `<div class="gantt-bar-container"><div class="gantt-bar-fill" style="left:${pctLeft}%; width:${pctWidth}%;"></div></div>` 
-            : `<span style="color:#94a3b8; font-size:11px; font-style:italic;">Dates non renseignées</span>`;
-
+        let desactive = window.modeLectureSeulePlanning ? "disabled" : "";
         let tr = document.createElement('tr');
-        tr.innerHTML = `<td><b>${item.ouvrage}</b></td><td style="font-family:monospace; font-weight:bold; color:var(--accent-blue);">${item.code_gantt}</td><td>${item.designation}</td><td>${inputDebutHTML}</td><td>${inputFinHTML}</td><td style="text-align:center; font-weight:bold;">${dureeTache > 0 ? dureeTache + ' j' : '-'}</td><td>${barreGanttHTML}</td><td style='color:grey;font-size:11px;text-align:center;'>BDQE</td>`;
+        tr.innerHTML = `<td><b>${item.ouvrage}</b></td><td style="font-family:monospace; font-weight:bold; color:var(--accent-blue);">${item.code_bdqe}</td><td><span style="font-size:11px; font-weight:500;">${item.designation}</span><br><span style="font-size:9px; color:#94a3b8; font-weight:bold;"> ${item.structure}</span></td><td><input type="date" class="input-inline-table" style="background:#f0fdf4;" value="${item.date_debut}" ${desactive} onchange="capturerSaisieDirectePlanning(${index}, 'date_debut', this.value)"></td><td><input type="date" class="input-inline-table" style="background:#fdf2f8;" value="${item.date_fin}" ${desactive} onchange="capturerSaisieDirectePlanning(${index}, 'date_fin', this.value)"></td><td style="text-align:center;font-weight:bold;">${dureeTache > 0 ? dureeTache + ' j':'-'}</td><td class="gantt-wrapper-cell">${ganttBarHTML}</td>`;
         tbody.appendChild(tr);
     });
 }
