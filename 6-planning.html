@@ -3,373 +3,242 @@
 <head>
  <meta charset="UTF-8">
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
- <title>Génie Civil Pro - Planning Gantt Isolé</title>
- <!-- Connexion à notre brique de secours locale magique -->
- <script src="config.js"></script>
+ <title>Génie Civil Pro - Planning & Gantt</title>
  <style>
  :root {
- --primary-color: #1e3a8a;
- --secondary-color: #3b82f6;
- --success-color: #10b981;
- --warning-color: #f59e0b;
- --bg-color: #f3f4f6;
- --text-color: #1f2937;
+ --primary-color: #0f172a;
+ --sidebar-bg: #1e293b;
+ --accent-blue: #2563eb;
+ --accent-amber: #d97706;
+ --success-green: #16a34a;
+ --danger-red: #ef4444;
+ --bg-light: #f8fafc;
+ --text-dark: #334155;
+ --border-color: #cbd5e1;
+ --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
  }
- body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 20px; }
- .container { max-width: 100%; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
- h1 { color: var(--primary-color); border-bottom: 3px solid var(--secondary-color); padding-bottom: 10px; margin-top: 0; }
- .hack-box { background: #fef3c7; border: 2px dashed #f59e0b; padding: 15px; border-radius: 6px; margin-bottom: 20px; }
- .form-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; align-items: flex-end; }
- .form-field { display: flex; flex-direction: column; }
- .form-field label { font-size: 12px; font-weight: bold; margin-bottom: 5px; color: var(--primary-color); }
- .form-field input, .form-field select { padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 14px; }
- .btn { padding: 10px 15px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; color: white; transition: background 0.2s; }
- .btn-primary { background-color: var(--secondary-color); }
- .btn-primary:hover { background-color: #2563eb; }
+ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-light); color: var(--text-dark); margin: 0; padding: 20px; height: 100vh; overflow: hidden; box-sizing: border-box; }
+ .gantt-container { max-width: 100%; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: var(--card-shadow); height: calc(100vh - 40px); display: flex; flex-direction: column; gap: 12px; box-sizing: border-box; }
+ h1 { color: var(--primary-color); border-bottom: 3px solid #64748b; padding-bottom: 10px; margin-top: 0; font-size: 18px; font-weight: 900; }
+ .toggle-form-btn { width: 100%; background: #f1f5f9; border: 1px dashed var(--accent-blue); color: var(--accent-blue); padding: 8px; font-weight: bold; border-radius: 6px; cursor: pointer; text-align: center; font-size: 12px; text-transform: uppercase; transition: background 0.2s; flex-shrink: 0; }
+ .toggle-form-btn:hover { background: #e2e8f0; }
+ .form-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; background: #f8fafc; padding: 15px; border-radius: 6px; border: 1px solid var(--border-color); flex-shrink: 0; display: none; align-items: flex-end; }
+ .form-group.open { display: grid; }
+ .form-field { display: flex; flex-direction: column; gap: 3px; }
+ .form-field label { font-size: 11px; font-weight: bold; color: var(--primary-dark); text-transform: uppercase; }
+ .form-field input, .form-field select { padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px; outline: none; background: white; }
+ .btn { padding: 8px 14px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; color: white; font-size: 11px; display: inline-flex; align-items: center; gap: 5px; text-transform: uppercase; height: 33px; box-sizing: border-box; justify-content: center; }
+ .btn-primary { background-color: var(--accent-blue); }
  .btn-secondary { background-color: #64748b; }
- .btn-warning { background-color: var(--warning-color); color: #0f172a; }
- .filter-section { background: #eff6ff; padding: 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #bfdbfe; }
- .filter-title { font-weight: bold; color: var(--primary-color); margin-bottom: 10px; font-size: 14px; }
- .segment-container { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
- .segment-btn { background: white; border: 1px solid #3b82f6; color: #3b82f6; padding: 6px 12px; border-radius: 20px; cursor: pointer; font-size: 13px; }
- .segment-btn.active { background: #3b82f6; color: white; }
- .table-responsive { overflow-x: auto; margin-bottom: 20px; }
- table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
- th, td { border: 1px solid #e5e7eb; padding: 10px; text-align: left; font-size: 13px; }
- th { background-color: var(--primary-color); color: white; }
- tr:nth-child(even) { background-color: #f9fafb; }
- .input-date { padding: 4px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 12px; }
- .gantt-cell { width: 250px; background: #f1f5f9; position: relative; padding: 0 !important; vertical-align: middle; }
- .gantt-bar { height: 18px; background: #3b82f6; border-radius: 10px; font-size: 10px; color: white; text-align: center; line-height: 18px; font-weight: bold; overflow: hidden; white-space: nowrap; }
- .recap-box { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 30px; }
- .recap-card { background: #f8fafc; border: 1px solid #cbd5e1; padding: 15px; border-radius: 6px; }
- .total-block { padding: 15px; background: #fef3c7; border-radius: 6px; border: 1px solid #fcd34d; font-size: 16px; font-weight: bold; }
+ .btn-danger { background-color: var(--danger-red); }
+ .filter-section { background: #f8fafc; padding: 8px 12px; border-radius: 6px; border: 1px solid #e2e8f0; flex-shrink: 0; display: flex; flex-direction: column; gap: 4px; }
+ .filter-title { font-weight: bold; color: #64748b; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+ .segment-btn { background: white; border: 1px solid var(--accent-blue); color: var(--accent-blue); padding: 6px 12px; border-radius: 20px; cursor: pointer; font-size: 12px; font-weight: bold; margin-right: 5px; }
+ .segment-btn.active { background: var(--accent-blue); color: white; }
+ .workspace-table-scroll { flex-grow: 1; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; }
+ table { width: 100%; border-collapse: collapse; }
+ th { background-color: var(--primary-color); color: white; position: sticky; top: 0; z-index: 10; padding: 10px; font-size: 11px; text-transform: uppercase; text-align: left; }
+ td { border-bottom: 1px solid #e2e8f0; padding: 8px; font-size: 13px; vertical-align: middle; }
+ tr:nth-child(even) { background-color: #f8fafc; }
+ .gantt-bar-container { background: #e2e8f0; border-radius: 4px; height: 14px; width: 100%; position: relative; overflow: hidden; }
+ .gantt-bar-fill { background: var(--accent-blue); height: 100%; border-radius: 4px; position: absolute; }
+ @media (max-width: 768px) {
+ body { padding: 5px; }
+ .gantt-container { height: calc(100vh - 10px); padding: 10px; gap: 8px; }
+ th:nth-child(1), td:nth-child(1) { display: none; }
+ }
  </style>
 </head>
 <body>
-<div class="container">
- <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
- <h1 style="margin:0;"> Module 6 : Planification du Planning & Gantt 📅 Isolé</h1>
+<div class="gantt-container">
+ <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; flex-shrink: 0;">
+ <h1 style="margin:0;">Module 6 : Calendrier d'Exécution & Avancement Gantt 📅</h1>
  <button class="btn btn-secondary" onclick="window.location.href='3_accueil.html'">« Retour Accueil</button>
  </div>
-
- <!-- SECTION : LE HACK DU FLEMMARD -->
- <div class="hack-box">
- <div class="filter-title" style="margin-top:0; color:#b45309;"> Le Hack du Flemmard : Planification Express par Ouvrage / Structure 🚀</div>
- <div class="form-group">
- <div class="form-field">
- <label>Appliquer à l'échelle de :</label>
- <select id="hackEchelle" onchange="actualiserOptionsHack()">
- <option value="PROJET"> Tout ce Projet Unique 🌍</option>
- <option value="OUVRAGE"> Un Ouvrage Spécifique 🧱</option>
- <option value="STRUCTURE"> Une Structure de son Ouvrage 🏢</option>
- </select>
+ <button class="toggle-form-btn" onclick="basculerAffichageFormulaireTiroir()">Ouvrir les Outils de Planification 🛠</button>
+ <div class="form-group" id="formPlanningLigne">
+ <div class="form-field" style="grid-column: span 2;"><label>Grand Ouvrage / Site</label><input type="text" id="inOuvrage" placeholder="Ex: Terrassement"></div>
+ <div class="form-field"><label>Code Tâche</label><input type="text" id="inCode" placeholder="Ex: 1.1"></div>
+ <div class="form-field" style="grid-column: span 2;"><label>Désignation de l'Activité</label><input type="text" id="inDesignation" placeholder="Ex: Décapage du sol"></div>
+ <div class="form-field"><label>Date Début</label><input type="date" id="inDebut"></div>
+ <div class="form-field"><label>Date Fin Contractuelle</label><input type="date" id="inFin"></div>
+ <div class="form-field" style="justify-content: flex-end;"><button class="btn btn-primary" onclick="ajouterNouvelleTacheManuelle()">Planifier Tâche ➕</button></div>
  </div>
- <div class="form-field" id="fieldHackCible" style="display:none;"><label>Choisir la cible :</label><select id="hackCible" style="max-width:350px;"></select></div>
- <div class="form-field"><label>Date de Début</label><input type="date" id="hackDebut"></div>
- <div class="form-field"><label>Date de Fin</label><input type="date" id="hackFin"></div>
- <div><button class="btn btn-warning" onclick="executerHackFlemmard()"> Injecter en Masse ⚡</button></div>
- </div>
- </div>
-
- <!-- SECTION : FILTRES PAR SEGMENTS -->
  <div class="filter-section">
- <div class="filter-title"> Segment : Filtrer l'affichage par Ouvrage 🔍</div><div class="segment-container" id="segmentOuvrages"></div>
- <div class="filter-title"> Segment : Filtrer l'affichage par Structure 🔍</div><div class="segment-container" id="segmentStructures"></div>
+ <div class="filter-title">🔍 Segment : Filtrer le Calendrier par Ouvrage</div>
+ <div class="segment-container" id="boxSegmentsOuvragesPlanning" style="overflow-x:auto; white-space:nowrap; flex-wrap:nowrap; padding-bottom:3px;"></div>
  </div>
-
- <!-- GRANDE TABLE DES TÂCHES -->
- <div class="table-responsive">
- <table id="tablePlanning">
+ <div class="workspace-table-scroll">
+ <table id="tablePlanningGantt">
  <thead>
  <tr>
- <th>Ouvrage</th>
- <th>Code</th>
- <th>Structure</th>
- <th>Désignation</th>
- <th>Date Début</th>
- <th>Date Fin</th>
- <th>Durée</th>
- <th style="width:260px; text-align:center;">Aperçu Gantt Visuel</th>
+ <th style="width:180px;">Ouvrage / Site</th>
+ <th style="width:75px;">Code</th>
+ <th>Désignation de la Tâche</th>
+ <th style="width:100px;">Début</th>
+ <th style="width:100px;">Fin Prévue</th>
+ <th style="width:90px; text-align:center;">Durée (J)</th>
+ <th style="width:180px;">Visualisation Chronologique Gantt</th>
+ <th style="width:45px; text-align:center;" class="col-action-modification">Action</th>
  </tr>
  </thead>
- <tbody id="tbodyPlanning"></tbody>
+ <tbody id="tbodyPlanningGrid"></tbody>
  </table>
- </div>
-
- <!-- BILANS ET CALENDRIER EN BAS DE PAGE -->
- <div class="recap-box">
- <div class="recap-card">
- <h3> Durée Calendaire par Ouvrage 🧱</h3>
- <table><thead><tr><th>Ouvrage</th><th>Date Début</th><th>Date Fin</th><th>Durée Totale</th></tr></thead><tbody id="tbodyRecapOuvrage"></tbody></table>
- </div>
- <div class="recap-card" style="display: flex; flex-direction: column; justify-content: center;">
- <div class="total-block">
- <div style="color:var(--primary-color); font-size:14px; margin-bottom:5px;">CALENDRIER GLOBAL DU PROJET : 🌍</div>
- <div id="recapProjetGlobal" style="font-size:18px;">Période : Non planifiée</div>
- </div>
- </div>
  </div>
 </div>
 <script>
-// =========================================================================
-// BLOC 3 : CORRECTIF DE CHARGEMENT ET D'HÉRITAGE DU BDQE EN LOCAL
-// =========================================================================
+const DB_NAME = "GenieCivilPro_DB";
+const DB_VERSION = 1;
+let dbInstance = null;
+
+function initialiserLeMeubleDB() {
+    return new Promise((resolve, reject) => {
+        let requete = indexedDB.open(DB_NAME, DB_VERSION);
+        requete.onsuccess = function(e) { dbInstance = e.target.result; resolve(dbInstance); };
+        requete.onerror = function() { reject("Meuble bloqué."); };
+    });
+}
+
+function lireDonneeDB(tiroir, cle) {
+    return new Promise((resolve) => {
+        if(!dbInstance) return resolve(null);
+        let tx = dbInstance.transaction([tiroir], "readonly");
+        let req = tx.objectStore(tiroir).get(cle);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => resolve(null);
+    });
+}
+
+function ecrireDonneeDB(tiroir, objet, cleOptionnelle) {
+    return new Promise((resolve) => {
+        if(!dbInstance) return resolve(false);
+        let tx = dbInstance.transaction([tiroir], "readwrite");
+        let req = cleOptionnelle !== undefined ? tx.objectStore(tiroir).put(objet, cleOptionnelle) : tx.objectStore(tiroir).put(objet);
+        req.onsuccess = () => resolve(true);
+        req.onerror = () => resolve(false);
+    });
+}
+
+function effacerDonneeDB(tiroir, cle) {
+    return new Promise((resolve) => {
+        if(!dbInstance) return resolve(false);
+        let tx = dbInstance.transaction([tiroir], "readwrite");
+        let req = tx.objectStore(tiroir).delete(cle);
+        req.onsuccess = () => resolve(true);
+        req.onerror = () => resolve(false);
+    });
+}
 
 let listePlanning = [];
 let filtreOuvrageActif = "TOUS";
-let filtreStructureActif = "TOUS";
-let idProjetCourant = localStorage.getItem("id_projet_actif_lee") || "101";
-let cleStockagePlanning = `planning_${idProjetCourant}`;
-let cleStockageBDQE = `bdqe_${idProjetCourant}`;
+let idProjetCourant = localStorage.getItem("id_projet_en_cours_de_saisie_temporaire") || "101";
+const CLE_PLANNING_PROJET = `planning_${idProjetCourant}`;
 
-// CORRECTIF BUG 1 : Chargement direct depuis le LocalStorage local
-function chargerPlanningLocalement() {
-    let bdqeInitial = localStorage.getItem(cleStockageBDQE);
-    let listeBaseBDQE = bdqeInitial ? JSON.parse(bdqeInitial) : [];
-    let planningSauve = localStorage.getItem(cleStockagePlanning);
-
-    if (planningSauve) {
-        listePlanning = JSON.parse(planningSauve);
-        
-        // Synchronisation adaptative : injecte les nouvelles tâches du BDQE si manquantes
-        listeBaseBDQE.forEach(baseItem => {
-            let existe = listePlanning.find(plItem => plItem.code_bdqe === baseItem.code_bdqe && plItem.designation === baseItem.designation);
-            if(!existe) { 
-                listePlanning.push({ ...baseItem, date_debut: "", date_fin: "", duree: 0 }); 
-            }
-        });
+function basculerAffichageFormulaireTiroir() {
+    let form = document.getElementById('formPlanningLigne');
+    let btn = document.querySelector('.toggle-form-btn');
+    form.classList.toggle('open');
+    if (form.classList.contains('open')) {
+        btn.innerText = "Fermer la Console de Planification ❌";
+        btn.style.cssText = "background:#fee2e2; color:var(--danger-red); border-color:var(--danger-red);";
     } else {
-        // Si le planning est tout neuf, on le crée en copiant les colonnes du BDQE
-        listePlanning = listeBaseBDQE.map(item => { 
-            return { ...item, date_debut: "", date_fin: "", duree: 0 }; 
-        });
+        btn.innerText = "Ouvrir les Outils de Planification 🛠";
+        btn.style.cssText = "background:#f1f5f9; color:var(--accent-blue); border-color:var(--accent-blue);";
     }
-    rechargerTout();
 }
-
-// Lancement au démarrage de la page
 window.onload = function() {
     let userRoleActuel = localStorage.getItem("session_user_role") || "agents";
     let userLotsAutorises = [];
     try { userLotsAutorises = JSON.parse(localStorage.getItem("session_user_lots")) || []; } catch(e) {}
     
-    // Protection RBAC : expulsion si simple agent
-    if (userRoleActuel === "agents") {
-        alert("🔒 Accès Refusé : Privilèges requis insuffisants pour modifier le calendrier d'exécution.");
-        window.location.href = "3_accueil.html"; 
-        return;
-    }
-    
-    // Mode lecture seule pour la direction ou périmètre non affecté
-    if (userRoleActuel === "cadres" || (userRoleActuel === "controle" && !userLotsAutorises.includes(String(idProjetCourant)))) {
-        let formSaisie = document.querySelector('.hack-box');
-        if (formSaisie) formSaisie.style.display = 'none';
-        
-        let alerte = document.createElement('div');
-        alerte.style.cssText = "background:#eff6ff; color:#1e40af; padding:10px; border-radius:6px; font-weight:bold; margin-bottom:15px; border:1px solid #bfdbfe; font-size:13px; max-width:1120px; margin: 10px auto;";
-        alerte.innerText = "Mode Consultation Uniquement 🔒 (Lecture Seule Calendrier Direction / Périmètre non affecté)";
-        document.body.insertBefore(alerte, document.body.firstChild);
-        
-        // On masquera plus tard les inputs de date lors du rendu du tableau
-        window.modeLectureSeuleActive = true;
-    }
-    
-    // Déclenchement de notre nouvelle fonction de lecture locale
-    chargerPlanningLocalement();
-    actualiserOptionsHack();
+    initialiserLeMeubleDB().then(async () => {
+        if (userRoleActuel === "agents" || (userRoleActuel === "controle" && !userLotsAutorises.includes(String(idProjetCourant)))) {
+            let formSaisie = document.getElementById('formPlanningLigne');
+            if (formSaisie) formSaisie.style.display = 'none';
+            document.querySelector('.toggle-form-btn').style.display = 'none';
+            let alerte = document.createElement('div');
+            alerte.style.cssText = "background:#eff6ff; color:#1e40af; padding:10px; border-radius:6px; font-weight:bold; margin-bottom:15px; border:1px solid #bfdbfe; font-size:13px; text-align:center;";
+            alerte.innerText = "Mode Consultation Calendrier (Lecture Seule 🔒)";
+            if (formSaisie) formSaisie.parentNode.insertBefore(alerte, formSaisie);
+            document.querySelector('.col-action-modification').style.display = 'none';
+            window.modeLectureSeuleActive = true;
+        }
+        let donneesChargees = await lireDonneeDB("dossiers_techniques", CLE_PLANNING_PROJET);
+        listePlanning = donneesChargees ? donneesChargees : [];
+        rechargerTout();
+    });
 };
 
-function trierDonnees() {
+function ajouterNouvelleTacheManuelle() {
+    let ouvrage = document.getElementById('inOuvrage').value.trim();
+    let code_gantt = document.getElementById('inCode').value.trim();
+    let designation = document.getElementById('inDesignation').value.trim();
+    let date_debut = document.getElementById('inDebut').value;
+    let date_fin = document.getElementById('inFin').value;
+    if (!ouvrage || !code_gantt || !designation || !date_debut || !date_fin) {
+        return alert("Veuillez remplir tous les champs de planification.");
+    }
+    listePlanning.push({ ouvrage, code_gantt, designation, date_debut, date_fin });
+    document.getElementById('inCode').value = ""; document.getElementById('inOuvrage').value = ""; document.getElementById('inDesignation').value = "";
+    document.getElementById('inDebut').value = ""; document.getElementById('inFin').value = "";
+    rechargerTout();
+}
+
+function trierPlanningAlphanumerique() {
     listePlanning.sort((a, b) => {
-        let compOuvrage = a.ouvrage.localeCompare(b.ouvrage, 'fr', {sensitivity: 'base'}); 
-        if (compOuvrage !== 0) return compOuvrage;
-        let partsA = a.code_bdqe.split(/[\.,]/).map(Number); 
-        let partsB = b.code_bdqe.split(/[\.,]/).map(Number);
-        for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) { 
-            let numA = partsA[i] || 0; let numB = partsB[i] || 0; 
-            if (numA !== numB) return numA - numB; 
+        let comp = a.ouvrage.localeCompare(b.ouvrage, 'fr', { sensitivity: 'base' });
+        if (comp !== 0) return comp;
+        let partsA = String(a.code_gantt).split(/[\.,]/).map(Number);
+        let partsB = String(b.code_gantt).split(/[\.,]/).map(Number);
+        for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
+            let numA = partsA[i] || 0; let numB = partsB[i] || 0; if (numA !== numB) return numA - numB;
         }
         return 0;
     });
 }
 
-function calculerDureeJours(debutStr, finStr) { 
-    if (!debutStr || !finStr) return 0; 
-    let d1 = new Date(debutStr); 
-    let d2 = new Date(finStr); 
-    if (d2 < d1) return 0; 
-    return Math.ceil(Math.abs(d2 - d1) / (1000 * 60 * 60 * 24)) + 1; 
-}
-// =========================================================================
-// BLOC 4 : RENDU GRAPHIQUE GANTT ET INJECTION EN MASSE LOCAL
-// =========================================================================
-
-// Sauvegarde instantanée dans le LocalStorage lors du changement d'une date
-function modifierDateLigne(index, champ, valeur) {
-    let item = listePlanning[index];
-    if (champ === 'debut') item.date_debut = valeur;
-    if (champ === 'fin') item.date_fin = valeur;
-    item.duree = calculerDureeJours(item.date_debut, item.date_fin);
-    rechargerTout();
+function supprimerTacheGantt(index) {
+    if (confirm("Retirer cette tâche du planning ?")) { listePlanning.splice(index, 1); rechargerTout(); }
 }
 
-function actualiserOptionsHack() {
-    let echelle = document.getElementById('hackEchelle').value; 
-    let fieldCible = document.getElementById('fieldHackCible'); 
-    let selectCible = document.getElementById('hackCible');
-    if (echelle === "PROJET") { 
-        fieldCible.style.display = "none"; 
-    } else {
-        fieldCible.style.display = "flex"; 
-        selectCible.innerHTML = "";
-        if (echelle === "OUVRAGE") {
-            [...new Set(listePlanning.map(i => i.ouvrage).filter(Boolean))].forEach(o => { 
-                let opt = document.createElement('option'); opt.value = o; opt.innerText = o; selectCible.appendChild(opt); 
-            });
-        } else if (echelle === "STRUCTURE") {
-            let clesUniques = []; 
-            listePlanning.forEach(item => { 
-                if(item.ouvrage && item.structure) { 
-                    let cle = item.ouvrage + " ||| " + item.structure; 
-                    if(!clesUniques.includes(cle)) clesUniques.push(cle); 
-                } 
-            });
-            clesUniques.forEach(cle => { 
-                let fragments = cle.split(" ||| "); 
-                let opt = document.createElement('option'); opt.value = cle; opt.innerText = "[" + fragments[0] + "] -> " + fragments[1]; 
-                selectCible.appendChild(opt); 
-            });
-        }
-    }
+async function rechargerTout() {
+    trierPlanningAlphanumerique(); genererBoutonsSegmentsOuvrages(); afficherGrillePlanningGantt();
+    await ecrireDonneeDB("dossiers_techniques", listePlanning, CLE_PLANNING_PROJET);
 }
 
-// Outil d'injection en masse automatique sans bug cloud
-function executerHackFlemmard() {
-    try {
-        let echelle = document.getElementById('hackEchelle').value; 
-        let cible = document.getElementById('hackCible').value; 
-        let debut = document.getElementById('hackDebut').value; 
-        let fin = document.getElementById('hackFin').value;
-        
-        if(!debut || !fin) return alert("⚠️ Dates manquantes !");
-        if(new Date(fin) < new Date(debut)) return alert("⚠️ Chronologie invalide (la fin est avant le début).");
-        
-        let compteur = 0;
-        listePlanning.forEach(item => {
-            let cibleOk = false;
-            if (echelle === "PROJET") cibleOk = true;
-            if (echelle === "OUVRAGE" && item.ouvrage === cible) cibleOk = true;
-            if (echelle === "STRUCTURE") { 
-                let frg = cible.split(" ||| "); 
-                if (frg.length >= 2 && item.ouvrage === frg[0] && item.structure === frg[1]) cibleOk = true; 
-            }
-            if (cibleOk) { 
-                item.date_debut = debut; 
-                item.date_fin = fin; 
-                item.duree = calculerDureeJours(debut, fin); 
-                compteur++; 
-            }
-        });
-        
-        rechargerTout();
-        alert("🎉 Succès ! " + compteur + " tâches planifiées en mémoire locale !");
-    } catch (err) { 
-        alert("❌ Erreur : " + err.message); 
-    }
+function genererBoutonsSegmentsOuvrages() {
+    let container = document.getElementById('boxSegmentsOuvragesPlanning'); if (!container) return; container.innerHTML = "";
+    let ouvs = ["TOUS", ...new Set(listePlanning.map(item => item.ouvrage).filter(Boolean))];
+    ouvs.forEach(ouv => {
+        let btn = document.createElement('button'); btn.className = `segment-btn ${filtreOuvrageActif === ouv ? 'active' : ''}`; btn.innerText = ouv.toUpperCase();
+        btn.onclick = function() { filtreOuvrageActif = ouv; rechargerTout(); }; container.appendChild(btn);
+    });
 }
 
-function rechargerTout() {
-    trierDonnees(); 
-    genererSegments(); 
-    afficherTableauPlanning(); 
-    calculerRecapitulatifsGantt();
+function afficherGrillePlanningGantt() {
+    let tbody = document.getElementById('tbodyPlanningGrid'); if (!tbody) return; tbody.innerHTML = "";
+    if (listePlanning.length === 0) { tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#94a3b8; padding:30px; font-style:italic;">Le planning est vide.</td></tr>`; return; }
     
-    // Rangement local et sécurisé
-    rangerDonneeSecurisee(cleStockagePlanning, JSON.stringify(listePlanning));
-}
+    let globalMin = null; let globalMax = null;
+    listePlanning.forEach(item => {
+        let d1 = new Date(item.date_debut); let d2 = new Date(item.date_fin);
+        if (!globalMin || d1 < globalMin) globalMin = d1; if (!globalMax || d2 > globalMax) globalMax = d2;
+    });
+    let dTotaleProject = globalMin && globalMax ? Math.ceil(Math.abs(globalMax - globalMin) / (1000*60*60*24)) + 1 : 1;
 
-function genererSegments() {
-    let uniqueOuvrages = ["TOUS", ...new Set(listePlanning.map(item => item.ouvrage).filter(Boolean))];
-    let uniqueStructures = ["TOUS", ...new Set(listePlanning.map(item => item.structure).filter(Boolean))];
-    
-    let containerOuvrage = document.getElementById('segmentOuvrages'); 
-    if (containerOuvrage) { 
-        containerOuvrage.innerHTML = ""; 
-        uniqueOuvrages.forEach(ouv => { 
-            let btn = document.createElement('button'); btn.className = `segment-btn ${filtreOuvrageActif === ouv ? 'active' : ''}`; btn.innerText = ouv; btn.onclick = () => { filtreOuvrageActif = ouv; rechargerTout(); }; containerOuvrage.appendChild(btn); 
-        }); 
-    }
-    let containerStructure = document.getElementById('segmentStructures'); 
-    if (containerStructure) { 
-        containerStructure.innerHTML = ""; 
-        uniqueStructures.forEach(str => { 
-            let btn = document.createElement('button'); btn.className = `segment-btn ${filtreStructureActif === str ? 'active' : ''}`; btn.innerText = str; btn.onclick = () => { filtreStructureActif = str; rechargerTout(); }; containerStructure.appendChild(btn); 
-        }); 
-    }
-}
-
-// Dessine le tableau avec les barres graphiques Gantt
-function afficherTableauPrincipal() { // Nom forcé pour correspondre à ton render d'origine
-    let tbody = document.getElementById('tbodyPlanning'); 
-    if(!tbody) return; 
-    tbody.innerHTML = "";
-    
     listePlanning.forEach((item, index) => {
         if (filtreOuvrageActif !== "TOUS" && item.ouvrage !== filtreOuvrageActif) return;
-        if (filtreStructureActif !== "TOUS" && item.structure !== filtreStructureActif) return;
+        let tDebut = new Date(item.date_debut); let tFin = new Date(item.date_fin);
+        let dureeTache = Math.ceil(Math.abs(tFin - tDebut) / (1000*60*60*24)) + 1;
         
-        let tr = document.createElement('tr'); 
-        let ganttHTML = `<div style="color:grey; font-size:11px; text-align:center;">Dates manquantes</div>`;
-        if (item.date_debut && item.date_fin) { 
-            ganttHTML = `<div class="gantt-bar" style="width: 90%; margin: 0 auto;">⏱️ ${item.duree} jrs</div>`; 
-        }
-        
-        // Si le mode lecture seule est activé pour les cadres, on bloque les champs date
-        let désactivé = window.modeLectureSeuleActive ? "disabled style='background:#f1f5f9; border:none;'" : "";
-        
-        tr.innerHTML = `
-            <td><b>${item.ouvrage}</b></td>
-            <td>${item.code_bdqe}</td>
-            <td>${item.structure}</td>
-            <td>${item.designation}</td>
-            <td><input type="date" class="input-date" value="${item.date_debut}" ${désactivé} onchange="modifierDateLigne(${index}, 'debut', this.value)"></td>
-            <td><input type="date" class="input-date" value="${item.date_fin}" ${désactivé} onchange="modifierDateLigne(${index}, 'fin', this.value)"></td>
-            <td style="font-weight:bold; color:var(--primary-color);">${item.duree > 0 ? item.duree + " jours" : ""}</td>
-            <td class="gantt-cell">${ganttHTML}</td>`;
+        let pctLeft = dTotaleProject > 1 ? ((tDebut - globalMin) / (1000*60*60*24)) / dTotaleProject * 100 : 0;
+        let pctWidth = dTotaleProject > 1 ? dureeTache / dTotaleProject * 100 : 100;
+
+        let action = window.modeLectureSeuleActive ? "" : `<td style="text-align:center;"><button class="btn" style="background:var(--danger-red); padding:3px 6px; font-size:10px;" onclick="supprimerTacheGantt(${index})">🗑</button></td>`;
+        let tr = document.createElement('tr');
+        tr.innerHTML = `<td><b>${item.ouvrage}</b></td><td style="font-family:monospace; font-weight:bold; color:var(--accent-blue);">${item.code_gantt}</td><td>${item.designation}</td><td>${tDebut.toLocaleDateString('fr-FR')}</td><td>${tFin.toLocaleDateString('fr-FR')}</td><td style="text-align:center; font-weight:bold;">${dureeTache} j</td><td><div class="gantt-bar-container"><div class="gantt-bar-fill" style="left:${pctLeft}%; width:${pctWidth}%;"></div></div></td>${action}`;
         tbody.appendChild(tr);
     });
-}
-// Alias universel pour s'aligner avec tes fonctions d'affichage
-function afficherTableauPlanning() { afficherTableauPrincipal(); }
-
-function calculerRecapitulatifsGantt() {
-    let recap = {}; let pMin = null; let pMax = null;
-    listePlanning.forEach(item => {
-        if (!item.date_debut || !item.date_fin) return;
-        let dDeb = new Date(item.date_debut); let dFin = new Date(item.date_fin); 
-        if (!pMin || dDeb < pMin) pMin = dDeb; 
-        if (!pMax || dFin > pMax) pMax = dFin;
-        if (!recap[item.ouvrage]) recap[item.ouvrage] = { min: dDeb, max: dFin };
-        if (dDeb < recap[item.ouvrage].min) recap[item.ouvrage].min = dDeb; 
-        if (dFin > recap[item.ouvrage].max) recap[item.ouvrage].max = dFin;
-    });
-    
-    let tbodyRecap = document.getElementById('tbodyRecapOuvrage'); 
-    if(!tbodyRecap) return; 
-    tbodyRecap.innerHTML = "";
-    for (let ouv in recap) {
-        let dur = Math.ceil(Math.abs(recap[ouv].max - recap[ouv].min) / (1000 * 60 * 60 * 24)) + 1;
-        let tr = document.createElement('tr'); 
-        tr.innerHTML = `<td><b>${ouv}</b></td><td>${recap[ouv].min.toLocaleDateString('fr-FR')}</td><td>${recap[ouv].max.toLocaleDateString('fr-FR')}</td><td style="font-weight:bold;color:green;">${dur} jours</td>`; 
-        tbodyRecap.appendChild(tr);
-    }
-    if (pMin && pMax) {
-        let totalProjetDuree = Math.ceil(Math.abs(pMax - pMin) / (1000 * 60 * 60 * 24)) + 1;
-        document.getElementById('recapProjetGlobal').innerHTML = `Période : Du <b>${pMin.toLocaleDateString('fr-FR')}</b> au <b>${pMax.toLocaleDateString('fr-FR')}</b><br>Durée Globale : <span style="color:green;font-weight:bold;">${totalProjetDuree} jours</span>`;
-    } else { 
-        document.getElementById('recapProjetGlobal').innerText = "Période : Aucune tâche planifiée."; 
-    }
 }
 </script>
 </body>
