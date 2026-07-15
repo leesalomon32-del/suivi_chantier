@@ -153,35 +153,35 @@ window.onload = function() {
     
     initialiserLeMeubleDB().then(async () => {
         if (userRoleActuel === "agents" || (userRoleActuel === "controle" && !userLotsAutorises.includes(String(idProjetCourant)))) {
-            let formSaisie = document.getElementById('formPlanningLigne');
-            if (formSaisie) formSaisie.style.display = 'none';
-            document.querySelector('.toggle-form-btn').style.display = 'none';
-            let alerte = document.createElement('div');
-            alerte.style.cssText = "background:#eff6ff; color:#1e40af; padding:10px; border-radius:6px; font-weight:bold; margin-bottom:15px; border:1px solid #bfdbfe; font-size:13px; text-align:center;";
-            alerte.innerText = "Mode Consultation Calendrier (Lecture Seule 🔒)";
-            if (formSaisie) formSaisie.parentNode.insertBefore(alerte, formSaisie);
-            document.querySelector('.col-action-modification').style.display = 'none';
             window.modeLectureSeuleActive = true;
         }
-        let donneesChargees = await lireDonneeDB("dossiers_techniques", CLE_PLANNING_PROJET);
-        listePlanning = donneesChargees ? donneesChargees : [];
+        
+        // 1. On va lire le planning enregistré
+        let planningSauve = await lireDonneeDB("dossiers_techniques", CLE_PLANNING_PROJET) || [];
+        
+        // 2. MAGIE : On va lire le BDQE initial que tu viens de remplir !
+        let bdqeInitial = await lireDonneeDB("dossiers_techniques", CLE_BDQE_PROJET) || [];
+        
+        // 3. On fusionne : pour chaque ligne de ton BDQE, on prépare une ligne de planning
+        listePlanning = bdqeInitial.map(ligneBdqe => {
+            // Si on avait déjà enregistré des dates pour ce code, on les garde
+            let ancienneTache = planningSauve.find(p => p.code_gantt === ligneBdqe.code_bdqe);
+            return {
+                ouvrage: ligneBdqe.ouvrage,
+                code_gantt: ligneBdqe.code_bdqe,
+                designation: ligneBdqe.designation,
+                date_debut: ancienneTache ? ancienneTache.date_debut : "",
+                date_fin: ancienneTache ? ancienneTache.date_fin : ""
+            };
+        });
+        
         rechargerTout();
     });
 };
 
-function ajouterNouvelleTacheManuelle() {
-    let ouvrage = document.getElementById('inOuvrage').value.trim();
-    let code_gantt = document.getElementById('inCode').value.trim();
-    let designation = document.getElementById('inDesignation').value.trim();
-    let date_debut = document.getElementById('inDebut').value;
-    let date_fin = document.getElementById('inFin').value;
-    if (!ouvrage || !code_gantt || !designation || !date_debut || !date_fin) {
-        return alert("Veuillez remplir tous les champs de planification.");
-    }
-    listePlanning.push({ ouvrage, code_gantt, designation, date_debut, date_fin });
-    document.getElementById('inCode').value = ""; document.getElementById('inOuvrage').value = ""; document.getElementById('inDesignation').value = "";
-    document.getElementById('inDebut').value = ""; document.getElementById('inFin').value = "";
-    rechargerTout();
+function formatArgent(nombre) {
+    if (nombre === null || nombre === undefined || isNaN(nombre)) return "0,00";
+    return nombre.toLocaleString('fr-FR', { minimumFractionDigits: 2 });
 }
 
 function trierPlanningAlphanumerique() {
@@ -197,13 +197,17 @@ function trierPlanningAlphanumerique() {
     });
 }
 
-function supprimerTacheGantt(index) {
-    if (confirm("Retirer cette tâche du planning ?")) { listePlanning.splice(index, 1); rechargerTout(); }
-}
-
-async function rechargerTout() {
-    trierPlanningAlphanumerique(); genererBoutonsSegmentsOuvrages(); afficherGrillePlanningGantt();
+async function modifierDatesTacheInline(index, champ, valeur) {
+    if(window.modeLectureSeuleActive) return;
+    listePlanning[index][champ] = valeur;
     await ecrireDonneeDB("dossiers_techniques", listePlanning, CLE_PLANNING_PROJET);
+    // On relance le Gantt pour redessiner les barres bleues instantanément
+    afficherGrillePlanningGantt();
+}
+async function rechargerTout() {
+    trierPlanningAlphanumerique(); 
+    genererBoutonsSegmentsOuvrages(); 
+    afficherGrillePlanningGantt();
 }
 
 function genererBoutonsSegmentsOuvrages() {
@@ -211,32 +215,44 @@ function genererBoutonsSegmentsOuvrages() {
     let ouvs = ["TOUS", ...new Set(listePlanning.map(item => item.ouvrage).filter(Boolean))];
     ouvs.forEach(ouv => {
         let btn = document.createElement('button'); btn.className = `segment-btn ${filtreOuvrageActif === ouv ? 'active' : ''}`; btn.innerText = ouv.toUpperCase();
-        btn.onclick = function() { filtreOuvrageActif = ouv; rechargerTout(); }; container.appendChild(btn);
+        btn.onclick = function() { filtreOuvrageActif = ouv; afficherGrillePlanningGantt(); }; container.appendChild(btn);
     });
 }
 
 function afficherGrillePlanningGantt() {
     let tbody = document.getElementById('tbodyPlanningGrid'); if (!tbody) return; tbody.innerHTML = "";
-    if (listePlanning.length === 0) { tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#94a3b8; padding:30px; font-style:italic;">Le planning est vide.</td></tr>`; return; }
+    if (listePlanning.length === 0) { tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#94a3b8; padding:30px; font-style:italic;">Le bordereau BDQE de ce lot est vide. Veuillez d'abord y saisir vos prix.</td></tr>`; return; }
     
+    // Recherche des dates extrêmes uniquement sur les tâches qui ont des dates configurées
     let globalMin = null; let globalMax = null;
     listePlanning.forEach(item => {
-        let d1 = new Date(item.date_debut); let d2 = new Date(item.date_fin);
-        if (!globalMin || d1 < globalMin) globalMin = d1; if (!globalMax || d2 > globalMax) globalMax = d2;
+        if(item.date_debut && item.date_fin) {
+            let d1 = new Date(item.date_debut); let d2 = new Date(item.date_fin);
+            if (!globalMin || d1 < globalMin) globalMin = d1; if (!globalMax || d2 > globalMax) globalMax = d2;
+        }
     });
     let dTotaleProject = globalMin && globalMax ? Math.ceil(Math.abs(globalMax - globalMin) / (1000*60*60*24)) + 1 : 1;
 
     listePlanning.forEach((item, index) => {
         if (filtreOuvrageActif !== "TOUS" && item.ouvrage !== filtreOuvrageActif) return;
-        let tDebut = new Date(item.date_debut); let tFin = new Date(item.date_fin);
-        let dureeTache = Math.ceil(Math.abs(tFin - tDebut) / (1000*60*60*24)) + 1;
         
-        let pctLeft = dTotaleProject > 1 ? ((tDebut - globalMin) / (1000*60*60*24)) / dTotaleProject * 100 : 0;
-        let pctWidth = dTotaleProject > 1 ? dureeTache / dTotaleProject * 100 : 100;
+        let dureeTache = 0; let pctLeft = 0; let pctWidth = 0;
+        let inputDebutHTML = `<input type="date" value="${item.date_debut}" onchange="modifierDatesTacheInline(${index}, 'date_debut', this.value)" ${window.modeLectureSeuleActive ? 'disabled':''}>`;
+        let inputFinHTML = `<input type="date" value="${item.date_fin}" onchange="modifierDatesTacheInline(${index}, 'date_fin', this.value)" ${window.modeLectureSeuleActive ? 'disabled':''}>`;
+        
+        if(item.date_debut && item.date_fin) {
+            let tDebut = new Date(item.date_debut); let tFin = new Date(item.date_fin);
+            dureeTache = Math.ceil(Math.abs(tFin - tDebut) / (1000*60*60*24)) + 1;
+            pctLeft = dTotaleProject > 1 ? ((tDebut - globalMin) / (1000*60*60*24)) / dTotaleProject * 100 : 0;
+            pctWidth = dTotaleProject > 1 ? dureeTache / dTotaleProject * 100 : 100;
+        }
 
-        let action = window.modeLectureSeuleActive ? "" : `<td style="text-align:center;"><button class="btn" style="background:var(--danger-red); padding:3px 6px; font-size:10px;" onclick="supprimerTacheGantt(${index})">🗑</button></td>`;
+        let barreGanttHTML = item.date_debut && item.date_fin 
+            ? `<div class="gantt-bar-container"><div class="gantt-bar-fill" style="left:${pctLeft}%; width:${pctWidth}%;"></div></div>` 
+            : `<span style="color:#94a3b8; font-size:11px; font-style:italic;">Dates non renseignées</span>`;
+
         let tr = document.createElement('tr');
-        tr.innerHTML = `<td><b>${item.ouvrage}</b></td><td style="font-family:monospace; font-weight:bold; color:var(--accent-blue);">${item.code_gantt}</td><td>${item.designation}</td><td>${tDebut.toLocaleDateString('fr-FR')}</td><td>${tFin.toLocaleDateString('fr-FR')}</td><td style="text-align:center; font-weight:bold;">${dureeTache} j</td><td><div class="gantt-bar-container"><div class="gantt-bar-fill" style="left:${pctLeft}%; width:${pctWidth}%;"></div></div></td>${action}`;
+        tr.innerHTML = `<td><b>${item.ouvrage}</b></td><td style="font-family:monospace; font-weight:bold; color:var(--accent-blue);">${item.code_gantt}</td><td>${item.designation}</td><td>${inputDebutHTML}</td><td>${inputFinHTML}</td><td style="text-align:center; font-weight:bold;">${dureeTache > 0 ? dureeTache + ' j' : '-'}</td><td>${barreGanttHTML}</td><td style='color:grey;font-size:11px;text-align:center;'>BDQE</td>`;
         tbody.appendChild(tr);
     });
 }
