@@ -217,31 +217,58 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
     let listB = await lireDonneeDB("dossiers_techniques", `bdqe_${idProjetActif}`) || [];
     let listPl = await lireDonneeDB("dossiers_techniques", `planning_${idProjetActif}`) || [];
     let listS = await lireDonneeDB("dossiers_techniques", `suivi_${idProjetActif}`) || [];
+    let listAv = await lireDonneeDB("dossiers_techniques", `avenants_${idProjetActif}`) || [];
+    
     if (typeProjetActuel === "PAPA") {
         let enfants = listeProjets.filter(item => item.type === "ENFANT" && item.parentId == idProjetActif);
         for(let enf of enfants) {
             listB = listB.concat(await lireDonneeDB("dossiers_techniques", `bdqe_${enf.id}`) || []);
             listPl = listPl.concat(await lireDonneeDB("dossiers_techniques", `planning_${enf.id}`) || []);
             listS = listS.concat(await lireDonneeDB("dossiers_techniques", `suivi_${enf.id}`) || []);
+            listAv = listAv.concat(await lireDonneeDB("dossiers_techniques", `avenants_${enf.id}`) || []);
         }
     }
+    
+    // 1. Calcul et injection des bornes du calendrier
     let dMin = null, dMax = null;
     listPl.forEach(i => { if(!i.date_debut || !i.date_fin) return; let d1 = new Date(i.date_debut), d2 = new Date(i.date_fin); if(!dMin || d1 < dMin) dMin = d1; if(!dMax || d2 > dMax) dMax = d2; });
-    if(!dMin || !dMax) return; dMin.setHours(0,0,0,0); dMax.setHours(0,0,0,0);
     
-    let dictionnaireFinancier = {}; let budgetTotalCalcule = 0;
+    if(dMin && dMax) {
+        dMin.setHours(0,0,0,0); dMax.setHours(0,0,0,0);
+        document.getElementById('valOS').innerText = dMin.toLocaleDateString('fr-FR');
+        document.getElementById('valFin').innerText = dMax.toLocaleDateString('fr-FR');
+    } else {
+        document.getElementById('valOS').innerText = "-";
+        document.getElementById('valFin').innerText = "-";
+        return;
+    }
+    
+    // 2. Calcul des enveloppes budgétaires
+    let budgetInitialTotal = 0;
+    listB.forEach(item => { budgetInitialTotal += parseFloat(item.total) || 0; });
+    
+    let budgetAvenantsTotal = 0;
+    listAv.forEach(item => { budgetAvenantsTotal += parseFloat(item.total_av) || 0; });
+    
+    let budgetRéviséTotal = budgetInitialTotal + budgetAvenantsTotal;
+    
+    // INJECTION DU BUDGET DANS LES BLOCS EN FACE DU FINANCEMENT
+    document.getElementById('valMntInit').innerText = budgetInitialTotal.toLocaleString('fr-FR') + " Ar";
+    document.getElementById('valMntAv').innerText = (budgetAvenantsTotal >= 0 ? "+ " : "") + budgetAvenantsTotal.toLocaleString('fr-FR') + " Ar";
+    document.getElementById('valMntRev').innerText = budgetRéviséTotal.toLocaleString('fr-FR') + " Ar";
+    
+    let dictionnaireFinancier = {};
     listB.forEach(item => {
         if (!item.ouvrage || !item.code_bdqe) return;
         let cleUnique = `${item.ouvrage.trim().toLowerCase()}_${item.code_bdqe.trim().toLowerCase()}`;
-        let mnt = parseFloat(item.total) || 0; dictionnaireFinancier[cleUnique] = (dictionnaireFinancier[cleUnique] || 0) + mnt; budgetTotalCalcule += mnt;
+        let mnt = parseFloat(item.total) || 0; dictionnaireFinancier[cleUnique] = (dictionnaireFinancier[cleUnique] || 0) + mnt;
     });
-    if(budgetTotalCalcule === 0) budgetTotalCalcule = 1;
+    
     let totalJrs = Math.round((dMax - dMin) / (1000*60*60*24)) + 1;
     let auj = new Date(); auj.setHours(0,0,0,0);
     let jrsEcoules = Math.max(0, Math.min(totalJrs, Math.round((auj - dMin) / (1000*60*60*24))));
     document.getElementById('valTempsPct').innerText = totalJrs > 0 ? Math.round((jrsEcoules / totalJrs)*100) + " %" : "0 %";
     document.getElementById('valJrsRestants').innerText = Math.max(0, totalJrs - jrsEcoules) + " J";
-
     function calculerPrevuALaDate(dateCible) {
         let totalCumulePrevuAr = 0;
         listPl.forEach(tache => {
@@ -257,12 +284,13 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
                 totalCumulePrevuAr += budgetTache * sigmoide;
             }
         });
-        return (totalCumulePrevuAr / budgetTotalCalcule) * 100;
+        return budgetInitialTotal > 0 ? (totalCumulePrevuAr / budgetInitialTotal) * 100 : 0;
     }
+    
     let tPhyPrevu = calculerPrevuALaDate(auj); let tFinPrevu = tPhyPrevu * 0.96;
     let totalLignes = 0, sumPhyReel = 0, mntM = 0, mntR = 0;
     listS.forEach(i => { if (i.quantite_contrat > 0) { totalLignes++; let pL = Math.min((i.qte_realisee / i.quantite_contrat)*100, 100); sumPhyReel += pL; mntM += (i.total_contrat||0); mntR += ((i.total_contrat||0)*(pL/100)); } });
-    let tPhyReel = totalLignes > 0 ? (sumPhyReel / totalLignes) : 0; let tFinReel = mntM > 0 ? (mntR / mntM)*100 : 0;
+    let tPhyReel = totalLignes > 0 ? (sumPhyReel / totalLignes) : 0;
     
     document.getElementById('barPhyPrevu').style.width = tPhyPrevu + "%"; document.getElementById('barPhyReel').style.width = tPhyReel + "%";
     document.getElementById('txtPhyComp').innerText = `P: ${tPhyPrevu.toFixed(1)}% | R: ${tPhyReel.toFixed(1)}%`;
@@ -289,6 +317,7 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
         ventilBox.appendChild(row);
     });
 }
+
 </script>
 </body>
 </html>
