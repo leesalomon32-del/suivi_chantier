@@ -1,9 +1,150 @@
-<!-- Bibliothèque Supabase retirée pour isolation locale totale -->
-/**
- * =========================================================================
- * MOTEUR CORRIGÉ : INDEXEDDB (OUVERTURE AVANT L'AFFICHAGE)
- * =========================================================================
- */
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>Génie Civil Pro - Console Dashboard Master</title>
+ <style>
+ :root {
+ --primary-dark: #0f172a;
+ --sidebar-bg: #1e293b;
+ --accent-blue: #2563eb;
+ --accent-amber: #d97706;
+ --success-green: #16a34a;
+ --danger-red: #ef4444;
+ --bg-light: #f8fafc;
+ --text-dark: #334155;
+ --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+ }
+ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-light); color: var(--text-dark); margin: 0; padding: 0; height: 100vh; overflow: hidden; }
+ .app-layout { display: grid; grid-template-columns: 280px 1fr 260px; height: 100vh; width: 100%; box-sizing: border-box; transition: grid-template-columns 0.3s ease; }
+ .app-layout.no-sidebar-left { grid-template-columns: 0px 1fr 260px; }
+ .app-layout.no-sidebar-right { grid-template-columns: 280px 1fr 0px; }
+ .app-layout.no-sidebars { grid-template-columns: 0px 1fr 0px; }
+ .col-sidebar { background-color: var(--sidebar-bg); color: #f1f5f9; padding: 20px 15px; display: flex; flex-direction: column; border-right: 1px solid #334155; overflow: hidden; box-sizing: border-box; transition: opacity 0.2s ease, padding 0.3s ease; opacity: 1; }
+ .col-menu { background-color: #f1f5f9; border-left: 1px solid #e2e8f0; padding: 20px 15px; display: flex; flex-direction: column; gap: 12px; overflow: hidden; box-sizing: border-box; transition: opacity 0.2s ease, padding 0.3s ease; opacity: 1; }
+ .app-layout.no-sidebar-left .col-sidebar, .app-layout.no-sidebars .col-sidebar { opacity: 0; padding: 20px 0; border-right: none; }
+ .app-layout.no-sidebar-right .col-menu, .app-layout.no-sidebars .col-menu { opacity: 0; padding: 20px 0; border-left: none; }
+ .col-content-wrapper { display: flex; flex-direction: column; height: 100vh; overflow: hidden; background: var(--bg-light); position: relative; }
+ .navbar-top-actions { background: white; border-bottom: 1px solid #e2e8f0; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; min-height: 55px; box-sizing: border-box; width: 100%; gap: 10px; }
+ .col-content { padding: 25px; overflow-y: auto; flex-grow: 1; display: flex; flex-direction: column; gap: 20px; box-sizing: border-box; }
+ .col-title { font-size: 11px; font-weight: bold; text-transform: uppercase; color: #94a3b8; margin-bottom: 12px; letter-spacing: 1px; border-bottom: 1px solid #334155; padding-bottom: 8px; }
+ .search-proj-input { width: 100%; padding: 8px 10px; background: #334155; border: 1px solid #475569; border-radius: 6px; color: white; font-size: 13px; margin-bottom: 15px; outline: none; box-sizing: border-box; }
+ .search-proj-input::placeholder { color: #94a3b8; }
+ .project-item { padding: 12px 10px; border-radius: 6px; cursor: pointer; transition: all 0.2s; font-size: 13px; margin-bottom: 5px; display: flex; align-items: center; gap: 8px; color: #cbd5e1; box-sizing: border-box; }
+ .project-item:hover { background-color: #334155; color: white; }
+ .project-item.active { background-color: var(--accent-blue); color: white; font-weight: bold; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2); }
+ .project-item-text { flex-grow: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+ .project-arrow { font-size: 10px; color: #94a3b8; cursor: pointer; transition: transform 0.2s; padding: 4px; border-radius: 4px; }
+ .project-arrow:hover { background: #475569; color: white; }
+ .project-arrow.collapsed { transform: rotate(-90deg); }
+ .child-container { display: flex; flex-direction: column; }
+ .child-container.hidden { display: none; }
+ .project-child { margin-left: 20px; font-size: 12px; border-left: 2px solid #475569; padding-left: 10px; width: calc(100% - 20px); }
+ .section-card { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: var(--card-shadow); }
+ .map-card-full { width: 100%; background: white; border: 1px solid #cbd5e1; border-radius: 12px; overflow: hidden; box-shadow: var(--card-shadow); box-sizing: border-box; position: relative; }
+ .map-img-placeholder { background: #e2e8f0; display: flex; align-items: center; justify-content: center; color: #475569; font-size: 13px; font-weight: bold; min-height: 150px; text-align: center; padding: 15px; }
+ .info-table { width: 100%; border-collapse: collapse; }
+ .info-table td { padding: 10px 8px; border-bottom: 1px solid #f1f5f9; font-size: 13px; vertical-align: middle; }
+ .info-lbl { font-weight: bold; color: #64748b; width: 200px; }
+ .info-val-text { color: var(--primary-dark); font-weight: 500; }
+ .row-metrics-double { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+ .metric-box-premium { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; text-align: center; box-shadow: var(--card-shadow); display: flex; flex-direction: column; justify-content: center; min-height: 80px; }
+ .metric-title { font-size: 11px; font-weight: 800; text-transform: uppercase; color: #64748b; margin-bottom: 6px; letter-spacing: 0.5px; }
+ .metric-value { font-size: 16px; font-weight: bold; color: var(--primary-dark); }
+ .progress-container { background: #e2e8f0; border-radius: 10px; height: 8px; overflow: hidden; margin-top: 6px; width: 100%; }
+ .progress-bar { height: 100%; background: var(--accent-blue); width: 0%; transition: width 0.3s; }
+ .bloc-note-area { width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 15px; font-family: inherit; font-size: 14px; resize: none; outline: none; background: #fffdeb; box-shadow: var(--card-shadow); box-sizing: border-box; }
+ .card-nav { background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 10px; text-decoration: none; color: var(--primary-dark); display: flex; flex-direction: column; gap: 4px; transition: all 0.2s ease; box-shadow: 0 2px 4px rgb(0 0 0 / 0.02); cursor: pointer; }
+ .card-nav:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1); border-color: #cbd5e1; }
+ .card-nav-title { font-weight: bold; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+ .card-nav-desc { font-size: 11px; color: #64748b; padding-left: 18px; }
+ .btn { padding: 6px 12px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; color: white; font-size: 12px; display: inline-flex; align-items: center; gap: 5px; }
+ .btn-primary { background-color: var(--accent-blue); }
+ .btn-toggle { background: transparent; color: var(--primary-dark); font-size: 18px; padding: 4px 8px; border-radius: 4px; }
+ .btn-toggle:hover { background: #f1f5f9; }
+ .backup-box-sidebar { border-top: 1px dashed #475569; margin-top: auto; padding-top: 15px; display: flex; flex-direction: column; gap: 8px; }
+ .btn-backup { width: 100%; padding: 8px; font-size: 11px; font-weight: bold; text-transform: uppercase; border-radius: 6px; justify-content: center; }
+ </style>
+</head>
+<body>
+<div class="app-layout" id="mainAppLayout">
+ <!-- COLONNE 1 : LISTE DES PROJETS -->
+ <div class="col-sidebar">
+ <div class="col-title"> Liste des Projets 📂</div> 
+ <input type="text" id="searchProjInput" class="search-proj-input" placeholder=" Rechercher un projet..." oninput="filtrerLaListeDesProjets()">
+ <div id="listeProjetsContainer" style="overflow-y:auto; flex-grow:1; padding-right:2px;"></div>
+ 
+ <div class="backup-box-sidebar">
+ <div style="font-size: 10px; color: #94a3b8; font-weight: bold; text-transform: uppercase; text-align: center; margin-bottom: 2px;">Passerelle de secours :</div>
+ <button class="btn btn-backup" style="background: #0284c7;" onclick="exporterFichierClasseurJsonAccueil()">Exporter JSON 📤</button> 
+ <label class="btn btn-backup" style="background: #16a34a; margin: 0; cursor: pointer; color: white;">
+ Importer JSON 📥
+ <input type="file" style="display: none;" onchange="importerFichierClasseurJsonAccueil(this)">
+ </label>
+ </div>
+ </div>
+
+ <!-- COLONNE 2 : FICHE SYNTHÉTIQUE CENTRALE -->
+ <div class="col-content-wrapper">
+ <div class="navbar-top-actions">
+ <div style="display: flex; align-items: center; gap: 8px;">
+ <button class="btn btn-toggle" onclick="toggleSidebarLeft()" title="Masquer/Afficher les projets">☰</button> 
+ <button class="btn" style="background:var(--danger-red);" onclick="deconnecterSessionConsole()"> Déconnexion 🚪</button> 
+ </div>
+ <div style="font-weight:bold; font-size:14px; color:var(--primary-dark);" id="txtModuleActuelCentral">Fiche Synthétique du Projet</div>
+ <div style="display: flex; align-items: center; gap: 12px;">
+ <div style="font-size:12px; color:var(--accent-blue); font-weight:bold;" id="txtProjetActifLabelTop">PROJET SELECTIONNÉ : Aucun</div>
+ <button class="btn btn-toggle" onclick="toggleSidebarRight()" title="Masquer/Afficher les modules">☰</button> 
+ </div>
+ </div>
+ <div class="col-content">
+ <div class="map-card-full">
+ <div class="map-img-placeholder">
+ <input type="file" id="mapFileInput" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer; z-index:999;" onchange="sauvegarderPhotoEmplacement(this)">
+ <span id="mapTxt" style="z-index:10; padding:15px;"> Cliquez ici pour 📸 lier le Plan ou la Photo de l'Emplacement</span>
+ <img id="mapImgView" style="width:100%; height:100%; object-fit:contain; position:absolute; top:0; left:0; display:none; z-index:20;">
+ </div>
+ </div>
+ <div class="section-card">
+ <table class="info-table">
+ <tr><td class="info-lbl">Nom du Projet :</td><td id="lblNomProjet" class="info-val-text" style="font-size:14px; font-weight:bold; color:var(--accent-blue);">-</td></tr>
+ <tr><td class="info-lbl">Financement :</td><td id="lblFin" class="info-val-text">-</td></tr>
+ <tr><td class="info-lbl">Maître d'Ouvrage :</td><td id="lblMO" class="info-val-text">-</td></tr>
+ <tr id="rowMOD" style="display:none;"><td class="info-lbl">Maître d'Ouvrage Délégué :</td><td id="lblMOD" class="info-val-text">-</td></tr>
+ <tr><td class="info-lbl">Maître d'Œuvre :</td><td id="lblMOE" class="info-val-text">-</td></tr>
+ <tr><td class="info-lbl">Entreprise Titulaire :</td><td id="lblEnt" class="info-val-text">-</td></tr>
+ <tr><td class="info-lbl">Numéro de Contrat :</td><td id="lblNumContrat" class="info-val-text" style="font-family:monospace; font-weight:bold; color:#0284c7;">-</td></tr>
+ </table>
+ </div>
+ <div class="row-metrics-double">
+ <div class="metric-box-premium" style="border-top:4px solid var(--accent-blue);"><div class="metric-title"> Calendrier 📅 d'Exécution</div><div id="txtCalculCalendrier" style="font-size:12px; font-weight:bold; color:var(--accent-blue); line-height:1.4;">-</div></div>
+ <div class="metric-box-premium" style="border-top:4px solid var(--accent-amber);"><div class="metric-title"> Enveloppe Budgétaire 💰 Totale</div><div class="metric-value" id="txtBudgetFiche" style="font-size:15px; color:var(--primary-dark);">-</div><div id="txtDetailAvenantFiche" style="font-size:11px; color:var(--accent-amber); font-weight:bold; display:none; margin-top:3px;">-</div></div>
+ </div>
+ <div class="section-card" style="border-top:4px solid var(--success-green);">
+ <div class="metric-title" style="text-align:center; margin-bottom:8px;"> Taux d'Avancements Généraux Consolidés 📊</div> 
+ <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+ <div> Physique Global : <span id="txtPctPhy" style="font-weight:bold; float:right; color:var(--accent-blue);">0.00%</span><div class="progress-container"><div class="progress-bar" id="barPctPhy" style="background:var(--accent-blue);"></div></div></div>
+ <div> Financier Global : <span id="txtPctFin" style="font-weight:bold; float:right; color:var(--success-green);">0.00%</span><div class="progress-container"><div class="progress-bar" id="barPctFin" style="background:var(--success-green);"></div></div></div>
+ </div>
+ </div>
+ <div><div class="metric-title" style="margin-bottom:6px; color:var(--primary-dark);"> Notes de l'administration / Consignes 📌 :</div><textarea id="blocNotesAdmin" class="bloc-note-area" rows="2" placeholder="Saisir les consignes..." onchange="sauvegarderBlocNotesLocal(this.value)"></textarea></div>
+ </div>
+ </div>
+
+ <!-- COLONNE 3 : LIENS DIRECTS PASSERELLES MODULES -->
+ <div class="col-menu">
+ <div class="col-title"> Exploration Modules 🚀</div> 
+ <div class="card-nav" style="border-left:4px solid var(--accent-blue);" onclick="ouvrirVraiePageLien('4_bdqe.html')"><div class="card-nav-title"> 📊 Saisie du BDQE</div><div class="card-nav-desc">Bordereau initial</div></div>
+ <div class="card-nav" style="border-left:4px solid var(--accent-amber);" onclick="ouvrirVraiePageLien('5_avenants.html')"><div class="card-nav-title"> ➕ Suivi des Avenants</div><div class="card-nav-desc">Ajustements budgétaires</div></div>
+ <div class="card-nav" style="border-left:4px solid #64748b;" onclick="ouvrirVraiePageLien('6-planning.html')"><div class="card-nav-title"> 📅 Planning & Gantt</div><div class="card-nav-desc">Calendrier de chantier</div></div>
+ <div class="card-nav" style="border-left:4px solid var(--success-green);" onclick="ouvrirVraiePageLien('7_avancement.html')"><div class="card-nav-title"> Taux d'Avancement 📈</div><div class="card-nav-desc">Métrés réels du terrain</div></div>
+ <div class="card-nav" style="border-left:4px solid #7c3aed;" onclick="ouvrirVraiePageLien('8_ccpms.html')"><div class="card-nav-title"> GED 📂 Centrale CCPMS</div><div class="card-nav-desc">Armoire photos et PDF</div></div>
+ <div class="card-nav" style="border-left:4px solid var(--danger-red);" onclick="ouvrirVraiePageLien('9_pv.html')"><div class="card-nav-title"> 📝 Procès-Verbal de Visite</div><div class="card-nav-desc">Rapport officiel</div></div>
+ <div class="card-nav" style="border-left:4px solid var(--primary-dark); background: #f8fafc;" onclick="ouvrirVraiePageLien('10_recap.html')"><div class="card-nav-title" style="color: var(--primary-dark);"> Page 10 : Rapport 📊 Bailleurs</div><div class="card-nav-desc">Rapport Executif horizontal</div></div>
+ </div>
+</div>
+<script>
 const DB_NAME = "GenieCivilPro_DB";
 const DB_VERSION = 1;
 let dbInstance = null;
@@ -11,7 +152,6 @@ let dbInstance = null;
 function initialiserLeMeubleDB() {
     return new Promise((resolve, reject) => {
         let requete = indexedDB.open(DB_NAME, DB_VERSION);
-
         requete.onupgradeneeded = function(e) {
             let db = e.target.result;
             if (!db.objectStoreNames.contains("projets")) {
@@ -24,14 +164,12 @@ function initialiserLeMeubleDB() {
                 db.createObjectStore("dossiers_techniques");
             }
         };
-
         requete.onsuccess = function(e) {
             dbInstance = e.target.result;
             resolve(dbInstance);
         };
-
-        requete.onerror = function(e) {
-            reject("Impossible d'ouvrir le meuble de stockage.");
+        requete.onerror = function() {
+            reject("Erreur meuble");
         };
     });
 }
@@ -40,8 +178,7 @@ function lireDonneeDB(tiroir, cle) {
     return new Promise((resolve) => {
         if(!dbInstance) return resolve(null);
         let transaction = dbInstance.transaction([tiroir], "readonly");
-        let magasin = transaction.objectStore(tiroir);
-        let requete = magasin.get(cle);
+        let requete = transaction.objectStore(tiroir).get(cle);
         requete.onsuccess = () => resolve(requete.result);
         requete.onerror = () => resolve(null);
     });
@@ -51,8 +188,7 @@ function lireToutesLesDonneesDB(tiroir) {
     return new Promise((resolve) => {
         if(!dbInstance) return resolve([]);
         let transaction = dbInstance.transaction([tiroir], "readonly");
-        let magasin = transaction.objectStore(tiroir);
-        let requete = magasin.getAll();
+        let requete = transaction.objectStore(tiroir).getAll();
         requete.onsuccess = () => resolve(requete.result || []);
         requete.onerror = () => resolve([]);
     });
@@ -68,18 +204,6 @@ function ecrireDonneeDB(tiroir, objet, cleOptionnelle) {
         requete.onerror = () => resolve(false);
     });
 }
-
-function effacerDonneeDB(tiroir, cle) {
-    return new Promise((resolve) => {
-        if(!dbInstance) return resolve(false);
-        let transaction = dbInstance.transaction([tiroir], "readwrite");
-        let magasin = transaction.objectStore(tiroir);
-        let requete = magasin.delete(cle);
-        requete.onsuccess = () => resolve(true);
-        requete.onerror = () => resolve(false);
-    });
-}
-
 let listeProjetsGlobal = [];
 let idProjetActif = null;
 let etatsDossiersReplies = {};
@@ -102,13 +226,12 @@ function toggleSidebarRight() {
     else if (layout.classList.contains('no-sidebar-left')) { layout.classList.add('no-sidebars'); } 
     else { layout.classList.add('no-sidebar-right'); }
 }
-// DÉMARRAGE SÉCURISÉ : On force l'attente du meuble IndexedDB avant d'exécuter l'affichage
+
 window.onload = function() {
     if (localStorage.getItem("session_securisee_active_gc") !== "VALIDE") { 
         window.location.href = "1_login.html"; 
         return; 
     }
- 
     initialiserLeMeubleDB().then(async () => {
         if (userRoleActuel === "admin") {
             let navbar = document.querySelector('.navbar-top-actions');
@@ -121,7 +244,6 @@ window.onload = function() {
                 navbar.insertBefore(btnAdmin, navbar.firstChild);
             }
         }
-     
         if (userRoleActuel === "agents") {
             document.querySelectorAll('.col-menu .card-nav').forEach(carte => {
                 let act = carte.getAttribute('onclick') || "";
@@ -130,20 +252,13 @@ window.onload = function() {
                 }
             });
         }
-     
         listeProjetsGlobal = await lireToutesLesDonneesDB("projets");
-        
         if(listeProjetsGlobal.length > 0) {
-            idProjetActif = localStorage.getItem("id_projet_actif_lee") || String(listeProjetsGlobal[0].id);
+            idProjetActif = localStorage.getItem("id_projet_actif_lee") || String(listeProjetsGlobal.id);
             listeProjetsGlobal.forEach(p => { if(p.type === 'PAPA') etatsDossiersReplies[p.id] = false; });
         }
-
         renderProjetsSidebar(); 
-        if(idProjetActif) {
-            await chargerFicheProjetSelectionne();
-        }
-    }).catch(err => {
-        alert("Erreur critique de démarrage : " + err);
+        if(idProjetActif) { await chargerFicheProjetSelectionne(); }
     });
 };
 
@@ -151,13 +266,11 @@ function renderProjetsSidebar() {
     let container = document.getElementById('listeProjetsContainer'); 
     if(!container) return; 
     container.innerHTML = "";
-    
     let racines = listeProjetsGlobal.filter(p => p.type === 'PAPA' || p.type === 'CLASSIQUE');
     if(racines.length === 0) {
-        container.innerHTML = "<div style='padding:20px; font-size:13px; color:#94a3b8; text-align:center;'>Aucun projet. Allez dans 'Paramètres Admin' pour importer votre fichier JSON de travail.</div>";
+        container.innerHTML = "<div style='padding:20px; font-size:13px; color:#94a3b8; text-align:center;'>Aucun projet. Allez dans Admin pour importer votre JSON.</div>";
         return;
     }
-    
     racines.forEach(r => {
         if (userRoleActuel !== "admin" && userRoleActuel !== "cadres" && !userLotsAutorises.includes(String(r.id))) {
             if (!listeProjetsGlobal.some(e => e.type === 'ENFANT' && e.parentId == r.id && userLotsAutorises.includes(String(e.id)))) return;
@@ -169,7 +282,6 @@ function renderProjetsSidebar() {
         blockParent.className = `project-item ${estActif}`; 
         blockParent.innerHTML = `<span onclick="selectionnerProjetLigne(${r.id})">${icone}</span><span class="project-item-text" onclick="selectionnerProjetLigne(${r.id})">${r.nom}</span>${flecheHTML}`;
         container.appendChild(blockParent);
-        
         if (r.type === 'PAPA') {
             let childContainer = document.createElement('div'); 
             childContainer.className = "child-container" + (etatsDossiersReplies[r.id] ? ' hidden' : '');
@@ -197,19 +309,17 @@ async function selectionnerProjetLigne(id) {
     renderProjetsSidebar(); 
     await chargerFicheProjetSelectionne(); 
 }
+
 async function chargerFicheProjetSelectionne() {
     if (!idProjetActif || listeProjetsGlobal.length === 0) return;
     let p = listeProjetsGlobal.find(i => i.id == idProjetActif); 
     if(!p) return;
-    
     let d = await lireDonneeDB("dossiers_techniques", `charte_administrative_${idProjetActif}`) || {};
     let m = {};
     if (p.type === "ENFANT" && p.parentId) {
         m = await lireDonneeDB("dossiers_techniques", `charte_administrative_${p.parentId}`) || {};
     }
-    
     let nomProjetAffiche = p.type === "ENFANT" ? `${(listeProjetsGlobal.find(i => i.id == p.parentId)?.nom || m.objet || "").toUpperCase()} — (${p.nom.toUpperCase()})` : p.nom.toUpperCase();
- 
     document.getElementById('txtProjetActifLabelTop').innerText = "PROJET SÉLECTIONNÉ : " + p.nom.toUpperCase();
     document.getElementById('lblNomProjet').innerText = nomProjetAffiche;
     document.getElementById('lblFin').innerText = d.financement || m.financement || "-";
@@ -217,52 +327,39 @@ async function chargerFicheProjetSelectionne() {
     document.getElementById('lblMOE').innerText = d.moe || m.moe || "-";
     document.getElementById('lblEnt').innerText = d.entreprise || m.entreprise || "-";
     document.getElementById('lblNumContrat').innerText = d.numContrat || m.numContrat || "-";
-    
     let zoneNotes = document.getElementById('blocNotesAdmin');
     if (zoneNotes) {
         zoneNotes.value = p.bloc_notes || "";
         if (userRoleActuel !== "admin" && userRoleActuel !== "cadres") { 
-            zoneNotes.readOnly = true; 
-            zoneNotes.style.background = "#f1f5f9"; 
-            zoneNotes.placeholder = " Lecture seule 🔒"; 
+            zoneNotes.readOnly = true; zoneNotes.style.background = "#f1f5f9"; zoneNotes.placeholder = "Lecture seule"; 
         } else { 
-            zoneNotes.readOnly = false; 
-            zoneNotes.style.background = "#fffdeb"; 
+            zoneNotes.readOnly = false; zoneNotes.style.background = "#fffdeb"; 
         }
     }
-    
     let imgView = document.getElementById('mapImgView'); 
     let txtMapPlaceholder = document.getElementById('mapTxt');
     if(p.photoEmplacement && p.photoEmplacement.trim() !== "") { 
-        imgView.src = p.photoEmplacement; 
-        imgView.style.display = "block"; 
-        txtMapPlaceholder.style.display = "none"; 
+        imgView.src = p.photoEmplacement; imgView.style.display = "block"; txtMapPlaceholder.style.display = "none"; 
     } else { 
-        imgView.style.display = "none"; 
-        txtMapPlaceholder.style.display = "block"; 
+        imgView.style.display = "none"; txtMapPlaceholder.style.display = "block"; 
     }
     await lancerCalculsConsolidationFiche(p);
 }
-
 async function lancerCalculsConsolidationFiche(p) {
     let totalInitial = 0; let totalAvenants = 0; let totalLignesSuivi = 0; 
     let sumPhyRatio = 0; let mntMarchatTotal = 0; let mntRealiseTotal = 0; 
     let dateMinProjet = null; let dateMaxProjet = null;
- 
     let chantiers = [p]; 
     if (p.type === "PAPA") {
         chantiers = chantiers.concat(listeProjetsGlobal.filter(item => item.type === "ENFANT" && item.parentId == p.id));
     }
-    
     for (let c of chantiers) {
         let dataBdqe = await lireDonneeDB("dossiers_techniques", `bdqe_${c.id}`) || [];
         let dataAvenants = await lireDonneeDB("dossiers_techniques", `avenants_${c.id}`) || [];
         let dataPlanning = await lireDonneeDB("dossiers_techniques", `planning_${c.id}`) || [];
         let dataSuivi = await lireDonneeDB("dossiers_techniques", `suivi_${c.id}`) || [];
-
         dataBdqe.forEach(i => totalInitial += (i.total || 0)); 
         dataAvenants.forEach(i => totalAvenants += (i.total_av || 0));
-        
         dataPlanning.forEach(item => { 
             if (item.date_debut && item.date_fin) { 
                 let d1 = new Date(item.date_debut); let d2 = new Date(item.date_fin); 
@@ -270,27 +367,22 @@ async function lancerCalculsConsolidationFiche(p) {
                 if (!dateMaxProjet || d2 > dateMaxProjet) dateMaxProjet = d2; 
             } 
         });
-        
         dataSuivi.forEach(item => { 
             if (item.quantite_contrat > 0) { 
                 totalLignesSuivi++; 
                 let pL = Math.min((item.qte_realisee / item.quantite_contrat) * 100, 100); 
-                sumPhyRatio += pL; 
-                mntMarchatTotal += (item.total_contrat || 0); 
+                sumPhyRatio += pL; mntMarchatTotal += (item.total_contrat || 0); 
                 mntRealiseTotal += ((item.total_contrat || 0) * (pL / 100)); 
             } 
         });
     }
- 
     document.getElementById('txtBudgetFiche').innerText = totalInitial > 0 ? (totalInitial + totalAvenants).toLocaleString('fr-FR', {minimumFractionDigits:2}) + " Ar" : "0,00 Ar";
     let rowAvLbl = document.getElementById('txtDetailAvenantFiche'); 
     if(totalAvenants !== 0) { 
-        rowAvLbl.innerText = `Dont Avenants : ${totalAvenants >= 0 ? '+':''}${totalAvenants.toLocaleString('fr-FR')} Ar`; 
-        rowAvLbl.style.display = "block"; 
+        rowAvLbl.innerText = `Dont Avenants : ${totalAvenants >= 0 ? '+':''}${totalAvenants.toLocaleString('fr-FR')} Ar`; rowAvLbl.style.display = "block"; 
     } else { 
         rowAvLbl.style.display = "none"; 
     }
-    
     if (dateMinProjet && dateMaxProjet) {
         let auj = new Date(); 
         let dTotale = Math.ceil(Math.abs(dateMaxProjet - dateMinProjet) / (1000*60*60*24)) + 1; 
@@ -299,7 +391,6 @@ async function lancerCalculsConsolidationFiche(p) {
     } else { 
         document.getElementById('txtCalculCalendrier').innerText = "Aucun calendrier planifié."; 
     }
-    
     let tPhy = totalLignesSuivi > 0 ? (sumPhyRatio / totalLignesSuivi) : 0; 
     let tFin = mntMarchatTotal > 0 ? (mntRealiseTotal / mntMarchatTotal) * 100 : 0;
     document.getElementById('txtPctPhy').innerText = tPhy.toFixed(2) + "%"; 
@@ -307,6 +398,7 @@ async function lancerCalculsConsolidationFiche(p) {
     document.getElementById('txtPctFin').innerText = tFin.toFixed(2) + "%"; 
     document.getElementById('barPctFin').style.width = tFin + "%";
 }
+
 function filtrerLaListeDesProjets() {
     let motCle = document.getElementById('searchProjInput').value.toLowerCase().trim();
     document.querySelectorAll('#listeProjetsContainer .project-item').forEach(item => { 
@@ -315,27 +407,20 @@ function filtrerLaListeDesProjets() {
 }
 
 function ouvrirVraiePageLien(fichierHtml) { 
-    if(!idProjetActif) return alert("Sélectionnez d'abord un projet à gauche !"); 
+    if(!idProjetActif) return alert("Sélectionnez d'abord un projet !"); 
     localStorage.setItem("id_projet_en_cours_de_saisie_temporaire", idProjetActif); 
     window.location.href = fichierHtml; 
 }
 
 function deconnecterSessionConsole() { 
-    if(confirm(" Souhaitez-vous fermer votre session ? ")) { 
-        localStorage.removeItem("session_securisee_active_gc"); 
-        localStorage.removeItem("session_user_login"); 
-        localStorage.removeItem("session_user_role"); 
-        localStorage.removeItem("session_user_lots"); 
-        window.location.href = "1_login.html"; 
+    if(confirm("Fermer la session ?")) { 
+        localStorage.removeItem("session_securisee_active_gc"); window.location.href = "1_login.html"; 
     } 
 }
 
 async function sauvegarderBlocNotesLocal(valeur) { 
     let p = listeProjetsGlobal.find(i => i.id == idProjetActif); 
-    if(p) { 
-        p.bloc_notes = valeur; 
-        await ecrireDonneeDB("projets", p);
-    } 
+    if(p) { p.bloc_notes = valeur; await ecrireDonneeDB("projets", p); } 
 }
 
 async function sauvegarderPhotoEmplacement(input) { 
@@ -344,21 +429,17 @@ async function sauvegarderPhotoEmplacement(input) {
         reader.onload = async function(e) { 
             let imgData = e.target.result; 
             let p = listeProjetsGlobal.find(i => i.id == idProjetActif); 
-            if(p) { 
-                p.photoEmplacement = imgData; 
-                await ecrireDonneeDB("projets", p);
-            } 
+            if(p) { p.photoEmplacement = imgData; await ecrireDonneeDB("projets", p); } 
             let listC = await lireDonneeDB("dossiers_techniques", `ccpms_${idProjetActif}`) || [];
             listC.unshift({
                 id: Date.now(), categorie: "Photos", dateDoc: new Date().toISOString().substring(0,10), 
-                titre: `[Fiche] - Emplacement : ${p.nom}`, description: `Plan mémorisé.`, 
-                fichierBrut: imgData, nomFichier: `Emplacement_${p.nom}.jpg`, typeMime: "image/jpeg" 
+                titre: `Emplacement : ${p.nom}`, description: `Plan.`, fichierBrut: imgData
             }); 
             await ecrireDonneeDB("dossiers_techniques", listC, `ccpms_${idProjetActif}`); 
             document.getElementById('mapImgView').src = imgData; 
             document.getElementById('mapImgView').style.display = "block"; 
             document.getElementById('mapTxt').style.display = "none"; 
-            alert(" Succès ! "); 
+            alert("Succès"); 
         }; 
         reader.readAsDataURL(input.files); 
     } 
@@ -367,7 +448,6 @@ async function sauvegarderPhotoEmplacement(input) {
 async function exporterFichierClasseurJsonAccueil() {
     let projets = await lireToutesLesDonneesDB("projets");
     let utilisateurs = await lireToutesLesDonneesDB("utilisateurs");
-    
     let toutesLesChartes = {}; let bdqeIsolees = {}; let ccpmsIsolees = {}; let suiviIsolees = {}; let planningIsolees = {};
     for (let p of projets) {
         let charte = await lireDonneeDB("dossiers_techniques", `charte_administrative_${p.id}`); if(charte) toutesLesChartes[p.id] = charte;
@@ -376,16 +456,11 @@ async function exporterFichierClasseurJsonAccueil() {
         let suivi = await lireDonneeDB("dossiers_techniques", `suivi_${p.id}`); if(suivi) suiviIsolees[p.id] = suivi;
         let planning = await lireDonneeDB("dossiers_techniques", `planning_${p.id}`); if(planning) planningIsolees[p.id] = planning;
     }
-
-    let paquetGlobalData = { 
-        dateExport: new Date().toISOString(), projets: projets, utilisateurs: utilisateurs, 
-        chartesIsolees: toutesLesChartes, bdqeIsolees: bdqeIsolees, ccpmsIsolees: ccpmsIsolees, suiviIsolees: suiviIsolees, planningIsolees: planningIsolees
-    };
-    
+    let paquetGlobalData = { dateExport: new Date().toISOString(), projets, utilisateurs, chartesIsolees, bdqeIsolees, ccpmsIsolees, suiviIsolees, planningIsolees };
     let blob = new Blob([JSON.stringify(paquetGlobalData, null, 2)], { type: "application/json" });
     let lien = document.createElement("a"); lien.href = URL.createObjectURL(blob); lien.download = `GENIE_CIVIL_PRO_DATABASE_MASTER.json`;
     document.body.appendChild(lien); lien.click(); document.body.removeChild(lien);
-    alert(" Succès ! Base globale compilée localement depuis IndexedDB."); 
+    alert("Base exportée avec succès !"); 
 }
 
 async function importerFichierClasseurJsonAccueil(input) {
@@ -394,29 +469,26 @@ async function importerFichierClasseurJsonAccueil(input) {
         reader.onload = async function(e) {
             try {
                 let paquet = JSON.parse(e.target.result);
-                if (!paquet.projets) return alert(" Fichier JSON invalide."); 
- 
-                if (confirm(" ATTENTION : Écraser tout le contenu du Meuble IndexedDB par ce fichier ?")) {
-                    await dbInstance.transaction(["projets"], "readwrite").objectStore("projets").clear();
-                    await dbInstance.transaction(["utilisateurs"], "readwrite").objectStore("utilisateurs").clear();
-                    await dbInstance.transaction(["dossiers_techniques"], "readwrite").objectStore("dossiers_techniques").clear();
-
+                if (!paquet.projets) return alert("Fichier invalide."); 
+                if (confirm("Écraser tout le contenu par ce fichier JSON ?")) {
+                    await initialiserLeMeubleDB();
+                    let tx1 = dbInstance.transaction(["projets"], "readwrite"); await tx1.objectStore("projets").clear();
+                    let tx2 = dbInstance.transaction(["utilisateurs"], "readwrite"); await tx2.objectStore("utilisateurs").clear();
+                    let tx3 = dbInstance.transaction(["dossiers_techniques"], "readwrite"); await tx3.objectStore("dossiers_techniques").clear();
                     for(let prj of paquet.projets) { await ecrireDonneeDB("projets", prj); }
                     if (paquet.utilisateurs) { for(let usr of paquet.utilisateurs) { await ecrireDonneeDB("utilisateurs", usr); } }
- 
                     if (paquet.chartesIsolees) { for (let id in paquet.chartesIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.chartesIsolees[id], `charte_administrative_${id}`); }
                     if (paquet.bdqeIsolees) { for (let id in paquet.bdqeIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.bdqeIsolees[id], `bdqe_${id}`); }
                     if (paquet.ccpmsIsolees) { for (let id in paquet.ccpmsIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.ccpmsIsolees[id], `ccpms_${id}`); }
                     if (paquet.suiviIsolees) { for (let id in paquet.suiviIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.suiviIsolees[id], `suivi_${id}`); }
                     if (paquet.planningIsolees) { for (let id in paquet.planningIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.planningIsolees[id], `planning_${id}`); }
- 
-                    alert(" Base globale restaurée avec succès !"); window.location.reload();
+                    alert("Restauration réussie !"); window.location.reload();
                 }
-            } catch (err) { alert(" Erreur de lecture du fichier JSON."); }
+            } catch (err) { alert("Erreur JSON"); }
         };
         reader.readAsText(input.files);
     }
 }
 </script>
-
-</script>
+</body>
+</html>
