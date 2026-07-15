@@ -52,40 +52,47 @@
 <body>
 <div class="gantt-container">
  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; flex-shrink: 0;">
- <h1 style="margin:0;">Module 6 : Calendrier d'Exécution & Avancement Gantt 📅</h1>
- <button class="btn btn-secondary" onclick="window.location.href='3_accueil.html'">« Retour Accueil</button>
+  <h1 style="margin:0;">Module 6 : Calendrier d'Exécution & Avancement Gantt 📅</h1>
+  <button class="btn btn-secondary" onclick="window.location.href='3_accueil.html'">« Retour Accueil</button>
  </div>
- <button class="toggle-form-btn" onclick="basculerAffichageFormulaireTiroir()">Ouvrir les Outils de Planification 🛠</button>
+ <button class="toggle-form-btn" onclick="basculerAffichageFormulaireTiroir()">Ouvrir les Outils de Planification Globale 🛠️</button>
+ 
+ <!-- TIROIR DES INJECTIONS RAPIDES DE MASSES -->
  <div class="form-group" id="formPlanningLigne">
- <div class="form-field" style="grid-column: span 2;"><label>Grand Ouvrage / Site</label><input type="text" id="inOuvrage" placeholder="Ex: Terrassement"></div>
- <div class="form-field"><label>Code Tâche</label><input type="text" id="inCode" placeholder="Ex: 1.1"></div>
- <div class="form-field" style="grid-column: span 2;"><label>Désignation de l'Activité</label><input type="text" id="inDesignation" placeholder="Ex: Décapage du sol"></div>
- <div class="form-field"><label>Date Début</label><input type="date" id="inDebut"></div>
- <div class="form-field"><label>Date Fin Contractuelle</label><input type="date" id="inFin"></div>
- <div class="form-field" style="justify-content: flex-end;"><button class="btn btn-primary" onclick="ajouterNouvelleTacheManuelle()">Planifier Tâche ➕</button></div>
+  <div style="grid-column: 1 / -1; font-weight: bold; color: var(--accent-blue); border-bottom: 1px dashed var(--border-color); padding-bottom: 5px; margin-bottom: 5px;">
+   Injection automatique de dates par lots de tâches
+  </div>
+  <div class="form-field"><label>Date Début Globale</label><input type="date" id="bulkDebut"></div>
+  <div class="form-field"><label>Date Fin Globale</label><input type="date" id="bulkFin"></div>
+  <div style="grid-column: span 3; display: flex; gap: 8px; justify-content: flex-end;">
+   <button class="btn" style="background:#0284c7;" onclick="appliquerDatesEnMasse('projet')">Tout le Projet 🌍</button>
+   <button class="btn" style="background:var(--accent-amber);" onclick="appliquerDatesEnMasse('ouvrage')">Par Ouvrage Actif 🏗️</button>
+  </div>
  </div>
+
  <div class="filter-section">
- <div class="filter-title">🔍 Segment : Filtrer le Calendrier par Ouvrage</div>
- <div class="segment-container" id="boxSegmentsOuvragesPlanning" style="overflow-x:auto; white-space:nowrap; flex-wrap:nowrap; padding-bottom:3px;"></div>
+  <div class="filter-title">🔍 Segment : Filtrer le Calendrier par Ouvrage</div>
+  <div class="segment-container" id="boxSegmentsOuvragesPlanning" style="overflow-x:auto; white-space:nowrap; flex-wrap:nowrap; padding-bottom:3px;"></div>
  </div>
  <div class="workspace-table-scroll">
- <table id="tablePlanningGantt">
- <thead>
- <tr>
- <th style="width:180px;">Ouvrage / Site</th>
- <th style="width:75px;">Code</th>
- <th>Désignation de la Tâche</th>
- <th style="width:100px;">Début</th>
- <th style="width:100px;">Fin Prévue</th>
- <th style="width:90px; text-align:center;">Durée (J)</th>
- <th style="width:180px;">Visualisation Chronologique Gantt</th>
- <th style="width:45px; text-align:center;" class="col-action-modification">Action</th>
- </tr>
- </thead>
- <tbody id="tbodyPlanningGrid"></tbody>
- </table>
+  <table id="tablePlanningGantt">
+   <thead>
+    <tr>
+     <th style="width:180px;">Ouvrage / Site</th>
+     <th style="width:75px;">Code</th>
+     <th>Désignation de la Tâche</th>
+     <th style="width:100px;">Début</th>
+     <th style="width:100px;">Fin Prévue</th>
+     <th style="width:90px; text-align:center;">Durée (J)</th>
+     <th style="width:180px;">Visualisation Chronologique Gantt</th>
+     <th style="width:45px; text-align:center;" class="col-action-modification">Origine</th>
+    </tr>
+   </thead>
+   <tbody id="tbodyPlanningGrid"></tbody>
+  </table>
  </div>
 </div>
+
 <script>
 const DB_NAME = "GenieCivilPro_DB";
 const DB_VERSION = 1;
@@ -156,15 +163,10 @@ window.onload = function() {
             window.modeLectureSeuleActive = true;
         }
         
-        // 1. On va lire le planning enregistré
         let planningSauve = await lireDonneeDB("dossiers_techniques", CLE_PLANNING_PROJET) || [];
-        
-        // 2. MAGIE : On va lire le BDQE initial que tu viens de remplir !
         let bdqeInitial = await lireDonneeDB("dossiers_techniques", CLE_BDQE_PROJET) || [];
         
-        // 3. On fusionne : pour chaque ligne de ton BDQE, on prépare une ligne de planning
         listePlanning = bdqeInitial.map(ligneBdqe => {
-            // Si on avait déjà enregistré des dates pour ce code, on les garde
             let ancienneTache = planningSauve.find(p => p.code_gantt === ligneBdqe.code_bdqe);
             return {
                 ouvrage: ligneBdqe.ouvrage,
@@ -201,7 +203,32 @@ async function modifierDatesTacheInline(index, champ, valeur) {
     if(window.modeLectureSeuleActive) return;
     listePlanning[index][champ] = valeur;
     await ecrireDonneeDB("dossiers_techniques", listePlanning, CLE_PLANNING_PROJET);
-    // On relance le Gantt pour redessiner les barres bleues instantanément
+    afficherGrillePlanningGantt();
+}
+
+// LA FONCTION TANT RECHERCHÉE : Injection rapide en un clic !
+async function appliquerDatesEnMasse(type) {
+    if(window.modeLectureSeuleActive) return;
+    let deb = document.getElementById('bulkDebut').value;
+    let fin = document.getElementById('bulkFin').value;
+    if(!deb || !fin) return alert("Veuillez sélectionner une date de début et de fin dans la console.");
+
+    let compteur = 0;
+    listePlanning.forEach(item => {
+        if (type === 'projet') {
+            item.date_debut = deb; item.date_fin = fin; compteur++;
+        } else if (type === 'ouvrage' && item.ouvrage === filtreOuvrageActif) {
+            item.date_debut = deb; item.date_fin = fin; compteur++;
+        }
+    });
+
+    if (compteur === 0 && type === 'ouvrage') {
+        return alert("Aucune tâche modifiée. Assurez-vous d'avoir sélectionné une pastille d'Ouvrage spécifique en dessous (pas 'TOUS').");
+    }
+
+    await ecrireDonneeDB("dossiers_techniques", listePlanning, CLE_PLANNING_PROJET);
+    alert(`Succès : Dates appliquées à ${compteur} tâches simultanément.`);
+    basculerAffichageFormulaireTiroir();
     afficherGrillePlanningGantt();
 }
 async function rechargerTout() {
