@@ -1,30 +1,25 @@
 <!-- Bibliothèque Supabase retirée pour isolation locale totale -->
-<script>
 /**
  * =========================================================================
- * MOTEUR MAGIQUE : INDEXEDDB (LE GRAND MEUBLE DE RANGEMENT)
+ * MOTEUR CORRIGÉ : INDEXEDDB (OUVERTURE AVANT L'AFFICHAGE)
  * =========================================================================
  */
 const DB_NAME = "GenieCivilPro_DB";
 const DB_VERSION = 1;
 let dbInstance = null;
 
-// Fonction pour ouvrir le meuble et fabriquer les 3 tiroirs
 function initialiserLeMeubleDB() {
     return new Promise((resolve, reject) => {
         let requete = indexedDB.open(DB_NAME, DB_VERSION);
 
         requete.onupgradeneeded = function(e) {
             let db = e.target.result;
-            // Tiroir 1 : Les projets
             if (!db.objectStoreNames.contains("projets")) {
                 db.createObjectStore("projets", { keyPath: "id" });
             }
-            // Tiroir 2 : Les utilisateurs
             if (!db.objectStoreNames.contains("utilisateurs")) {
                 db.createObjectStore("utilisateurs", { keyPath: "id" });
             }
-            // Tiroir 3 : Les dossiers techniques
             if (!db.objectStoreNames.contains("dossiers_techniques")) {
                 db.createObjectStore("dossiers_techniques");
             }
@@ -41,9 +36,9 @@ function initialiserLeMeubleDB() {
     });
 }
 
-// Outils pour ranger et lire dans le meuble magique
 function lireDonneeDB(tiroir, cle) {
     return new Promise((resolve) => {
+        if(!dbInstance) return resolve(null);
         let transaction = dbInstance.transaction([tiroir], "readonly");
         let magasin = transaction.objectStore(tiroir);
         let requete = magasin.get(cle);
@@ -54,6 +49,7 @@ function lireDonneeDB(tiroir, cle) {
 
 function lireToutesLesDonneesDB(tiroir) {
     return new Promise((resolve) => {
+        if(!dbInstance) return resolve([]);
         let transaction = dbInstance.transaction([tiroir], "readonly");
         let magasin = transaction.objectStore(tiroir);
         let requete = magasin.getAll();
@@ -64,6 +60,7 @@ function lireToutesLesDonneesDB(tiroir) {
 
 function ecrireDonneeDB(tiroir, objet, cleOptionnelle) {
     return new Promise((resolve) => {
+        if(!dbInstance) return resolve(false);
         let transaction = dbInstance.transaction([tiroir], "readwrite");
         let magasin = transaction.objectStore(tiroir);
         let requete = cleOptionnelle !== undefined ? magasin.put(objet, cleOptionnelle) : magasin.put(objet);
@@ -74,6 +71,7 @@ function ecrireDonneeDB(tiroir, objet, cleOptionnelle) {
 
 function effacerDonneeDB(tiroir, cle) {
     return new Promise((resolve) => {
+        if(!dbInstance) return resolve(false);
         let transaction = dbInstance.transaction([tiroir], "readwrite");
         let magasin = transaction.objectStore(tiroir);
         let requete = magasin.delete(cle);
@@ -81,11 +79,7 @@ function effacerDonneeDB(tiroir, cle) {
         requete.onerror = () => resolve(false);
     });
 }
-/**
- * =========================================================================
- * LOGIQUE APPLICATION : COMPTES ET COMPORTEMENT DE L'INTERFACE
- * =========================================================================
- */
+
 let listeProjetsGlobal = [];
 let idProjetActif = null;
 let etatsDossiersReplies = {};
@@ -108,51 +102,49 @@ function toggleSidebarRight() {
     else if (layout.classList.contains('no-sidebar-left')) { layout.classList.add('no-sidebars'); } 
     else { layout.classList.add('no-sidebar-right'); }
 }
-
-// DÉMARRAGE DE L'APPLICATION (Asynchrone et propre)
-window.onload = async function() {
+// DÉMARRAGE SÉCURISÉ : On force l'attente du meuble IndexedDB avant d'exécuter l'affichage
+window.onload = function() {
     if (localStorage.getItem("session_securisee_active_gc") !== "VALIDE") { 
         window.location.href = "1_login.html"; 
         return; 
     }
  
-    // 1. Activation du stockage local géant
-    await initialiserLeMeubleDB();
- 
-    // 2. Bouton d'accès Administrateur
-    if (userRoleActuel === "admin") {
-        let navbar = document.querySelector('.navbar-top-actions');
-        if (navbar) {
-            let btnAdmin = document.createElement('button'); 
-            btnAdmin.className = "btn btn-primary"; 
-            btnAdmin.style.cssText = "background:var(--accent-amber); padding:6px 12px; font-size:11px; cursor:pointer;";
-            btnAdmin.innerText = "Paramètres Admin ";
-            btnAdmin.onclick = function() { window.location.href = "2_admin.html"; };
-            navbar.insertBefore(btnAdmin, navbar.firstChild);
-        }
-    }
- 
-    if (userRoleActuel === "agents") {
-        document.querySelectorAll('.col-menu .card-nav').forEach(carte => {
-            let act = carte.getAttribute('onclick') || "";
-            if (!act.includes('7_avancement.html') && !act.includes('8_ccpms.html') && !act.includes('9_pv.html') && !act.includes('10_recap.html')) { 
-                carte.style.display = "none"; 
+    initialiserLeMeubleDB().then(async () => {
+        if (userRoleActuel === "admin") {
+            let navbar = document.querySelector('.navbar-top-actions');
+            if (navbar) {
+                let btnAdmin = document.createElement('button'); 
+                btnAdmin.className = "btn btn-primary"; 
+                btnAdmin.style.cssText = "background:var(--accent-amber); padding:6px 12px; font-size:11px; cursor:pointer;";
+                btnAdmin.innerText = "Paramètres Admin ";
+                btnAdmin.onclick = function() { window.location.href = "2_admin.html"; };
+                navbar.insertBefore(btnAdmin, navbar.firstChild);
             }
-        });
-    }
- 
-    // CHARGEMENT DES PROJETS (Les faux exemples parasites ont été retirés)
-    listeProjetsGlobal = await lireToutesLesDonneesDB("projets");
-    
-    if(listeProjetsGlobal.length > 0) {
-        idProjetActif = localStorage.getItem("id_projet_actif_lee") || String(listeProjetsGlobal[0].id);
-        listeProjetsGlobal.forEach(p => { if(p.type === 'PAPA') etatsDossiersReplies[p.id] = false; });
-    }
+        }
+     
+        if (userRoleActuel === "agents") {
+            document.querySelectorAll('.col-menu .card-nav').forEach(carte => {
+                let act = carte.getAttribute('onclick') || "";
+                if (!act.includes('7_avancement.html') && !act.includes('8_ccpms.html') && !act.includes('9_pv.html') && !act.includes('10_recap.html')) { 
+                    carte.style.display = "none"; 
+                }
+            });
+        }
+     
+        listeProjetsGlobal = await lireToutesLesDonneesDB("projets");
+        
+        if(listeProjetsGlobal.length > 0) {
+            idProjetActif = localStorage.getItem("id_projet_actif_lee") || String(listeProjetsGlobal[0].id);
+            listeProjetsGlobal.forEach(p => { if(p.type === 'PAPA') etatsDossiersReplies[p.id] = false; });
+        }
 
-    renderProjetsSidebar(); 
-    if(idProjetActif) {
-        await chargerFicheProjetSelectionne();
-    }
+        renderProjetsSidebar(); 
+        if(idProjetActif) {
+            await chargerFicheProjetSelectionne();
+        }
+    }).catch(err => {
+        alert("Erreur critique de démarrage : " + err);
+    });
 };
 
 function renderProjetsSidebar() {
@@ -161,6 +153,11 @@ function renderProjetsSidebar() {
     container.innerHTML = "";
     
     let racines = listeProjetsGlobal.filter(p => p.type === 'PAPA' || p.type === 'CLASSIQUE');
+    if(racines.length === 0) {
+        container.innerHTML = "<div style='padding:20px; font-size:13px; color:#94a3b8; text-align:center;'>Aucun projet. Allez dans 'Paramètres Admin' pour importer votre fichier JSON de travail.</div>";
+        return;
+    }
+    
     racines.forEach(r => {
         if (userRoleActuel !== "admin" && userRoleActuel !== "cadres" && !userLotsAutorises.includes(String(r.id))) {
             if (!listeProjetsGlobal.some(e => e.type === 'ENFANT' && e.parentId == r.id && userLotsAutorises.includes(String(e.id)))) return;
@@ -420,4 +417,6 @@ async function importerFichierClasseurJsonAccueil(input) {
         reader.readAsText(input.files);
     }
 }
+</script>
+
 </script>
