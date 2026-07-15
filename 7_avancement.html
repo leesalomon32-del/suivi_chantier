@@ -157,12 +157,14 @@ window.onload = function() {
             }
         });
         
-        if (suiviSauve) {
+        // SÉCURITÉ : Si un historique existe, on injecte les valeurs saisies à leur place exacte
+        if (suiviSauve && suiviSauve.length > 0) {
             listeFusionnee.forEach(item => {
                 let exLigne = suiviSauve.find(h => h.code_bdqe === item.code_bdqe && h.designation === item.designation);
                 if(exLigne) item.qte_realisee = exLigne.qte_realisee;
             });
         }
+        
         listeAvancement = listeFusionnee;
         trierDonnees(); genererSegments(); afficherTableauSuivi(); calculerTauxGlobauxDashboard();
     });
@@ -178,8 +180,7 @@ function trierDonnees() {
         return 0;
     });
 }
-
-// ALGORITHME FLUIDE RÉPARÉ : Sauvegarde asynchrone sans écraser le curseur de texte de l'agent
+// CORRECTION : Utilisation de l'événement ONCHANGE pour figer la donnée uniquement à la validation
 async function modifierQuantiteRealisee(index, valeur, inputElement) {
     let item = listeAvancement[index];
     let valNettoyee = valeur.trim() === "" ? 0 : parseFloat(valeur.replace(/\s/g, '').replace(',', '.')) || 0;
@@ -187,12 +188,10 @@ async function modifierQuantiteRealisee(index, valeur, inputElement) {
     
     item.qte_realisee = valNettoyee;
     
-    // 1. Mise à jour instantanée du montant consommé sur la ligne sans recharger le tableau
     let mntConsomme = valNettoyee * (item.prix_unitaire || 0);
     let tdConsomme = inputElement.closest('tr').querySelector('.cell-consomme');
     if(tdConsomme) tdConsomme.innerText = formatArgent(mntConsomme) + " Ar";
     
-    // 2. Mise à jour du badge de pourcentage de la ligne
     let tdBadge = inputElement.closest('tr').querySelector('.cell-badge');
     if(tdBadge && item.quantite_contrat > 0) {
         let pct = (valNettoyee / item.quantite_contrat) * 100;
@@ -200,14 +199,13 @@ async function modifierQuantiteRealisee(index, valeur, inputElement) {
         tdBadge.innerHTML = `<span class="badge-percent ${clr}">${pct.toFixed(2)} %</span>`;
     }
     
-    // 3. Calcul global des jauges du haut et mémorisation DB en tâche de fond
     calculerTauxGlobauxDashboard();
+    // Sauvegarde physique immédiate et définitive dans le meuble DB
     await ecrireDonneeDB("dossiers_techniques", listeAvancement, cleStockageSuivi);
 }
 
 function genererSegments() {
     let uniqueOuvrages = ["TOUS", ...new Set(listeAvancement.map(item => item.ouvrage).filter(Boolean))];
-    let uniqueStructures = ["TOUS", ...new Set(listeAvancement.map(item => item.structure).filter(Boolean))];
     let containerOuvrage = document.getElementById('segmentOuvrages'); containerOuvrage.innerHTML = "";
     uniqueOuvrages.forEach(ouv => {
         let btn = document.createElement('button'); btn.className = `segment-btn ${filtreOuvrageActif === ouv ? 'active' : ''}`; btn.innerText = ouv;
@@ -215,7 +213,7 @@ function genererSegments() {
     });
     let containerStructure = document.getElementById('segmentStructures'); containerStructure.innerHTML = "";
     let sub = filtreOuvrageActif === "TOUS" ? listeAvancement : listeAvancement.filter(item => item.ouvrage === filtreOuvrageActif);
-    uniqueStructures = ["TOUS", ...new Set(sub.map(item => item.structure).filter(Boolean))];
+    let uniqueStructures = ["TOUS", ...new Set(sub.map(item => item.structure).filter(Boolean))];
     uniqueStructures.forEach(str => {
         let btn = document.createElement('button'); btn.className = `segment-btn ${filtreStructureActif === str ? 'active' : ''}`; btn.innerText = str;
         btn.onclick = () => { filtreStructureActif = str; trierDonnees(); genererSegments(); afficherTableauSuivi(); }; containerStructure.appendChild(btn);
@@ -232,8 +230,8 @@ function afficherTableauSuivi() {
         let txtQteContrat = item.quantite_contrat !== null ? item.quantite_contrat.toLocaleString('fr-FR', { minimumFractionDigits: 2 }) : "";
         let txtTotalContrat = item.total_contrat !== null ? formatArgent(item.total_contrat) + " Ar" : "";
         
-        // Utilisation de variables passées en paramètres de fonction pour éviter les conflits
-        let zoneSaisie = item.quantite_contrat !== null ? `<input type="text" class="input-inline" value="${item.qte_realisee || ''}" oninput="modifierQuantiteRealisee(${index}, this.value, this)">` : "";
+        // CORRECTION DE SÉCURITÉ : Remplacement de oninput par onchange
+        let zoneSaisie = item.quantite_contrat !== null ? `<input type="text" class="input-inline" value="${item.qte_realisee || ''}" onchange="modifierQuantiteRealisee(${index}, this.value, this)">` : "";
         let mntConsomme = (item.qte_realisee && item.prix_unitaire) ? item.qte_realisee * item.prix_unitaire : 0;
         
         let pct = item.quantite_contrat > 0 ? (item.qte_realisee / item.quantite_contrat) * 100 : 0;
