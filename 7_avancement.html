@@ -47,12 +47,12 @@
 <body>
 <div class="container">
  <div style="display:flex; justify-content:space-between; align-items:center; flex-shrink: 0;">
-  <h1 style="margin:0;">Module 7 : Suivi d'Avancement Réel Isolé 📈</h1>
+  <h1 style="margin:0;">Module 7 : Suivi d'Avancement Réel Isolé</h1> 📈
   <button class="btn" onclick="window.location.href='3_accueil.html'" style="background:#475569;">« Retour Accueil</button>
  </div>
  <div class="dashboard-header">
   <div class="kpi-card" style="border-color:#bfdbfe;">
-   <div class="kpi-title">Taux d'Avancement Physique Global (Max 100%) 🏗️</div>
+   <div class="kpi-title">Taux d'Avancement Physique Global (Max 100%)</div> 🏗️
    <div class="kpi-value" id="valPhysique">0,00 %</div>
    <div class="progress-bar-container"><div class="progress-bar-fill" id="barPhysique" style="background-color:#3b82f6;"></div></div>
   </div>
@@ -118,7 +118,7 @@ function ecrireDonneeDB(tiroir, objet, cleOptionnelle) {
 let listeAvancement = [];
 let filtreOuvrageActif = "TOUS";
 let filtreStructureActif = "TOUS";
-let idProjetCourant = localStorage.getItem("id_projet_en_cours_de_saisie_temporaire") || "generique";
+let idProjetCourant = localStorage.getItem("id_projet_en_cours_de_saisie_temporaire") || "101";
 let cleStockageSuivi = `suivi_${idProjetCourant}`;
 let cleStockageAvenants = `avenants_${idProjetCourant}`;
 let cleStockageBDQE = `bdqe_${idProjetCourant}`;
@@ -134,24 +134,21 @@ window.onload = function() {
         let listeFusionnee = [];
         bdqeInitial.forEach(baseItem => {
             let avenantAssocie = avenantsSauves.find(av => av.code_bdqe === baseItem.code_bdqe && av.designation === baseItem.designation);
-            let qteContrat = baseItem.quantite;
-            let puContrat = baseItem.prix_unitaire;
+            let qteContrat = baseItem.quantite; let puContrat = baseItem.prix_unitaire;
             if (avenantAssocie) {
                 qteContrat = avenantAssocie.qte_av !== null ? avenantAssocie.qte_av : baseItem.quantite;
                 puContrat = avenantAssocie.pu_av !== null ? avenantAssocie.pu_av : baseItem.prix_unitaire;
             }
-            let totalContrat = (qteContrat !== null && puContrat !== null) ? qteContrat * puContrat : null;
             listeFusionnee.push({
                 ouvrage: baseItem.ouvrage, code_bdqe: baseItem.code_bdqe, structure: baseItem.structure,
                 designation: baseItem.designation, unite: baseItem.unite, prix_unitaire: puContrat,
-                quantite_contrat: qteContrat, total_contrat: totalContrat, qte_realisee: 0
+                quantite_contrat: qteContrat, total_contrat: (qteContrat !== null && puContrat !== null) ? qteContrat * puContrat : null, qte_realisee: 0
             });
         });
         
         avenantsSauves.forEach(avItem => {
             if(avItem.est_nouveau) {
-                let qteContrat = avItem.qte_av !== null ? avItem.qte_av : 0;
-                let puContrat = avItem.pu_av !== null ? avItem.pu_av : 0;
+                let qteContrat = avItem.qte_av !== null ? avItem.qte_av : 0; let puContrat = avItem.pu_av !== null ? avItem.pu_av : 0;
                 listeFusionnee.push({
                     ouvrage: avItem.ouvrage, code_bdqe: avItem.code_bdqe, structure: avItem.structure,
                     designation: avItem.designation, unite: avItem.unite, prix_unitaire: puContrat,
@@ -167,36 +164,44 @@ window.onload = function() {
             });
         }
         listeAvancement = listeFusionnee;
-        rechargerTout();
+        trierDonnees(); genererSegments(); afficherTableauSuivi(); calculerTauxGlobauxDashboard();
     });
 };
 
-function formatArgent(nombre) {
-    if (nombre === null || nombre === undefined || isNaN(nombre)) return "";
-    return nombre.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
+function formatArgent(nombre) { if (nombre === null || nombre === undefined || isNaN(nombre)) return ""; return nombre.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
 function trierDonnees() {
     listeAvancement.sort((a, b) => {
         let compOuvrage = a.ouvrage.localeCompare(b.ouvrage, 'fr', {sensitivity: 'base'}); if (compOuvrage !== 0) return compOuvrage;
         let partsA = a.code_bdqe.split(/[\.,]/).map(Number); let partsB = b.code_bdqe.split(/[\.,]/).map(Number);
-        for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
-            let numA = partsA[i] || 0; let numB = partsB[i] || 0; if (numA !== numB) return numA - numB;
-        }
+        for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) { let numA = partsA[i] || 0; let numB = partsB[i] || 0; if (numA !== numB) return numA - numB; }
         return 0;
     });
 }
 
-function modifierQuantiteRealisee(index, valeur) {
+// ALGORITHME FLUIDE RÉPARÉ : Sauvegarde asynchrone sans écraser le curseur de texte de l'agent
+async function modifierQuantiteRealisee(index, valeur, inputElement) {
     let item = listeAvancement[index];
     let valNettoyee = valeur.trim() === "" ? 0 : parseFloat(valeur.replace(/\s/g, '').replace(',', '.')) || 0;
     if(valNettoyee < 0) valNettoyee = 0;
+    
     item.qte_realisee = valNettoyee;
-    rechargerTout();
-}
-
-async function rechargerTout() {
-    trierDonnees(); genererSegments(); afficherTableauSuivi(); calculerTauxGlobauxDashboard();
+    
+    // 1. Mise à jour instantanée du montant consommé sur la ligne sans recharger le tableau
+    let mntConsomme = valNettoyee * (item.prix_unitaire || 0);
+    let tdConsomme = inputElement.closest('tr').querySelector('.cell-consomme');
+    if(tdConsomme) tdConsomme.innerText = formatArgent(mntConsomme) + " Ar";
+    
+    // 2. Mise à jour du badge de pourcentage de la ligne
+    let tdBadge = inputElement.closest('tr').querySelector('.cell-badge');
+    if(tdBadge && item.quantite_contrat > 0) {
+        let pct = (valNettoyee / item.quantite_contrat) * 100;
+        let clr = pct > 100 ? "bg-purple-light" : pct === 100 ? "bg-green-light" : pct > 0 ? "bg-orange-light" : "bg-red-light";
+        tdBadge.innerHTML = `<span class="badge-percent ${clr}">${pct.toFixed(2)} %</span>`;
+    }
+    
+    // 3. Calcul global des jauges du haut et mémorisation DB en tâche de fond
+    calculerTauxGlobauxDashboard();
     await ecrireDonneeDB("dossiers_techniques", listeAvancement, cleStockageSuivi);
 }
 
@@ -206,14 +211,14 @@ function genererSegments() {
     let containerOuvrage = document.getElementById('segmentOuvrages'); containerOuvrage.innerHTML = "";
     uniqueOuvrages.forEach(ouv => {
         let btn = document.createElement('button'); btn.className = `segment-btn ${filtreOuvrageActif === ouv ? 'active' : ''}`; btn.innerText = ouv;
-        btn.onclick = () => { filtreOuvrageActif = ouv; filtreStructureActif = "TOUS"; rechargerTout(); }; containerOuvrage.appendChild(btn);
+        btn.onclick = () => { filtreOuvrageActif = ouv; filtreStructureActif = "TOUS"; trierDonnees(); genererSegments(); afficherTableauSuivi(); }; containerOuvrage.appendChild(btn);
     });
     let containerStructure = document.getElementById('segmentStructures'); containerStructure.innerHTML = "";
     let sub = filtreOuvrageActif === "TOUS" ? listeAvancement : listeAvancement.filter(item => item.ouvrage === filtreOuvrageActif);
     uniqueStructures = ["TOUS", ...new Set(sub.map(item => item.structure).filter(Boolean))];
     uniqueStructures.forEach(str => {
         let btn = document.createElement('button'); btn.className = `segment-btn ${filtreStructureActif === str ? 'active' : ''}`; btn.innerText = str;
-        btn.onclick = () => { filtreStructureActif = str; rechargerTout(); }; containerStructure.appendChild(btn);
+        btn.onclick = () => { filtreStructureActif = str; trierDonnees(); genererSegments(); afficherTableauSuivi(); }; containerStructure.appendChild(btn);
     });
 }
 
@@ -222,27 +227,21 @@ function afficherTableauSuivi() {
     listeAvancement.forEach((item, index) => {
         if (filtreOuvrageActif !== "TOUS" && item.ouvrage !== filtreOuvrageActif) return;
         if (filtreStructureActif !== "TOUS" && item.structure !== filtreStructureActif) return;
+        
         let txtPU = item.prix_unitaire !== null ? formatArgent(item.prix_unitaire) + " Ar" : "";
         let txtQteContrat = item.quantite_contrat !== null ? item.quantite_contrat.toLocaleString('fr-FR', { minimumFractionDigits: 2 }) : "";
         let txtTotalContrat = item.total_contrat !== null ? formatArgent(item.total_contrat) + " Ar" : "";
-        let zoneSaisie = `<input type="text" class="input-inline" value="${item.qte_realisee || ''}" onchange="modifierQuantiteRealisee(${index}, this.value)">`;
-        if (item.quantite_contrat === null) { zoneSaisie = ""; }
+        
+        // Utilisation de variables passées en paramètres de fonction pour éviter les conflits
+        let zoneSaisie = item.quantite_contrat !== null ? `<input type="text" class="input-inline" value="${item.qte_realisee || ''}" oninput="modifierQuantiteRealisee(${index}, this.value, this)">` : "";
         let mntConsomme = (item.qte_realisee && item.prix_unitaire) ? item.qte_realisee * item.prix_unitaire : 0;
-        let txtConsomme = item.quantite_contrat !== null ? formatArgent(mntConsomme) + " Ar" : "";
-        let pourcentLigne = 0; let badgeHTML = ""; let classeTrDépassement = "";
-        if (item.quantite_contrat > 0) {
-            pourcentLigne = (item.qte_realisee / item.quantite_contrat) * 100;
-            if (pourcentLigne > 100) {
-                classeTrDépassement = "ligne-depassement";
-                badgeHTML = `<span class="badge-percent bg-purple-light">⚠️ ${pourcentLigne.toFixed(2)} %</span>`;
-            } else {
-                let classeColor = pourcentLigne === 100 ? "bg-green-light" : pourcentLigne > 0 ? "bg-orange-light" : "bg-red-light";
-                badgeHTML = `<span class="badge-percent ${classeColor}">${pourcentLigne.toFixed(2)} %</span>`;
-            }
-        }
-        let tr = document.createElement('tr');
-        if(classeTrDépassement) tr.className = classeTrDépassement;
-        tr.innerHTML = `<td><b>${item.ouvrage}</b></td><td>${item.code_bdqe}</td><td>${item.structure}</td><td>${item.designation}</td><td>${item.unite}</td><td>${txtPU}</td><td>${txtQteContrat}</td><td><b>${txtTotalContrat}</b></td><td>${zoneSaisie}</td><td style="font-weight:bold; color:var(--primary-color);">${txtConsomme}</td><td style="text-align:center;">${badgeHTML}</td>`;
+        
+        let pct = item.quantite_contrat > 0 ? (item.qte_realisee / item.quantite_contrat) * 100 : 0;
+        let clr = pct > 100 ? "bg-purple-light" : pct === 100 ? "bg-green-light" : pct > 0 ? "bg-orange-light" : "bg-red-light";
+        let badgeHTML = item.quantite_contrat > 0 ? `<span class="badge-percent ${clr}">${pct.toFixed(2)} %</span>` : "";
+        
+        let tr = document.createElement('tr'); if(pct > 100) tr.className = "ligne-depassement";
+        tr.innerHTML = `<td><b>${item.ouvrage}</b></td><td>${item.code_bdqe}</td><td>${item.structure}</td><td>${item.designation}</td><td>${item.unite}</td><td>${txtPU}</td><td>${txtQteContrat}</td><td><b>${txtTotalContrat}</b></td><td>${zoneSaisie}</td><td class="cell-consomme" style="font-weight:bold; color:var(--primary-color);">${formatArgent(mntConsomme)} Ar</td><td class="cell-badge" style="text-align:center;">${badgeHTML}</td>`;
         tbody.appendChild(tr);
     });
 }
@@ -257,9 +256,8 @@ function calculerTauxGlobauxDashboard() {
             let pourcentLigneBride = Math.min(pourcentLigneBrut, 100);
             sommePourcentagesPhysiques += pourcentLigneBride;
             let ligneMarchatTotal = item.total_contrat || 0;
-            let ratioLigneBride = pourcentLigneBride / 100;
             enveloppeFinanciereTotaleMarché += ligneMarchatTotal;
-            enveloppeFinanciereConsommeeTerrain += (ligneMarchatTotal * ratioLigneBride);
+            enveloppeFinanciereConsommeeTerrain += (ligneMarchatTotal * (pourcentLigneBride / 100));
         }
     });
     let tauxPhysiqueGlobal = totalLignesPlanifiees > 0 ? (sommePourcentagesPhysiques / totalLignesPlanifiees) : 0;
