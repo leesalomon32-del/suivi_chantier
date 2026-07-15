@@ -188,7 +188,7 @@ async function chargerRenseignementsEtLogosHerites() {
     document.getElementById('topMarketLabel').innerText = "Marché Actif : " + libelleObjetCombine;
     document.getElementById('page2MarketLabel').innerText = "Suivi d'avancement graphique consolidé du marché — Projet : " + libelleObjetCombine;
     if(document.getElementById('lblObjetMarche')) document.getElementById('lblObjetMarche').innerText = libelleObjetCombine;
-    document.getElementById('lblBailleur').innerText = d.financement || m.financement || "Crédit IDA Banque Mondiale";
+    document.getElementById('lblBailleur').innerText = d.financement || m.financement || "-";
     document.getElementById('lblMO').innerText = d.mo || m.mo || "-";
     document.getElementById('lblMOE').innerText = d.moe || m.moe || "-";
     document.getElementById('lblEntreprise').innerText = d.entreprise || m.entreprise || "-";
@@ -214,23 +214,24 @@ async function extraire4PhotosCCPMS() {
     for (let i = 0; i < 4; i++) {
         let card = document.createElement('div'); card.className = "ccpms-photo-card";
         if(photosOnly[i]) card.innerHTML = `<img src="${photosOnly[i].fichierBrut}" class="ccpms-img"><div class="ccpms-meta">${photosOnly[i].titre}</div>`;
-        else card.innerHTML = `<div style="margin:auto;font-size:11px;color:#94a3b8;font-style:italic;">Emplacement Photo</div>`;
+        else card.innerHTML = `<div style="margin:auto;font-size:11px;color:#94a3b8;font-style:italic;">Emplacement Photo CCPMS</div>`;
         container.appendChild(card);
     }
 }
 async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
-    let listB = await lireDonneeDB("dossiers_technical", `bdqe_${idProjetActif}`) || [];
-    let listPl = await lireDonneeDB("dossiers_technical", `planning_${idProjetActif}`) || [];
-    let listS = await lireDonneeDB("dossiers_technical", `suivi_${idProjetActif}`) || [];
-    let listAv = await lireDonneeDB("dossiers_technical", `avenants_${idProjetActif}`) || [];
+    // CORRECTION CRUCIALE DU NOM DE LA TABLE CI-DESSOUS
+    let listB = await lireDonneeDB("dossiers_techniques", `bdqe_${idProjetActif}`) || [];
+    let listPl = await lireDonneeDB("dossiers_techniques", `planning_${idProjetActif}`) || [];
+    let listS = await lireDonneeDB("dossiers_techniques", `suivi_${idProjetActif}`) || [];
+    let listAv = await lireDonneeDB("dossiers_techniques", `avenants_${idProjetActif}`) || [];
     
     if (typeProjetActuel === "PAPA") {
         let enfants = listeProjets.filter(item => item.type === "ENFANT" && item.parentId == idProjetActif);
         for(let enf of enfants) {
-            listB = listB.concat(await lireDonneeDB("dossiers_technical", `bdqe_${enf.id}`) || []);
-            listPl = listPl.concat(await lireDonneeDB("dossiers_technical", `planning_${enf.id}`) || []);
-            listS = listS.concat(await lireDonneeDB("dossiers_technical", `suivi_${enf.id}`) || []);
-            listAv = listAv.concat(await lireDonneeDB("dossiers_technical", `avenants_${enf.id}`) || []);
+            listB = listB.concat(await lireDonneeDB("dossiers_techniques", `bdqe_${enf.id}`) || []);
+            listPl = listPl.concat(await lireDonneeDB("dossiers_techniques", `planning_${enf.id}`) || []);
+            listS = listS.concat(await lireDonneeDB("dossiers_techniques", `suivi_${enf.id}`) || []);
+            listAv = listAv.concat(await lireDonneeDB("dossiers_techniques", `avenants_${enf.id}`) || []);
         }
     }
     
