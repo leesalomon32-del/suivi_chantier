@@ -58,14 +58,41 @@
    <button class="btn btn-primary" onclick="window.print()">Imprimer 🖨️ en PDF</button>
   </div>
  </div>
+
+ <!-- TABLEAU MAITRE RE-ALIGNE CELLULE PAR CELLULE -->
  <table class="entete-master">
-  <tr><td class="lbl-gray" style="width: 180px;">Objet du Marché :</td><td id="viewObjet" style="font-weight:bold; color:var(--secondary-color);">-</td><td style="width: 80px; text-align: center; border: 1px solid #cbd5e1; padding: 2px;" id="pvLogoMO"></td></tr>
-  <tr><td class="lbl-gray">Bailleur / Financement :</td><td id="viewFinancement">-</td><td style="width: 80px; text-align: center; border: 1px solid #cbd5e1; padding: 2px;" id="pvLogoFin"></td></tr>
-  <tr><td class="lbl-gray">Maître d'Ouvrage :</td><td id="viewMO">-</td><td style="width: 80px; text-align: center; border: 1px solid #cbd5e1; padding: 2px;" id="pvLogoMOE"></td></tr>
-  <tr><td class="lbl-gray">Maître d'Œuvre :</td><td id="viewMOE">-</td><td style="width: 80px; text-align: center; border: 1px solid #cbd5e1; padding: 2px;" id="pvLogoEntreprise"></td></tr>
-  <tr><td class="lbl-gray">Entreprise Titulaire :</td><td id="viewEntreprise" colspan="2">-</td></tr>
-  <tr><td class="lbl-gray">N° de Contrat / Marché :</td><td id="viewNumContrat" style="font-family:monospace; color:var(--secondary-color);" colspan="2">-</td></tr>
+  <tr>
+   <td class="lbl-gray" style="width: 180px;">Objet du Marché :</td>
+   <td id="viewObjet" style="font-weight:bold; color:var(--secondary-color);">-</td>
+   <td style="width: 95px; text-align: center; border: 1px solid #cbd5e1; padding: 2px;" id="pvLogoMO"></td>
+  </tr>
+  <tr>
+   <td class="lbl-gray">Bailleur / Financement :</td>
+   <td id="viewFinancement">-</td>
+   <td style="width: 95px; text-align: center; border: 1px solid #cbd5e1; padding: 2px;" id="pvLogoFin"></td>
+  </tr>
+  <tr>
+   <td class="lbl-gray">Maître d'Ouvrage :</td>
+   <td id="viewMO">-</td>
+   <td style="width: 95px; text-align: center; border: 1px solid #cbd5e1; padding: 2px;" id="pvLogoMOD"></td>
+  </tr>
+  <tr>
+   <td class="lbl-gray">Maître d'Œuvre :</td>
+   <td id="viewMOE">-</td>
+   <td style="width: 95px; text-align: center; border: 1px solid #cbd5e1; padding: 2px;" id="pvLogoMOE"></td>
+  </tr>
+  <tr>
+   <td class="lbl-gray">Entreprise Titulaire :</td>
+   <td id="viewEntreprise">-</td>
+   <td style="width: 95px; text-align: center; border: 1px solid #cbd5e1; padding: 2px;" id="pvLogoEntreprise"></td>
+  </tr>
+  <tr>
+   <td class="lbl-gray">N° de Contrat / Marché :</td>
+   <td id="viewNumContrat" style="font-family:monospace; color:var(--secondary-color); font-weight: bold;">-</td>
+   <td style="background: #f1f5f9; border: 1px solid #cbd5e1;"></td>
+  </tr>
  </table>
+
  <div class="pv-titre-cadre"><input type="text" id="titrePV" class="pv-titre-input" value="PV DE CONSTATATION DE VISITE DE CHANTIER"></div>
  <div class="meta-saisie-grid">
   <div class="field-row"><label>Date :</label><input type="text" id="dateSaisie" placeholder="Ex: 28/06/2026"></div>
@@ -146,12 +173,16 @@ window.onload = function() {
             if(elEnt) elEnt.innerText = n.entreprise || m.entreprise || "-";
             if(document.getElementById('viewNumContrat')) document.getElementById('viewNumContrat').innerText = n.numContrat || m.numContrat || "-";
             
+            // Injection millimétrée des 5 logos distincts sans décalage
             let sourceLogos = pActuel && pActuel.type === 'ENFANT' ? m : n;
-            let styleStyle = 'style="max-height:24px; max-width:100%; object-fit:contain; vertical-align:middle;"';
+            let styleStyle = 'style="max-height:35px; max-width:100%; object-fit:contain; vertical-align:middle;"';
+            
             if(document.getElementById('pvLogoMO') && sourceLogos.logoMO_html) document.getElementById('pvLogoMO').innerHTML = sourceLogos.logoMO_html.replace('<img', `<img ${styleStyle}`);
             if(document.getElementById('pvLogoFin') && sourceLogos.logoFin_html) document.getElementById('pvLogoFin').innerHTML = sourceLogos.logoFin_html.replace('<img', `<img ${styleStyle}`);
+            if(document.getElementById('pvLogoMOD')) document.getElementById('pvLogoMOD').innerHTML = sourceLogos.logoMOD_html || `🏢 <br><span style="font-size:8px;font-weight:bold;color:#64748b;">UGP MEAH</span>`;
             if(document.getElementById('pvLogoMOE') && sourceLogos.logoMOE_html) document.getElementById('pvLogoMOE').innerHTML = sourceLogos.logoMOE_html.replace('<img', `<img ${styleStyle}`);
             if(document.getElementById('pvLogoEntreprise') && sourceLogos.logoEnterprise_html) document.getElementById('pvLogoEntreprise').innerHTML = sourceLogos.logoEnterprise_html.replace('<img', `<img ${styleStyle}`);
+            
             if(document.getElementById('siteSaisie') && pActuel) document.getElementById('siteSaisie').value = pActuel.nom.toUpperCase();
         };
         ajouterLigneConstat(); ajouterUnSignataire("Mission de Contrôle\n(MOE)"); ajouterUnSignataire("Entreprise Titulaire\n(Titulaire)");
@@ -170,7 +201,7 @@ function ajusterHauteurTextarea(element) { element.style.height = "auto"; elemen
 
 function previsualiserPhotoConstat(numLigne, input) {
     let box = document.getElementById(`prevBox_${numLigne}`); let img = document.getElementById(`prevImg_${numLigne}`);
-    if (input.files && input.files[0]) {
+    if (input.files && input.files) {
         let reader = new FileReader();
         reader.onload = function(e) {
             let imageTemporaire = new Image();
@@ -186,7 +217,7 @@ function previsualiserPhotoConstat(numLigne, input) {
             };
             imageTemporaire.src = e.target.result;
         };
-        reader.readAsDataURL(input.files[0]);
+        reader.readAsDataURL(input.files);
     }
 }
 
