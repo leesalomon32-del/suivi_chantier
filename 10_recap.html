@@ -219,7 +219,6 @@ async function extraire4PhotosCCPMS() {
     }
 }
 async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
-    // CORRECTION CRUCIALE DU NOM DE LA TABLE CI-DESSOUS
     let listB = await lireDonneeDB("dossiers_techniques", `bdqe_${idProjetActif}`) || [];
     let listPl = await lireDonneeDB("dossiers_techniques", `planning_${idProjetActif}`) || [];
     let listS = await lireDonneeDB("dossiers_techniques", `suivi_${idProjetActif}`) || [];
@@ -284,14 +283,29 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
         return budgetInitialTotal > 0 ? (totalCumulePrevuAr / budgetInitialTotal) * 100 : 0;
     }
 
-    let tPhyPrevu = calculerPrevuALaDate(auj); let tFinPrevu = tPhyPrevu * 0.96;
-    let totalLignes = 0, sumPhyReel = 0;
-    listS.forEach(i => { if (i.quantite_contrat > 0) { totalLignes++; sumPhyReel += Math.min((i.qte_realisee / i.quantite_contrat)*100, 100); } });
-    let tPhyReel = totalLignes > 0 ? (sumPhyReel / totalLignes) : 0;
+    let tPhyPrevu = calculerPrevuALaDate(auj); 
+    let tFinPrevu = tPhyPrevu * 0.96;
     
-    document.getElementById('barPhyPrevu').style.width = tPhyPrevu + "%"; document.getElementById('barPhyReel').style.width = tPhyReel + "%";
+    // CALCUL DU REEL REPARÉ POUR LES SITES SANS ERREUR REFERENCE
+    let totalLignes = 0, sumPhyReel = 0, mntM = 0, mntR = 0;
+    listS.forEach(i => { 
+        if (i.quantite_contrat > 0) { 
+            totalLignes++; 
+            let pL = Math.min((i.qte_realisee / i.quantite_contrat)*100, 100); 
+            sumPhyReel += pL; 
+            mntM += (i.total_contrat||0); 
+            mntR += ((i.total_contrat||0)*(pL/100)); 
+        } 
+    });
+    
+    let tPhyReel = totalLignes > 0 ? (sumPhyReel / totalLignes) : 0;
+    let tFinReel = mntM > 0 ? (mntR / mntM)*100 : 0; // Initialisation de tFinReel validée
+    
+    document.getElementById('barPhyPrevu').style.width = tPhyPrevu + "%"; 
+    document.getElementById('barPhyReel').style.width = tPhyReel + "%";
     document.getElementById('txtPhyComp').innerText = `P: ${tPhyPrevu.toFixed(1)}% | R: ${tPhyReel.toFixed(1)}%`;
-    document.getElementById('barFinPrevu').style.width = tFinPrevu + "%"; document.getElementById('barFinReel').style.width = tFinReel + "%";
+    document.getElementById('barFinPrevu').style.width = tFinPrevu + "%"; 
+    document.getElementById('barFinReel').style.width = tFinReel + "%";
     document.getElementById('txtFinComp').innerText = `P: ${tFinPrevu.toFixed(1)}% | R: ${tFinReel.toFixed(1)}%`;
     document.getElementById('titleHeaderS').innerText = `V. COURBE EN S : TRAJECTOIRE GLOBALE (PRÉVU ${tPhyPrevu.toFixed(1)}% VS RÉEL ${tPhyReel.toFixed(1)}%)`;
 
@@ -308,7 +322,7 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
     let ouvragesUniques = [...new Set(listS.map(item => item.ouvrage).filter(Boolean))];
     ouvragesUniques.forEach(ouv => {
         let lignes = listS.filter(item => item.ouvrage === ouv); let totL = 0, sP = 0;
-        lignes.forEach(i => { if(i.quantite_contrat > 0) { totL++; sP += Math.min((i.qte_realisee / i.quantite_contrat)*100, 100); } });
+        lignes.forEach(i => { if (i.quantite_contrat > 0) { totL++; sP += Math.min((i.qte_realisee / i.quantite_contrat)*100, 100); } });
         let rReel = totL > 0 ? (sP / totL) : 0; let rPrevu = rReel > 0 ? Math.min(rReel + (tPhyPrevu - tPhyReel), 100) : tPhyPrevu * 0.9;
         let row = document.createElement('div'); row.className = "site-ventil-row";
         row.innerHTML = `<div class="progress-double-line"><div class="progress-label-left" style="width:260px;">🧱 ${ouv.toUpperCase()}</div><div style="display:flex; flex-direction:column; flex-grow:1; gap:1px;"><div style="display:flex; align-items:center;"><span style="font-size:7px; font-weight:800; color:#64748b; width:35px;">PRÉVU</span><div class="progress-container-flat" style="height:5px; margin:0 8px;"><div class="progress-fill-flat prevu" style="width:${rPrevu}%;"></div></div><span style="font-size:8px; font-weight:bold; width:30px; text-align:right; color:#2563eb;">${rPrevu.toFixed(1)}%</span></div><div style="display:flex; align-items:center;"><span style="font-size:7px; font-weight:800; color:#64748b; width:35px;">RÉEL</span><div class="progress-container-flat" style="height:5px; margin:0 8px;"><div class="progress-fill-flat reel" style="width:${rReel}%;"></div></div><span style="font-size:8px; font-weight:bold; width:30px; text-align:right; color:#16a34a;">${rReel.toFixed(1)}%</span></div></div></div>`;
@@ -318,3 +332,4 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
 </script>
 </body>
 </html>
+
