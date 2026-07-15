@@ -142,45 +142,38 @@ let compteurSignataires = 0;
 const MAX_SIGNATAIRES = 12;
 let idProjetUnique = localStorage.getItem("id_projet_en_cours_de_saisie_temporaire") || "101";
 window.onload = function() {
-    if (localStorage.getItem("session_securisee_active_gc") !== "VALIDE") {
-        window.location.href = "1_login.html"; return;
-    }
+    if (localStorage.getItem("session_securisee_active_gc") !== "VALIDE") { window.location.href = "1_login.html"; return; }
     document.getElementById('dateSaisie').value = new Date().toLocaleDateString('fr-FR');
     initialiserLeMeubleDB().then(async () => {
-        let listeProjetsGlobal = [];
         let tx = dbInstance.transaction(["projets"], "readonly");
         let req = tx.objectStore("projets").getAll();
         req.onsuccess = async function() {
-            listeProjetsGlobal = req.result || [];
-            let pActuel = listeProjetsGlobal.find(i => i.id == idProjetUnique);
-            let n = await lireDonneeDB("dossiers_techniques", `charte_administrative_${idProjetUnique}`) || {};
-            let m = {};
-            if (pActuel && pActuel.type === 'ENFANT' && pActuel.parentId) {
-                m = await lireDonneeDB("dossiers_techniques", `charte_administrative_${pActuel.parentId}`) || {};
+            let lot = req.result.find(p => p.id == idProjetUnique);
+            if (lot) {
+                document.getElementById('txtTitreLotPV').innerText = "PV de Visite — " + lot.nom.toUpperCase();
+                document.getElementById('txtLabelSousTitreLot').innerText = `ID du lot : ${idProjetUnique} | Archives de chantier légales`;
             }
-            let objetPVText = pActuel ? pActuel.nom.toUpperCase() : "-";
-            if (pActuel && pActuel.type === "ENFANT" && pActuel.parentId) {
-                let papa = listeProjetsGlobal.find(i => i.id == pActuel.parentId);
-                if (papa) objetPVText = `${papa.nom.toUpperCase()} — LOT : ${pActuel.nom.toUpperCase()}`;
+            let n = await lireDonneeDB("dossiers_techniques", `charte_administrative_${idProjetUnique}`) || {};
+            let m = {}; if (lot && lot.type === 'ENFANT' && lot.parentId) { m = await lireDonneeDB("dossiers_techniques", `charte_administrative_${lot.parentId}`) || {}; }
+            
+            let objetPVText = lot ? lot.nom.toUpperCase() : "-";
+            if (lot && lot.type === "ENFANT" && lot.parentId) {
+                let papa = req.result.find(i => i.id == lot.parentId); if (papa) objetPVText = `${papa.nom.toUpperCase()} — LOT : ${lot.nom.toUpperCase()}`;
             }
             if(document.getElementById('viewObjet')) document.getElementById('viewObjet').innerText = objetPVText;
             if(document.getElementById('viewFinancement')) document.getElementById('viewFinancement').innerText = n.financement || m.financement || "-";
             if(document.getElementById('viewMO')) document.getElementById('viewMO').innerText = n.mo || m.mo || "-";
             if(document.getElementById('viewMOE')) document.getElementById('viewMOE').innerText = n.moe || m.moe || "-";
-            let elEnt = document.getElementById('viewEntreprise');
-            if(elEnt) elEnt.innerText = n.entreprise || m.entreprise || "-";
+            if(document.getElementById('viewEntreprise')) document.getElementById('viewEntreprise').innerText = n.entreprise || m.entreprise || "-";
             if(document.getElementById('viewNumContrat')) document.getElementById('viewNumContrat').innerText = n.numContrat || m.numContrat || "-";
             
-            // Distribution parfaite des 4 logos sur les lignes 2, 3, 4 et 5
-            let sourceLogos = pActuel && pActuel.type === 'ENFANT' ? m : n;
+            let sourceLogos = lot && lot.type === 'ENFANT' ? m : n;
             let styleStyle = 'style="max-height:35px; max-width:100%; object-fit:contain; vertical-align:middle;"';
-            
             if(document.getElementById('pvLogoFin') && sourceLogos.logoFin_html) document.getElementById('pvLogoFin').innerHTML = sourceLogos.logoFin_html.replace('<img', `<img ${styleStyle}`);
             if(document.getElementById('pvLogoMO') && sourceLogos.logoMO_html) document.getElementById('pvLogoMO').innerHTML = sourceLogos.logoMO_html.replace('<img', `<img ${styleStyle}`);
             if(document.getElementById('pvLogoMOE') && sourceLogos.logoMOE_html) document.getElementById('pvLogoMOE').innerHTML = sourceLogos.logoMOE_html.replace('<img', `<img ${styleStyle}`);
             if(document.getElementById('pvLogoEntreprise') && sourceLogos.logoEnterprise_html) document.getElementById('pvLogoEntreprise').innerHTML = sourceLogos.logoEnterprise_html.replace('<img', `<img ${styleStyle}`);
-            
-            if(document.getElementById('siteSaisie') && pActuel) document.getElementById('siteSaisie').value = pActuel.nom.toUpperCase();
+            if(document.getElementById('siteSaisie') && lot) document.getElementById('siteSaisie').value = lot.nom.toUpperCase();
         };
         ajouterLigneConstat(); ajouterUnSignataire("Mission de Contrôle\n(MOE)"); ajouterUnSignataire("Entreprise Titulaire\n(Titulaire)");
     });
@@ -193,12 +186,10 @@ function ajouterLigneConstat() {
     tr.innerHTML = `<td style="text-align:center; font-weight:bold; padding-top:12px;">${compteurLignes}</td><td><textarea class="textarea-cell" placeholder="Saisir le constat visuel..." oninput="ajusterHauteurTextarea(this)"></textarea></td><td><textarea class="textarea-cell" placeholder="Directives / Recommandations..." oninput="ajusterHauteurTextarea(this)"></textarea></td><td><input type="file" accept="image/*" id="imgInput_${compteurLignes}" onchange="previsualiserPhotoConstat(${compteurLignes}, this)"><div id="prevBox_${compteurLignes}" style="margin-top:5px; max-width:200px; display:none;"><img id="prevImg_${compteurLignes}" style="width:100%; max-height:120px; object-fit:contain; border-radius:4px; border:1px solid #cbd5e1;"></div></td>`;
     tbody.appendChild(tr);
 }
-
 function ajusterHauteurTextarea(element) { element.style.height = "auto"; element.style.height = element.scrollHeight + "px"; }
-
 function previsualiserPhotoConstat(numLigne, input) {
     let box = document.getElementById(`prevBox_${numLigne}`); let img = document.getElementById(`prevImg_${numLigne}`);
-    if (input.files && input.files) {
+    if (input.files && input.files[0]) {
         let reader = new FileReader();
         reader.onload = function(e) {
             let imageTemporaire = new Image();
@@ -210,11 +201,12 @@ function previsualiserPhotoConstat(numLigne, input) {
                 canvas.width = width; canvas.height = height;
                 canvas.getContext('2d').drawImage(imageTemporaire, 0, 0, width, height);
                 let dataUrlCalibre = canvas.toDataURL('image/jpeg', 0.7);
-                if (img) img.src = dataUrlCalibre; if (box) box.style.display = 'block';
+                if (img) { img.src = dataUrlCalibre; img.style.display = 'block'; }
+                if (box) box.style.display = 'block';
             };
             imageTemporaire.src = e.target.result;
         };
-        reader.readAsDataURL(input.files);
+        reader.readAsDataURL(input.files[0]);
     }
 }
 
@@ -222,8 +214,7 @@ function ajouterUnSignataire(texteParDefaut = "") {
     if (compteurSignataires >= MAX_SIGNATAIRES) return alert("Limite de 12 signataires.");
     compteurSignataires++; let zone = document.getElementById('zoneSignatures'); let card = document.createElement('div');
     card.className = "signature-card"; card.id = `sigCard_${compteurSignataires}`;
-    let placeHolderText = texteParDefaut || "Nom du responsable\nFonction / Entité";
-    card.innerHTML = `<button class="btn-del-sig" onclick="retirerSignataire(${compteurSignataires})">&times;</button><textarea class="signature-title-input" rows="2" style="text-align:center;" oninput="ajusterHauteurTextarea(this)">${placeHolderText}</textarea><div style="font-size:11px; color:#a1a1aa; font-style:italic;">(Signature & Cachet)</div>`;
+    card.innerHTML = `<button class="btn-del-sig" onclick="retirerSignataire(${compteurSignataires})">&times;</button><textarea class="signature-title-input" rows="2" style="text-align:center;" oninput="ajusterHauteurTextarea(this)">${texteParDefaut || 'Nom\nFonction'}</textarea><div style="font-size:11px; color:#a1a1aa; font-style:italic;">(Signature & Cachet)</div>`;
     zone.appendChild(card);
 }
 function retirerSignataire(id) { let card = document.getElementById(`sigCard_${id}`); if(card) { card.remove(); compteurSignataires--; } }
@@ -238,10 +229,12 @@ async function sauvegarderPVChantier() {
     let toutesLesLignes = document.querySelectorAll('[id^="ligneConstat_"]');
     
     toutesLesLignes.forEach((conteneurLigne, index) => {
+        // CORRECTION MAJEURE ICI : extraction de l'index de ligne propre
         let i = conteneurLigne.id.split('_')[1]; 
         let imgElement = document.getElementById(`prevImg_${i}`);
         let zoneTexte = conteneurLigne.querySelector('textarea');
         let textConstat = zoneTexte ? zoneTexte.value.trim() : "";
+        
         if (imgElement && imgElement.src && imgElement.src.startsWith("data:image")) {
             armoireSauvee.unshift({
                 id: Date.now() + parseInt(i), categorie: "Photos", dateDoc: new Date().toISOString().substring(0,10),
@@ -253,7 +246,7 @@ async function sauvegarderPVChantier() {
     });
     
     await ecrireDonneeDB("dossiers_techniques", armoireSauvee, `ccpms_${idProjetUnique}`);
-    alert(`✔️ Succès total !\nLe PV a été figé en mémoire.\n📸 Automatisation : ${photosEnvoyeesCCPMS} photo(s) ont alimenté l'armoire GED CCPMS de ce projet !`);
+    alert(`✔️ PV mémorisé avec succès !\n📸 Passerelle automatique : ${photosEnvoyeesCCPMS} photo(s) ont alimenté l'armoire GED (Module 8) !`);
 }
 </script>
 </body>
