@@ -9,7 +9,7 @@
  --primary-dark: #0f172a;
  --sidebar-bg: #1e293b;
  --accent-blue: #2563eb;
- --accent-amber: #d97706;
+ --accent-amber: #d977f06;
  --success-green: #16a34a;
  --danger-red: #ef4444;
  --bg-light: #f8fafc;
@@ -446,49 +446,93 @@ async function sauvegarderPhotoEmplacement(input) {
 }
 
 async function exporterFichierClasseurJsonAccueil() {
-    let projets = await lireToutesLesDonneesDB("projets");
-    let utilisateurs = await lireToutesLesDonneesDB("utilisateurs");
-    let toutesLesChartes = {}; let bdqeIsolees = {}; let ccpmsIsolees = {}; let suiviIsolees = {}; let planningIsolees = {};
-    for (let p of projets) {
-        let charte = await lireDonneeDB("dossiers_techniques", `charte_administrative_${p.id}`); if(charte) toutesLesChartes[p.id] = charte;
-        let bdqe = await lireDonneeDB("dossiers_techniques", `bdqe_${p.id}`); if(bdqe) bdqeIsolees[p.id] = bdqe;
-        let ccpms = await lireDonneeDB("dossiers_techniques", `ccpms_${p.id}`); if(ccpms) ccpmsIsolees[p.id] = ccpms;
-        let suivi = await lireDonneeDB("dossiers_techniques", `suivi_${p.id}`); if(suivi) suiviIsolees[p.id] = suivi;
-        let planning = await lireDonneeDB("dossiers_techniques", `planning_${p.id}`); if(planning) planningIsolees[p.id] = planning;
-    }
-    let paquetGlobalData = { dateExport: new Date().toISOString(), projets, utilisateurs, chartesIsolees, bdqeIsolees, ccpmsIsolees, suiviIsolees, planningIsolees };
-    let blob = new Blob([JSON.stringify(paquetGlobalData, null, 2)], { type: "application/json" });
-    let lien = document.createElement("a"); lien.href = URL.createObjectURL(blob); lien.download = `GENIE_CIVIL_PRO_DATABASE_MASTER.json`;
-    document.body.appendChild(lien); lien.click(); document.body.removeChild(lien);
-    alert("Base exportée avec succès !"); 
+ let projets = await lireToutesLesDonneesDB("projets");
+ let utilisateurs = await lireToutesLesDonneesDB("utilisateurs");
+ let toutesLesChartes = {}; let bdqeIsolees = {}; let ccpmsIsolees = {}; let suiviIsolees = {}; let planningIsolees = {};
+ 
+ for (let p of projets) {
+ let charte = await lireDonneeDB("dossiers_techniques", `charte_administrative_${p.id}`); 
+ if(charte) toutesLesChartes[p.id] = charte;
+ let bdqe = await lireDonneeDB("dossiers_techniques", `bdqe_${p.id}`); 
+ if(bdqe) bdqeIsolees[p.id] = bdqe;
+ let ccpms = await lireDonneeDB("dossiers_techniques", `ccpms_${p.id}`); 
+ if(ccpms) ccpmsIsolees[p.id] = ccpms;
+ let suivi = await lireDonneeDB("dossiers_techniques", `suivi_${p.id}`); 
+ if(suivi) suiviIsolees[p.id] = suivi;
+ let planning = await lireDonneeDB("dossiers_techniques", `planning_${p.id}`); 
+ if(planning) planningIsolees[p.id] = planning;
+ }
+ 
+ // CORRECTION CHIRURGICALE : Alignement exact des variables avec la structure attendue
+ let paquetGlobalData = { 
+ dateExport: new Date().toISOString(), 
+ projets, 
+ utilisateurs, 
+ chartesIsolees: toutesLesChartes, // Résout l'erreur de variable indéfinie
+ bdqeIsolees, 
+ ccpmsIsolees, 
+ suiviIsolees, 
+ planningIsolees 
+ };
+ 
+ let blob = new Blob([JSON.stringify(paquetGlobalData, null, 2)], { type: "application/json" });
+ let lien = document.createElement("a"); 
+ lien.href = URL.createObjectURL(blob); 
+ lien.download = `GENIE_CIVIL_PRO_DATABASE_MASTER.json`;
+ document.body.appendChild(lien); 
+ lien.click(); 
+ document.body.removeChild(lien);
+ alert("Base exportée avec succès !"); 
+}
+function importerFichierClasseurJsonAccueil(input) {
+ if (input.files && input.files[0]) {
+ let reader = new FileReader();
+ reader.onload = async function(e) {
+ try {
+ let paquet = JSON.parse(e.target.result);
+ if (!paquet.projets || !paquet.utilisateurs) return alert("Fichier JSON invalide."); 
+ 
+ if (confirm("ATTENTION : Valider l'importation ? Cela va écraser vos données actuelles.")) {
+ await initialiserLeMeubleDB();
+ 
+ // CORRECTION CHIRURGICALE : Ouverture d'une transaction globale multi-stores stable
+ let tx = dbInstance.transaction(["projets", "utilisateurs", "dossiers_techniques"], "readwrite");
+ tx.objectStore("projets").clear();
+ tx.objectStore("utilisateurs").clear();
+ tx.objectStore("dossiers_techniques").clear();
+ 
+ for(let prj of paquet.projets) { await ecrireDonneeDB("projets", prj); }
+ for(let usr of paquet.utilisateurs) { await ecrireDonneeDB("utilisateurs", usr); }
+ 
+ if (paquet.chartesIsolees) { 
+ for (let id in paquet.chartesIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.chartesIsolees[id], `charte_administrative_${id}`); 
+ }
+ if (paquet.bdqeIsolees) { 
+ for (let id in paquet.bdqeIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.bdqeIsolees[id], `bdqe_${id}`); 
+ }
+ if (paquet.ccpmsIsolees) { 
+ for (let id in paquet.ccpmsIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.ccpmsIsolees[id], `ccpms_${id}`); 
+ }
+ if (paquet.suiviIsolees) { 
+ for (let id in paquet.suiviIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.suiviIsolees[id], `suivi_${id}`); 
+ }
+ if (paquet.planningIsolees) { 
+ for (let id in paquet.planningIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.planningIsolees[id], `planning_${id}`); 
+ }
+ 
+ alert("Restauration complète réussie !"); 
+ window.location.reload();
+ }
+ } catch (err) { 
+ alert("Erreur de décodage JSON."); 
+ }
+ };
+ reader.readAsText(input.files[0]);
+ }
 }
 
-async function importerFichierClasseurJsonAccueil(input) {
-    if (input.files && input.files) {
-        let reader = new FileReader();
-        reader.onload = async function(e) {
-            try {
-                let paquet = JSON.parse(e.target.result);
-                if (!paquet.projets) return alert("Fichier invalide."); 
-                if (confirm("Écraser tout le contenu par ce fichier JSON ?")) {
-                    await initialiserLeMeubleDB();
-                    let tx1 = dbInstance.transaction(["projets"], "readwrite"); await tx1.objectStore("projets").clear();
-                    let tx2 = dbInstance.transaction(["utilisateurs"], "readwrite"); await tx2.objectStore("utilisateurs").clear();
-                    let tx3 = dbInstance.transaction(["dossiers_techniques"], "readwrite"); await tx3.objectStore("dossiers_techniques").clear();
-                    for(let prj of paquet.projets) { await ecrireDonneeDB("projets", prj); }
-                    if (paquet.utilisateurs) { for(let usr of paquet.utilisateurs) { await ecrireDonneeDB("utilisateurs", usr); } }
-                    if (paquet.chartesIsolees) { for (let id in paquet.chartesIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.chartesIsolees[id], `charte_administrative_${id}`); }
-                    if (paquet.bdqeIsolees) { for (let id in paquet.bdqeIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.bdqeIsolees[id], `bdqe_${id}`); }
-                    if (paquet.ccpmsIsolees) { for (let id in paquet.ccpmsIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.ccpmsIsolees[id], `ccpms_${id}`); }
-                    if (paquet.suiviIsolees) { for (let id in paquet.suiviIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.suiviIsolees[id], `suivi_${id}`); }
-                    if (paquet.planningIsolees) { for (let id in paquet.planningIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.planningIsolees[id], `planning_${id}`); }
-                    alert("Restauration réussie !"); window.location.reload();
-                }
-            } catch (err) { alert("Erreur JSON"); }
-        };
-        reader.readAsText(input.files);
-    }
-}
+
+
 </script>
 </body>
 </html>
