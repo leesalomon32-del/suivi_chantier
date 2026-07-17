@@ -9,6 +9,7 @@
  --primary-dark: #0f172a;
  --sidebar-bg: #1e293b;
  --accent-blue: #2563eb;
+ --accent-blue-hover: #1d4ed8;
  --accent-amber: #d97706;
  --success-green: #16a34a;
  --danger-red: #ef4444;
@@ -27,7 +28,7 @@
  .form-saisie-inline.open { display: grid; }
  .form-cell { display: flex; flex-direction: column; gap: 3px; }
  .form-cell label { font-size: 10px; font-weight: bold; color: var(--primary-dark); text-transform: uppercase; }
- .form-cell input { padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px; outline: none; background: white; }
+ .form-cell input, .form-cell select { padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px; outline: none; background: white; height: 33px; box-sizing: border-box; }
  .filter-section { background: #f8fafc; padding: 8px 12px; border-radius: 6px; border: 1px solid #e2e8f0; flex-shrink: 0; display: flex; flex-direction: column; gap: 4px; }
  .filter-title { font-weight: bold; color: #64748b; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
  .segment-btn { background: white; border: 1px solid var(--accent-blue); color: var(--accent-blue); padding: 6px 12px; border-radius: 20px; cursor: pointer; font-size: 12px; font-weight: bold; margin-right: 5px; }
@@ -65,7 +66,7 @@
  </div>
  <button class="btn btn-secondary" onclick="window.location.href='3_accueil.html'">« Retour Console Accueil</button>
  </div>
- <button class="toggle-form-btn" onclick="basculerAffichageFormulaireTiroir()">Ouvrir les Outils de Saisie & Import CSV 🛠</button>
+ <button class="toggle-form-btn" onclick="basculerAffichageFormulaireTiroir()">Ouvrir les Outils de Saisie & Import CSV </button> 🛠
  <div class="form-saisie-inline" id="formSaisieManuelleLigne">
  <div style="grid-column: 1 / -1; display:flex; justify-content:space-between; align-items:center; border-bottom:1px dashed var(--border-color); padding-bottom:5px; margin-bottom:5px;">
  <label style="color:var(--accent-blue); font-weight:bold;">Console d'injection des Prix</label>
@@ -74,22 +75,28 @@
  Importer Fichier CSV (Excel) 📥
  <input type="file" id="csvFileInput" accept=".csv" style="display:none;" onchange="gererImportationCSVLocal(this)">
  </label>
- <button class="btn" style="background:var(--danger-red); padding:4px 8px; font-size:10px;" onclick="viderLockerBDQELocalTotalement()"> ⚠️ Vider le Bordereau</button>
+ <button class="btn" style="background:var(--danger-red); padding:4px 8px; font-size:10px;" onclick="viderLockerBDQELocalTotalement()"> Vider le ⚠ Bordereau</button>
  </div>
  </div>
  <div class="form-cell"><label>Code BDQE</label><input type="text" id="inCode" placeholder="Ex: 1.1" oninput="declencherMoteurHeritageAutomatiqueFratrie(this.value)"></div>
- <div class="form-cell" style="grid-column: span 2;"><label>Grand Ouvrage / Site</label><input type="text" id="inOuvrage" placeholder="Ex: Terrassement"></div>
+ 
+ <!-- MODIFICATION : Remplacement de l'input par le select dynamique étanche -->
+ <div class="form-cell" style="grid-column: span 2;">
+ <label>Grand Ouvrage / Site</label>
+ <select id="inOuvrage"></select>
+ </div>
+ 
  <div class="form-cell" style="grid-column: span 2;"><label>Structure / Partie</label><input type="text" id="inStructure" placeholder="Ex: Infrastructures"></div>
  <div class="form-cell" style="grid-column: span 3;"><label>Désignation des Travaux</label><input type="text" id="inDesignation" placeholder="Ex: Fouille en excavation"></div>
  <div class="form-cell"><label>Unité</label><input type="text" id="inUnite" placeholder="m³" style="text-align:center;"></div>
  <div class="form-cell"><label>Quantité</label><input type="text" id="inQte" placeholder="0.00" style="text-align:right;"></div>
  <div class="form-cell"><label>P.U (Ar)</label><input type="text" id="inPU" placeholder="0.00" style="text-align:right;"></div>
- <button class="btn btn-primary" style="padding:8px; justify-content:center; font-size:11px; height:31px;" onclick="ajouterNouvelleLigneBDQEManuelle()">Ajouter ➕</button>
+ <button class="btn btn-primary" style="padding:8px; justify-content:center; font-size:11px; height:31px;" onclick="ajouterNouvelleLigneBDQEManuelle()">Ajouter </button> ➕
  </div>
  <div class="filter-section">
- <div class="filter-title">1️⃣ Filtrer par Grand Ouvrage :</div>
+ <div class="filter-title">1 Filtrer par Grand Ouvrage :</div> ⃣
  <div class="segment-container" id="boxSegmentsOuvragesBDQE" style="overflow-x:auto; white-space:nowrap; flex-wrap:nowrap; padding-bottom:3px;"></div>
- <div class="filter-title" style="margin-top:2px;">2️⃣ Affiner par Structure / Partie :</div>
+ <div class="filter-title" style="margin-top:2px;">2 Affiner par Structure / Partie :</div> ⃣
  <div class="segment-container" id="boxSegmentsStructuresBDQE" style="overflow-x:auto; white-space:nowrap; flex-wrap:nowrap; padding-bottom:3px;"></div>
  </div>
  <div class="workspace-table-scroll">
@@ -125,41 +132,41 @@ const DB_VERSION = 1;
 let dbInstance = null;
 
 function initialiserLeMeubleDB() {
-    return new Promise((resolve, reject) => {
-        let requete = indexedDB.open(DB_NAME, DB_VERSION);
-        requete.onsuccess = function(e) { dbInstance = e.target.result; resolve(dbInstance); };
-        requete.onerror = function() { reject("Meuble inaccessible."); };
-    });
+ return new Promise((resolve, reject) => {
+ let requete = indexedDB.open(DB_NAME, DB_VERSION);
+ requete.onsuccess = function(e) { dbInstance = e.target.result; resolve(dbInstance); };
+ requete.onerror = function() { reject("Meuble inaccessible."); };
+ });
 }
 
 function lireDonneeDB(tiroir, cle) {
-    return new Promise((resolve) => {
-        if(!dbInstance) return resolve(null);
-        let tx = dbInstance.transaction([tiroir], "readonly");
-        let req = tx.objectStore(tiroir).get(cle);
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => resolve(null);
-    });
+ return new Promise((resolve) => {
+ if(!dbInstance) return resolve(null);
+ let tx = dbInstance.transaction([tiroir], "readonly");
+ let req = tx.objectStore(tiroir).get(cle);
+ req.onsuccess = () => resolve(req.result);
+ req.onerror = () => resolve(null);
+ });
 }
 
 function lireToutesLesDonneesDB(tiroir) {
-    return new Promise((resolve) => {
-        if(!dbInstance) return resolve([]);
-        let tx = dbInstance.transaction([tiroir], "readonly");
-        let req = tx.objectStore(tiroir).getAll();
-        req.onsuccess = () => resolve(req.result || []);
-        req.onerror = () => resolve([]);
-    });
+ return new Promise((resolve) => {
+ if(!dbInstance) return resolve([]);
+ let tx = dbInstance.transaction([tiroir], "readonly");
+ let req = tx.objectStore(tiroir).getAll();
+ req.onsuccess = () => resolve(req.result || []);
+ req.onerror = () => resolve([]);
+ });
 }
 
 function ecrireDonneeDB(tiroir, objet, cleOptionnelle) {
-    return new Promise((resolve) => {
-        if(!dbInstance) return resolve(false);
-        let tx = dbInstance.transaction([tiroir], "readwrite");
-        let req = cleOptionnelle !== undefined ? tx.objectStore(tiroir).put(objet, cleOptionnelle) : tx.objectStore(tiroir).put(objet);
-        req.onsuccess = () => resolve(true);
-        req.onerror = () => resolve(false);
-    });
+ return new Promise((resolve) => {
+ if(!dbInstance) return resolve(false);
+ let tx = dbInstance.transaction([tiroir], "readwrite");
+ let req = cleOptionnelle !== undefined ? tx.objectStore(tiroir).put(objet, cleOptionnelle) : tx.objectStore(tiroir).put(objet);
+ req.onsuccess = () => resolve(true);
+ req.onerror = () => resolve(false);
+ });
 }
 
 let listeBDQE = [];
@@ -170,190 +177,210 @@ let idProjetCourant = localStorage.getItem("id_projet_en_cours_de_saisie_tempora
 const CLE_BDQE_PROJET = `bdqe_${idProjetCourant}`;
 
 function basculerAffichageFormulaireTiroir() {
-    let form = document.getElementById('formSaisieManuelleLigne');
-    let btn = document.querySelector('.toggle-form-btn');
-    form.classList.toggle('open');
-    if (form.classList.contains('open')) {
-        btn.innerText = "Fermer la Console de Saisie & Import CSV ❌";
-        btn.style.cssText = "background:#fee2e2; color:var(--danger-red); border-color:var(--danger-red);";
-    } else {
-        btn.innerText = "Ouvrir les Outils de Saisie & Import CSV 🛠";
-        btn.style.cssText = "background:#f1f5f9; color:var(--accent-blue); border-color:var(--accent-blue);";
-    }
+ let form = document.getElementById('formSaisieManuelleLigne');
+ let btn = document.querySelector('.toggle-form-btn');
+ form.classList.toggle('open');
+ if (form.classList.contains('open')) {
+ btn.innerText = "Fermer la Console de Saisie & Import CSV ";
+ btn.style.cssText = "background:#fee2e2; color:var(--danger-red); border-color:var(--danger-red);";
+ } else {
+ btn.innerText = "Ouvrir les Outils de Saisie & Import CSV ";
+ btn.style.cssText = "background:#f1f5f9; color:var(--accent-blue); border-color:var(--accent-blue);";
+ }
 }
+
 window.onload = function() {
-    if (localStorage.getItem("session_securisee_active_gc") !== "VALIDE") {
-        window.location.href = "1_login.html"; return;
-    }
-    initialiserLeMeubleDB().then(async () => {
-        listeProjetsGlobal = await lireToutesLesDonneesDB("projets");
-        let projetActuel = listeProjetsGlobal.find(p => p.id == idProjetCourant);
-        if (projetActuel) {
-            document.getElementById('txtTitreLotBDQE').innerText = "Bordereau initial BDQE — " + projetActuel.nom.toUpperCase();
-            document.getElementById('txtLabelSousTitreLot').innerText = `ID unique du lot : ${idProjetCourant} | Classification : ${projetActuel.type}`;
-        }
-        let role = localStorage.getItem("session_user_role") || "agents";
-        let lotsAutorises = JSON.parse(localStorage.getItem("session_user_lots") || "[]");
-        if (role === "agents" || (role === "controle" && !lotsAutorises.includes(String(idProjetCourant)))) {
-            document.querySelector('.toggle-form-btn').style.display = 'none';
-            document.getElementById('formSaisieManuelleLigne').style.display = 'none';
-            let bandeauAlerte = document.createElement('div');
-            bandeauAlerte.style.cssText = "background:#eff6ff; color:#1e40af; padding:10px; border-radius:6px; font-weight:bold; margin-bottom:5px; border:1px solid #bfdbfe; font-size:11px; text-align:center; flex-shrink:0;";
-            bandeauAlerte.innerText = " Mode Consultation Uniquement (Lecture Seule 🔒 Droits Terrain Restreints)";
-            document.body.insertBefore(bandeauAlerte, document.body.firstChild);
-            document.querySelector('.col-action-modification').style.display = 'none';
-            window.modeLectureSeuleActive = true;
-        }
-        let donneesChargees = await lireDonneeDB("dossiers_techniques", CLE_BDQE_PROJET);
-        listeBDQE = donneesChargees ? donneesChargees : [];
-        rechargerTout();
-    });
+ if (localStorage.getItem("session_securisee_active_gc") !== "VALIDE") {
+ window.location.href = "1_login.html"; return;
+ }
+ initialiserLeMeubleDB().then(async () => {
+ listeProjetsGlobal = await lireToutesLesDonneesDB("projets");
+ let projetActuel = listeProjetsGlobal.find(p => p.id == idProjetCourant);
+ if (projetActuel) {
+ document.getElementById('txtTitreLotBDQE').innerText = "Bordereau initial BDQE — " + projetActuel.nom.toUpperCase();
+ document.getElementById('txtLabelSousTitreLot').innerText = `ID unique du lot : ${idProjetCourant} | Classification : ${projetActuel.type}`;
+ }
+ let role = localStorage.getItem("session_user_role") || "agents";
+ let lotsAutorises = JSON.parse(localStorage.getItem("session_user_lots") || "[]");
+ if (role === "agents" || (role === "controle" && !lotsAutorises.includes(String(idProjetCourant)))) {
+ document.querySelector('.toggle-form-btn').style.display = 'none';
+ document.getElementById('formSaisieManuelleLigne').style.display = 'none';
+ let bandeauAlerte = document.createElement('div');
+ bandeauAlerte.style.cssText = "background:#eff6ff; color:#1e40af; padding:10px; border-radius:6px; font-weight:bold; margin-bottom:5px; border:1px solid #bfdbfe; font-size:11px; text-align:center; flex-shrink:0;";
+ bandeauAlerte.innerText = " Mode Consultation Uniquement (Lecture Seule Droits Terrain Restreints)";
+ document.body.insertBefore(bandeauAlerte, document.body.firstChild);
+ document.querySelector('.col-action-modification').style.display = 'none';
+ window.modeLectureSeuleActive = true;
+ }
+ let donneesChargees = await lireDonneeDB("dossiers_techniques", CLE_BDQE_PROJET);
+ listeBDQE = donneesChargees ? donneesChargees : [];
+ rechargerTout();
+ });
 };
 
 async function declencherMoteurHeritageAutomatiqueFratrie(codeSaisi) {
-    let codeNettoye = codeSaisi.trim();
-    if (codeNettoye.length < 2) return;
-    let existeDejaIci = listeBDQE.find(i => i.code_bdqe === codeNettoye);
-    if (existeDejaIci) { remplirChampsFormulaireManuel(existeDejaIci); return; }
-    let monProjet = listeProjetsGlobal.find(p => p.id == idProjetCourant);
-    if (monProjet && monProjet.type === "ENFANT" && monProjet.parentId) {
-        let listeFreres = listeProjetsGlobal.filter(p => p.type === "ENFANT" && p.parentId === monProjet.parentId && p.id !== idProjetCourant);
-        for (let frere of listeFreres) {
-            let bdqeFrere = await lireDonneeDB("dossiers_techniques", `bdqe_${frere.id}`) || [];
-            let elementTrouve = bdqeFrere.find(item => item.code_bdqe === codeNettoye);
-            if (elementTrouve) { remplirChampsFormulaireManuel(elementTrouve); return; }
-        }
-    }
+ let codeNettoye = codeSaisi.trim();
+ if (codeNettoye.length < 2) return;
+ let existeDejaIci = listeBDQE.find(i => i.code_bdqe === codeNettoye);
+ if (existeDejaIci) { remplirChampsFormulaireManuel(existeDejaIci); return; }
+ let monProjet = listeProjetsGlobal.find(p => p.id == idProjetCourant);
+ if (monProjet && monProjet.type === "ENFANT" && monProjet.parentId) {
+ let listeFreres = listeProjetsGlobal.filter(p => p.type === "ENFANT" && p.parentId == monProjet.parentId && p.id != idProjetCourant);
+ for (let frere of listeFreres) {
+ let bdqeFrere = await lireDonneeDB("dossiers_techniques", `bdqe_${frere.id}`) || [];
+ let elementTrouve = bdqeFrere.find(item => item.code_bdqe === codeNettoye);
+ if (elementTrouve) { remplirChampsFormulaireManuel(elementTrouve); return; }
+ }
+ }
 }
 
 function remplirChampsFormulaireManuel(item) {
-    document.getElementById('inOuvrage').value = item.ouvrage || "";
-    document.getElementById('inStructure').value = item.structure || "";
-    document.getElementById('inDesignation').value = item.designation || "";
-    document.getElementById('inUnite').value = item.unite || "";
-    document.getElementById('inPU').value = item.prix_unitaire || "";
+ document.getElementById('inStructure').value = item.structure || "";
+ document.getElementById('inDesignation').value = item.designation || "";
+ document.getElementById('inUnite').value = item.unite || "";
+ document.getElementById('inPU').value = item.prix_unitaire || "";
 }
-
 function formatArgent(num) {
-    if (num === null || num === undefined || isNaN(num)) return "0,00";
-    return num.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+ if (num === null || num === undefined || isNaN(num)) return "0,00";
+ return num.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function ajouterNouvelleLigneBDQEManuelle() {
-    let ouvrage = document.getElementById('inOuvrage').value.trim();
-    let code_bdqe = document.getElementById('inCode').value.trim().replace(',', '.');
-    let structure = document.getElementById('inStructure').value.trim();
-    let designation = document.getElementById('inDesignation').value.trim();
-    let unite = document.getElementById('inUnite').value.trim();
-    let quantite = parseFloat(document.getElementById('inQte').value.replace(/\s/g, '').replace(',', '.')) || 0;
-    let prix_unitaire = parseFloat(document.getElementById('inPU').value.replace(/\s/g, '').replace(',', '.')) || 0;
-    if (!ouvrage || !code_bdqe || !designation) return alert("Le code, l'ouvrage et la désignation doivent être remplis.");
-    listeBDQE.push({ ouvrage, code_bdqe, structure, designation, unite, quantite, prix_unitaire, total: quantite * prix_unitaire });
-    document.getElementById('inCode').value = ""; document.getElementById('inOuvrage').value = ""; document.getElementById('inStructure').value = "";
-    document.getElementById('inDesignation').value = ""; document.getElementById('inUnite').value = ""; document.getElementById('inQte').value = ""; document.getElementById('inPU').value = "";
-    rechargerTout();
+ let ouvrage = document.getElementById('inOuvrage').value.trim();
+ let code_bdqe = document.getElementById('inCode').value.trim().replace(',', '.');
+ let structure = document.getElementById('inStructure').value.trim();
+ let designation = document.getElementById('inDesignation').value.trim();
+ let unite = document.getElementById('inUnite').value.trim();
+ let quantite = parseFloat(document.getElementById('inQte').value.replace(/\s/g, '').replace(',', '.')) || 0;
+ let prix_unitaire = parseFloat(document.getElementById('inPU').value.replace(/\s/g, '').replace(',', '.')) || 0;
+ if (!ouvrage || !code_bdqe || !designation) return alert("L'ouvrage, le code et la désignation doivent être renseignés.");
+ listeBDQE.push({ ouvrage, code_bdqe, structure, designation, unite, quantite, prix_unitaire, total: quantite * prix_unitaire });
+ document.getElementById('inCode').value = ""; document.getElementById('inOuvrage').value = ""; document.getElementById('inStructure').value = "";
+ document.getElementById('inDesignation').value = ""; document.getElementById('inUnite').value = ""; document.getElementById('inQte').value = ""; document.getElementById('inPU').value = "";
+ rechargerTout();
 }
+
 function trierDonneesAlphanumerique() {
-    listeBDQE.sort((a, b) => {
-        let comp = a.ouvrage.localeCompare(b.ouvrage, 'fr', { sensitivity: 'base' });
-        if (comp !== 0) return comp;
-        let partsA = String(a.code_bdqe).split(/[\.,]/).map(Number);
-        let partsB = String(b.code_bdqe).split(/[\.,]/).map(Number);
-        for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
-            let numA = partsA[i] || 0; let numB = partsB[i] || 0;
-            if (numA !== numB) return numA - numB;
-        }
-        return 0;
-    });
+ listeBDQE.sort((a, b) => {
+ let comp = a.ouvrage.localeCompare(b.ouvrage, 'fr', { sensitivity: 'base' });
+ if (comp !== 0) return comp;
+ let partsA = String(a.code_bdqe).split(/[\.,]/).map(Number);
+ let partsB = String(b.code_bdqe).split(/[\.,]/).map(Number);
+ for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
+ let numA = partsA[i] || 0; let numB = partsB[i] || 0;
+ if (numA !== numB) return numA - numB;
+ }
+ return 0;
+ });
 }
 
 function supprimerLigneBDQESecurise(index) {
-    if (confirm("Voulez-vous retirer cette ligne ?")) { listeBDQE.splice(index, 1); rechargerTout(); }
+ if (confirm("Voulez-vous retirer cette ligne ?")) { listeBDQE.splice(index, 1); rechargerTout(); }
 }
 
 function gererImportationCSVLocal(input) {
-    if (input.files && input.files[0]) {
-        let reader = new FileReader();
-        reader.onload = function(e) {
-            let texteBrut = e.target.result;
-            let lignes = texteBrut.split(/\r\n|\n/);
-            if (lignes.length <= 1) return alert("Fichier CSV vide.");
-            let sep = texteBrut.split(",").length > texteBrut.split(";").length ? "," : ";";
-            let c = 0;
-            for (let i = 1; i < lignes.length; i++) {
-                let ligneBrute = lignes[i].trim(); if (ligneBrute === "") continue;
-                let cellules = []; let dansLesGuillemets = false; let cellEnCours = "";
-                for (let idx = 0; idx < ligneBrute.length; idx++) {
-                    let char = ligneBrute[idx];
-                    if (char === '"') { dansLesGuillemets = !dansLesGuillemets; }
-                    else if (char === sep && !dansLesGuillemets) { cellules.push(cellEnCours.trim().replace(/^"|"$/g, "")); cellEnCours = ""; }
-                    else { cellEnCours += char; }
-                }
-                cellules.push(cellEnCours.trim().replace(/^"|"$/g, ""));
-                if (cellules.length >= 4 && cellules[0] && cellules[1] && cellules[3]) {
-                    let qte = parseFloat(String(cellules[5]).replace(/\s/g, '').replace(',', '.')) || 0;
-                    let pu = parseFloat(String(cellules[6]).replace(/\s/g, '').replace(',', '.')) || 0;
-                    listeBDQE.push({ ouvrage: cellules[0], code_bdqe: cellules[1].replace(',', '.'), structure: cellules[2] || "-", designation: cellules[3] || "", unite: cellules[4] || "ens", quantite: qte, prix_unitaire: pu, total: qte * pu });
-                    c++;
-                }
-            }
-            rechargerTout(); alert(`Succès : ${c} lignes importées.`); document.getElementById('csvFileInput').value = "";
-        };
-        reader.readAsText(input.files[0], 'UTF-8');
-    }
+ if (input.files && input.files[0]) {
+ let reader = new FileReader();
+ reader.onload = function(e) {
+ let texteBrut = e.target.result;
+ let sep = texteBrut.split(",").length > texteBrut.split(";").length ? "," : ";";
+ let lignes = []; let ligneEnCours = ""; let dansLesGuillemetsGlobal = false;
+ for (let i = 0; i < texteBrut.length; i++) {
+ let char = texteBrut[i];
+ if (char === '"') { dansLesGuillemetsGlobal = !dansLesGuillemetsGlobal; ligneEnCours += char; }
+ else if ((char === '\n' || char === '\r') && !dansLesGuillemetsGlobal) {
+ if (ligneEnCours.trim() !== "") lignes.push(ligneEnCours);
+ ligneEnCours = ""; if (char === '\r' && texteBrut[i+1] === '\n') i++;
+ } else { ligneEnCours += char; }
+ }
+ if (ligneEnCours.trim() !== "") lignes.push(ligneEnCours);
+ if (lignes.length <= 1) return alert("Fichier CSV vide.");
+ let c = 0;
+ for (let i = 1; i < lignes.length; i++) {
+ let ligneBrute = lignes[i].trim(); if (ligneBrute === "") continue;
+ let cellules = []; let dansLesGuillemets = false; let cellEnCours = "";
+ for (let idx = 0; idx < ligneBrute.length; idx++) {
+ let char = ligneBrute[idx];
+ if (char === '"') { dansLesGuillemets = !dansLesGuillemets; }
+ else if (char === sep && !dansLesGuillemets) { cellules.push(cellEnCours.trim().replace(/^"|"$/g, "")); cellEnCours = ""; }
+ else { cellEnCours += char; }
+ }
+ cellules.push(cellEnCours.trim().replace(/^"|"$/g, ""));
+ if (cellules.length >= 7 && cellules[0] && cellules[1] && cellules[3]) {
+ let nettoyerNombre = (val) => String(val).replace(/[\s\u00A0]/g, '').replace(',', '.');
+ let qte = parseFloat(nettoyerNombre(cellules[5])) || 0;
+ let pu = parseFloat(nettoyerNombre(cellules[6])) || 0;
+ listeBDQE.push({ ouvrage: cellules[0], code_bdqe: cellules[1].replace(',', '.'), structure: cellules[2] || "-", designation: cellules[3] || "", unite: cellules[4] || "ens", quantite: qte, prix_unitaire: pu, total: qte * pu });
+ c++;
+ }
+ }
+ rechargerTout(); alert(`Succès : ${c} lignes importées.`); document.getElementById('csvFileInput').value = "";
+ };
+ reader.readAsText(input.files[0], 'UTF-8');
+ }
 }
+
+function actualiserSelectOuvrages() {
+ let selectOuvrage = document.getElementById('inOuvrage'); if (!selectOuvrage) return;
+ let ouvragesUniques = [...new Set(listeBDQE.map(item => item.ouvrage).filter(Boolean))];
+ selectOuvrage.innerHTML = '<option value="">-- Choisir un ouvrage --</option>';
+ ouvragesUniques.forEach(ouv => {
+ let opt = document.createElement('option'); opt.value = ouv; opt.innerText = ouv.toUpperCase(); selectOuvrage.appendChild(opt);
+ });
+}
+
 async function rechargerTout() {
-    trierDonneesAlphanumerique(); genererBoutonsSegmentsOuvrages(); genererBoutonsSegmentsStructures(); afficherGrilleDonneesBDQE(); afficherCartesRecapOuvrages();
-    let mnt = 0; listeBDQE.forEach(i => mnt += (i.total || 0));
-    document.getElementById('txtCalculSommeFinanciereBDQE').innerText = formatArgent(mnt) + " Ar";
-    await ecrireDonneeDB("dossiers_techniques", listeBDQE, CLE_BDQE_PROJET);
+ trierDonneesAlphanumerique(); genererBoutonsSegmentsOuvrages(); genererBoutonsSegmentsStructures(); afficherGrilleDonneesBDQE(); afficherCartesRecapOuvrages(); actualiserSelectOuvrages();
+ let mnt = 0; listeBDQE.forEach(i => mnt += (i.total || 0));
+ document.getElementById('txtCalculSommeFinanciereBDQE').innerText = formatArgent(mnt) + " Ar";
+ await ecrireDonneeDB("dossiers_techniques", listeBDQE, CLE_BDQE_PROJET);
 }
 
 function genererBoutonsSegmentsOuvrages() {
-    let container = document.getElementById('boxSegmentsOuvragesBDQE'); if (!container) return; container.innerHTML = "";
-    let ouvs = ["TOUS", ...new Set(listeBDQE.map(item => item.ouvrage).filter(Boolean))];
-    ouvs.forEach(ouv => {
-        let btn = document.createElement('button'); btn.className = `segment-btn ${filtreOuvrageActif === ouv ? 'active' : ''}`; btn.innerText = ouv.toUpperCase();
-        btn.onclick = function() { filtreOuvrageActif = ouv; filtreStructureActif = "TOUS"; rechargerTout(); }; container.appendChild(btn);
-    });
+ let container = document.getElementById('boxSegmentsOuvragesBDQE'); if (!container) return; container.innerHTML = "";
+ let ouvs = ["TOUS", ...new Set(listeBDQE.map(item => item.ouvrage).filter(Boolean))];
+ ouvs.forEach(ouv => {
+ let btn = document.createElement('button'); btn.className = `segment-btn ${filtreOuvrageActif === ouv ? 'active' : ''}`; btn.innerText = ouv.toUpperCase();
+ btn.onclick = function() { filtreOuvrageActif = ouv; filtreStructureActif = "TOUS"; rechargerTout(); }; container.appendChild(btn);
+ });
 }
 
 function genererBoutonsSegmentsStructures() {
-    let container = document.getElementById('boxSegmentsStructuresBDQE'); if (!container) return; container.innerHTML = "";
-    let sub = filtreOuvrageActif === "TOUS" ? listeBDQE : listeBDQE.filter(item => item.ouvrage === filtreOuvrageActif);
-    let structs = ["TOUS", ...new Set(sub.map(item => item.structure).filter(Boolean))];
-    structs.forEach(str => {
-        let btn = document.createElement('button'); btn.className = `segment-btn ${filtreStructureActif === str ? 'active' : ''}`; btn.innerText = str.toUpperCase();
-        btn.onclick = function() { filtreStructureActif = str; rechargerTout(); }; container.appendChild(btn);
-    });
+ let container = document.getElementById('boxSegmentsStructuresBDQE'); if (!container) return; container.innerHTML = "";
+ let sub = filtreOuvrageActif === "TOUS" ? listeBDQE : listeBDQE.filter(item => item.ouvrage === filtreOuvrageActif);
+ let structs = ["TOUS", ...new Set(sub.map(item => item.structure).filter(Boolean))];
+ structs.forEach(str => {
+ let btn = document.createElement('button'); btn.className = `segment-btn ${filtreStructureActif === str ? 'active' : ''}`; btn.innerText = str.toUpperCase();
+ btn.onclick = function() { filtreStructureActif = str; rechargerTout(); }; container.appendChild(btn);
+ });
 }
 
 function afficherGrilleDonneesBDQE() {
-    let tbody = document.getElementById('tbodyLignesBDQEGrid'); if (!tbody) return; tbody.innerHTML = "";
-    if (listeBDQE.length === 0) { tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:#94a3b8; padding:30px; font-style:italic;">Le bordereau est vide.</td></tr>`; return; }
-    listeBDQE.forEach((item, index) => {
-        if (filtreOuvrageActif !== "TOUS" && item.ouvrage !== filtreOuvrageActif) return;
-        if (filtreStructureActif !== "TOUS" && item.structure !== filtreStructureActif) return;
-        let tr = document.createElement('tr');
-        let action = window.modeLectureSeuleActive ? "" : `<td style="text-align:center;"><button class="btn" style="background:var(--danger-red); padding:3px 6px; font-size:10px;" onclick="supprimerLigneBDQESecurise(${index})">🗑</button></td>`;
-        tr.innerHTML = `<td><b>${item.ouvrage}</b></td><td style="font-family:monospace; font-weight:bold; color:var(--accent-blue);">${item.code_bdqe}</td><td><span style="font-size:11px; font-weight:600; color:#64748b;">${item.structure}</span></td><td>${item.designation}</td><td style="text-align:center;">${item.unite || 'ens'}</td><td class="txt-right">${item.quantite.toLocaleString('fr-FR', { minimumFractionDigits: 2 })}</td><td class="txt-right">${formatArgent(item.prix_unitaire)}</td><td class="txt-right" style="color:var(--primary-dark); font-weight:bold;">${formatArgent(item.total)}</td>${action}`;
-        tbody.appendChild(tr);
-    });
+ let tbody = document.getElementById('tbodyLignesBDQEGrid'); if (!tbody) return; tbody.innerHTML = "";
+ if (listeBDQE.length === 0) { tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:#94a3b8; padding:30px; font-style:italic;">Le bordereau est vide.</td></tr>`; return; }
+ listeBDQE.forEach((item, index) => {
+ if (filtreOuvrageActif !== "TOUS" && item.ouvrage !== filtreOuvrageActif) return;
+ if (filtreStructureActif !== "TOUS" && item.structure !== filtreStructureActif) return;
+ let tr = document.createElement('tr');
+ let action = window.modeLectureSeuleActive ? "" : `<td style="text-align:center;"><button class="btn" style="background:var(--danger-red); padding:3px 6px; font-size:10px;" onclick="supprimerLigneBDQESecurise(${index})"> </button></td>`;
+ tr.innerHTML = `<td><b>${item.ouvrage}</b></td><td style="font-family:monospace; font-weight:bold; color:var(--accent-blue);">${item.code_bdqe}</td><td><span style="font-size:11px; font-weight:600; color:#64748b;">${item.structure}</span></td><td>${item.designation}</td><td style="text-align:center;">${item.unite || 'ens'}</td><td class="txt-right">${item.quantite.toLocaleString('fr-FR', { minimumFractionDigits: 2 })}</td><td class="txt-right">${formatArgent(item.prix_unitaire)}</td><td class="txt-right" style="color:var(--primary-dark); font-weight:bold;">${formatArgent(item.total)}</td>${action}`;
+ tbody.appendChild(tr);
+ });
 }
 
 function afficherCartesRecapOuvrages() {
-    let container = document.getElementById('tbodyRecapFinancierOuvragesBDQE'); if (!container) return; container.innerHTML = "";
-    let dict = {}; listeBDQE.forEach(i => { let m = i.total || 0; if (!dict[i.ouvrage]) dict[i.ouvrage] = 0; dict[i.ouvrage] += m; });
-    let keys = Object.keys(dict);
-    if (keys.length === 0) { container.innerHTML = `<div style="text-align:center; color:#94a3b8; font-style:italic; font-size:11px; padding:10px; width:100%;">Aucun ouvrage enregistré.</div>`; return; }
-    keys.forEach(nom => {
-        let card = document.createElement('div'); card.className = "recap-card-item";
-        card.innerHTML = `<div class="recap-card-title" title="${nom}">${nom.toUpperCase()}</div><div class="recap-card-value">${formatArgent(dict[nom])} Ar</div>`; container.appendChild(card);
-    });
+ let container = document.getElementById('tbodyRecapFinancierOuvragesBDQE'); if (!container) return; container.innerHTML = "";
+ let dict = {}; listeBDQE.forEach(i => { let m = i.total || 0; if (!dict[i.ouvrage]) dict[i.ouvrage] = 0; dict[i.ouvrage] += m; });
+ let keys = Object.keys(dict);
+ if (keys.length === 0) { container.innerHTML = `<div style="text-align:center; color:#94a3b8; font-style:italic; font-size:11px; padding:10px; width:100%;">Aucun ouvrage enregistré.</div>`; return; }
+ keys.forEach(nom => {
+ let card = document.createElement('div'); card.className = "recap-card-item";
+ card.innerHTML = `<div class="recap-card-title" title="${nom}">${nom.toUpperCase()}</div><div class="recap-card-value">${formatArgent(dict[nom])} Ar</div>`; container.appendChild(card);
+ });
 }
 
 async function viderLockerBDQELocalTotalement() {
-    if (confirm("Souhaitez-vous effacer TOUT le bordereau des prix de ce lot ?")) { listeBDQE = []; await rechargerTout(); alert("Bordereau vidé. 🗑"); }
+ if (confirm("Souhaitez-vous effacer TOUT le bordereau des prix de ce lot ?")) { listeBDQE = []; await rechargerTout(); alert("Bordereau vidé. "); }
 }
 </script>
 </body>
