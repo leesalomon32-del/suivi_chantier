@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+ <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
  <meta charset="UTF-8">
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
  <title>Génie Civil Pro - Armoire Numérique GED CCPMS</title>
@@ -76,31 +78,41 @@ const DB_VERSION = 1;
 let dbInstance = null;
 
 function initialiserLeMeubleDB() {
-    return new Promise((resolve, reject) => {
-        let requete = indexedDB.open(DB_NAME, DB_VERSION);
-        requete.onsuccess = function(e) { dbInstance = e.target.result; resolve(dbInstance); };
-        requete.onerror = function() { reject("Meuble bloqué."); };
-    });
+ return new Promise((resolve, reject) => {
+ let requete = indexedDB.open(DB_NAME, DB_VERSION);
+ requete.onsuccess = function(e) { dbInstance = e.target.result; resolve(dbInstance); };
+ requete.onerror = function() { reject("Meuble bloqué."); };
+ });
 }
 
 function lireDonneeDB(tiroir, cle) {
-    return new Promise((resolve) => {
-        if(!dbInstance) return resolve(null);
-        let tx = dbInstance.transaction([tiroir], "readonly");
-        let req = tx.objectStore(tiroir).get(cle);
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => resolve(null);
-    });
+ return new Promise((resolve) => {
+ if(!dbInstance) return resolve(null);
+ let tx = dbInstance.transaction([tiroir], "readonly");
+ let req = tx.objectStore(tiroir).get(cle);
+ req.onsuccess = () => resolve(req.result);
+ req.onerror = () => resolve(null);
+ });
 }
 
 function ecrireDonneeDB(tiroir, objet, cleOptionnelle) {
-    return new Promise((resolve) => {
-        if(!dbInstance) return resolve(false);
-        let tx = dbInstance.transaction([tiroir], "readwrite");
-        let req = cleOptionnelle !== undefined ? tx.objectStore(tiroir).put(objet, cleOptionnelle) : tx.objectStore(tiroir).put(objet);
-        req.onsuccess = () => resolve(true);
-        req.onerror = () => resolve(false);
-    });
+ return new Promise((resolve) => {
+ if(!dbInstance) return resolve(false);
+ let tx = dbInstance.transaction([tiroir], "readwrite");
+ let req = cleOptionnelle !== undefined ? tx.objectStore(tiroir).put(objet, cleOptionnelle) : tx.objectStore(tiroir).put(objet);
+ req.onsuccess = () => resolve(true);
+ req.onerror = () => resolve(false);
+ });
+}
+
+function lireToutesLesDonneesDB(tiroir) {
+ return new Promise((resolve) => {
+ if(!dbInstance) return resolve([]);
+ let tx = dbInstance.transaction([tiroir], "readonly");
+ let req = tx.objectStore(tiroir).getAll();
+ req.onsuccess = () => resolve(req.result || []);
+ req.onerror = () => resolve([]);
+ });
 }
 
 let listeDocumentsGed = [];
@@ -109,96 +121,93 @@ let idProjetCourant = localStorage.getItem("id_projet_en_cours_de_saisie_tempora
 const CLE_GED_PROJET = `ccpms_${idProjetCourant}`;
 
 function basculerAffichageFormulaireTiroir() {
-    let form = document.getElementById('formGedLigne');
-    let btn = document.querySelector('.toggle-form-btn');
-    form.classList.toggle('open');
-    if (form.classList.contains('open')) {
-        btn.innerText = "Fermer la Console de Téléversement ❌";
-        btn.style.cssText = "background:#fee2e2; color:var(--danger-red); border-color:var(--danger-red);";
-    } else {
-        btn.innerText = "Ouvrir la Console de Téléversement de Documents 📁";
-        btn.style.cssText = "background:#f1f5f9; color:var(--accent-purple); border-color:var(--accent-purple);";
-    }
+ let form = document.getElementById('formGedLigne'); let btn = document.querySelector('.toggle-form-btn');
+ form.classList.toggle('open');
+ if (form.classList.contains('open')) {
+ btn.innerText = "Fermer la Console de Téléversement ❌"; btn.style.cssText = "background:#fee2e2; color:var(--danger-red); border-color:var(--danger-red);";
+ } else {
+ btn.innerText = "Ouvrir la Console de Téléversement de Documents 📁"; btn.style.cssText = "background:#f1f5f9; color:var(--accent-purple); border-color:var(--accent-purple);";
+ }
 }
+
 window.onload = function() {
-    if (localStorage.getItem("session_securisee_active_gc") !== "VALIDE") {
-        window.location.href = "1_login.html"; return;
-    }
-    initialiserLeMeubleDB().then(async () => {
-        let tx = dbInstance.transaction(["projets"], "readonly");
-        let req = tx.objectStore("projets").getAll();
-        req.onsuccess = async function() {
-            let listeProjets = req.result || [];
-            let lot = listeProjets.find(p => p.id == idProjetCourant);
-            if (lot) {
-                document.getElementById('txtTitreLotGED').innerText = "GED Armoire CCPMS — " + lot.nom.toUpperCase();
-                document.getElementById('txtLabelSousTitreLot').innerText = `ID du lot : ${idProjetCourant} | Localisation des archives`;
-            }
-            let donneesChargees = await lireDonneeDB("dossiers_techniques", CLE_GED_PROJET);
-            listeDocumentsGed = donneesChargees ? donneesChargees : [];
-            rechargerToutGed();
-        };
-    });
+ if (localStorage.getItem("session_securisee_active_gc") !== "VALIDE") { window.location.href = "1_login.html"; return; }
+ initialiserLeMeubleDB().then(async () => {
+   // 1. AFFICHAGE INSTANTANÉ LOCAL : Rendu immédiat des images du cache (0.1s d'attente)
+   let listeProjets = await lireToutesLesDonneesDB("projets");
+   let lot = listeProjets.find(p => p.id == idProjetCourant);
+   if (lot) {
+     document.getElementById('txtTitreLotGED').innerText = "GED Armoire CCPMS — " + lot.nom.toUpperCase();
+     document.getElementById('txtLabelSousTitreLot').innerText = `ID du lot : ${idProjetCourant} | Localisation des archives`;
+   }
+   let donneesChargees = await lireDonneeDB("dossiers_techniques", CLE_GED_PROJET);
+   listeDocumentsGed = donneesChargees ? donneesChargees : [];
+   rechargerToutGed();
+
+   // 2. SYNCHRONISATION CLOUD EN ARRIÈRE-PLAN
+   if (window.supabaseClient && navigator.onLine) {
+     try {
+       let { data: resTech } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', CLE_GED_PROJET).maybeSingle();
+       if (resTech && resTech.contents_json || resTech.contenu_json) {
+         listeDocumentsGed = resTech.contents_json || resTech.contenu_json;
+         await ecrireDonneeDB("dossiers_techniques", listeDocumentsGed, CLE_GED_PROJET);
+         rechargerToutGed();
+       }
+     } catch (err) { console.log("Lenteur réseau."); }
+   }
+ });
 };
-
 function archiverNouveauDocumentManuel() {
-    let categorie = document.getElementById('inCategorie').value;
-    let titre = document.getElementById('inTitre').value.trim();
-    let description = document.getElementById('inDesc').value.trim();
-    let fileInput = document.getElementById('inFichierBrut');
-    if (!titre || !fileInput.files || fileInput.files.length === 0) {
-        return alert("Veuillez renseigner un titre et sélectionner un fichier local.");
-    }
-    let file = fileInput.files[0];
-    let reader = new FileReader();
-    reader.onload = async function(e) {
-        let itemDoc = { id: Date.now(), categorie, titre, description, dateDoc: new Date().toISOString().substring(0,10), nomFichier: file.name, typeMime: file.type, fichierBrut: e.target.result };
-        listeDocumentsGed.unshift(itemDoc);
-        document.getElementById('inTitre').value = ""; document.getElementById('inDesc').value = ""; fileInput.value = "";
-        rechargerToutGed();
-    };
-    reader.readAsDataURL(file);
+ let categorie = document.getElementById('inCategorie').value;
+ let titre = document.getElementById('inTitre').value.trim();
+ let description = document.getElementById('inDesc').value.trim();
+ let fileInput = document.getElementById('inFichierBrut');
+ if (!titre || !fileInput.files || fileInput.files.length === 0) { return alert("Veuillez renseigner un titre et sélectionner un fichier local."); }
+ let file = fileInput.files[0];
+ let reader = new FileReader();
+ reader.onload = async function(e) {
+   let itemDoc = { id: Date.now(), categorie, titre, description, dateDoc: new Date().toISOString().substring(0,10), nomFichier: file.name, typeMime: file.type, fichierBrut: e.target.result };
+   listeDocumentsGed.unshift(itemDoc);
+   document.getElementById('inTitre').value = ""; document.getElementById('inDesc').value = ""; fileInput.value = "";
+   rechargerToutGed();
+ };
+ reader.readAsDataURL(file);
 }
 
-function supprimerDocumentGed(id) {
-    if (confirm("Supprimer définitivement ce fichier de l'armoire locale ?")) {
-        listeDocumentsGed = listeDocumentsGed.filter(d => d.id !== id); rechargerToutGed();
-    }
-}
+function supprimerDocumentGed(id) { if (confirm("Supprimer définitivement ce fichier de l'armoire locale et en ligne ?")) { listeDocumentsGed = listeDocumentsGed.filter(d => d.id !== id); rechargerToutGed(); } }
+function telechargerFichierGedLocal(id) { let doc = listeDocumentsGed.find(d => d.id === id); if (!doc) return; let lien = document.createElement("a"); lien.href = doc.fichierBrut; lien.download = doc.nomFichier; document.body.appendChild(lien); lien.click(); document.body.removeChild(lien); }
 
-function telechargerFichierGedLocal(id) {
-    let doc = listeDocumentsGed.find(d => d.id === id); if (!doc) return;
-    let lien = document.createElement("a"); lien.href = doc.fichierBrut; lien.download = doc.nomFichier;
-    document.body.appendChild(lien); lien.click(); document.body.removeChild(lien);
-}
-
+// LE MOTEUR DOUBLE DE SAUVEGARDE GED
 async function rechargerToutGed() {
-    genererBoutonsSegmentsGed(); afficherGrilleFichiersGed();
-    await ecrireDonneeDB("dossiers_techniques", listeDocumentsGed, CLE_GED_PROJET);
+ genererBoutonsSegmentsGed(); afficherGrilleFichiersGed();
+ // 1. Sauvegarde locale instantanée de brousse
+ await ecrireDonneeDB("dossiers_techniques", listeDocumentsGed, CLE_GED_PROJET);
+ // 2. Push asynchrone en tâche de fond vers Supabase Cloud
+ if (window.supabaseClient && navigator.onLine) {
+   await window.supabaseClient.from('dossiers_techniques').upsert({ id: CLE_GED_PROJET, projet_id: String(idProjetCourant), type_donnee: 'ccpms', contenu_json: listeDocumentsGed });
+ }
 }
 
 function genererBoutonsSegmentsGed() {
-    let container = document.getElementById('boxSegmentsCategoriesGed'); if (!container) return; container.innerHTML = "";
-    let cats = ["TOUS", "Photos", "Plans", "Administratif"];
-    cats.forEach(c => {
-        let btn = document.createElement('button'); btn.className = `segment-btn ${filtreCategorieActuel === c ? 'active' : ''}`; btn.innerText = c.toUpperCase();
-        btn.onclick = function() { filtreCategorieActuel = c; afficherGrilleFichiersGed(); }; container.appendChild(btn);
-    });
+ let container = document.getElementById('boxSegmentsCategoriesGed'); if (!container) return; container.innerHTML = "";
+ let cats = ["TOUS", "Photos", "Plans", "Administratif"];
+ cats.forEach(c => { let btn = document.createElement('button'); btn.className = `segment-btn ${filtreCategorieActuel === c ? 'active' : ''}`; btn.innerText = c.toUpperCase(); btn.onclick = function() { filtreCategorieActuel = c; afficherGrilleFichiersGed(); }; container.appendChild(btn); });
 }
 
 function afficherGrilleFichiersGed() {
-    let grid = document.getElementById('containerGedCardsGrid'); if (!grid) return; grid.innerHTML = "";
-    let listeFiltree = filtreCategorieActuel === "TOUS" ? listeDocumentsGed : listeDocumentsGed.filter(d => d.categorie === filtreCategorieActuel);
-    if (listeFiltree.length === 0) { grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; color:#94a3b8; padding:40px; font-style:italic; font-size:13px;">L'armoire est vide pour cette catégorie.</div>`; return; }
-    listeFiltree.forEach(doc => {
-        let thumbHTML = `<div style="font-size:32px;">📄</div>`;
-        if (doc.typeMime && doc.typeMime.startsWith("image/")) { thumbHTML = `<img src="${doc.fichierBrut}">`; }
-        else if (doc.typeMime === "application/pdf") { thumbHTML = `<div style="font-size:32px; color:var(--danger-red);">📕</div><span style="font-size:10px;margin-top:4px;">FORMAT PDF</span>`; }
-        let card = document.createElement('div'); card.className = `doc-card ${doc.categorie}`;
-        card.innerHTML = `<div class="doc-title" title="${doc.titre}">${doc.titre}</div><div class="doc-meta">📅 ${doc.dateDoc} | Fichier local</div><div class="doc-preview-thumb">${thumbHTML}</div><div style="font-size:11px; color:#475569; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${doc.description}">${doc.description || 'Aucune description.'}</div><div style="display:flex; justify-content:space-between; margin-top:5px;"><button class="btn-card-action" style="background:var(--accent-blue);" onclick="telechargerFichierGedLocal(${doc.id})">💾 Ouvrir</button><button class="btn-card-action" style="background:var(--danger-red);" onclick="supprimerDocumentGed(${doc.id})">🗑 Retirer</button></div>`;
-        grid.appendChild(card);
-    });
+ let grid = document.getElementById('containerGedCardsGrid'); if (!grid) return; grid.innerHTML = "";
+ let listeFiltree = filtreCategorieActuel === "TOUS" ? listeDocumentsGed : listeDocumentsGed.filter(d => d.categorie === filtreCategorieActuel);
+ if (listeFiltree.length === 0) { grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; color:#94a3b8; padding:40px; font-style:italic; font-size:13px;">L'armoire est vide pour cette catégorie.</div>`; return; }
+ listeFiltree.forEach(doc => {
+ let thumbHTML = `<div style="font-size:32px;">📄</div>`;
+ if (doc.typeMime && doc.typeMime.startsWith("image/")) { thumbHTML = `<img src="${doc.fichierBrut}">`; }
+ else if (doc.typeMime === "application/pdf") { thumbHTML = `<div style="font-size:32px; color:var(--danger-red);">📕</div><span style="font-size:10px;margin-top:4px;">FORMAT PDF</span>`; }
+ let card = document.createElement('div'); card.className = `doc-card ${doc.categorie}`;
+ card.innerHTML = `<div class="doc-title" title="${doc.titre}">${doc.titre}</div><div class="doc-meta">📅 ${doc.dateDoc} | Archive Réseau</div><div class="doc-preview-thumb">${thumbHTML}</div><div style="font-size:11px; color:#475569; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${doc.description}">${doc.description || 'Aucune description.'}</div><div style="display:flex; justify-content:space-between; margin-top:5px;"><button class="btn-card-action" style="background:var(--accent-blue);" onclick="telechargerFichierGedLocal(${doc.id})">💾 Ouvrir</button><button class="btn-card-action" style="background:var(--danger-red);" onclick="supprimerDocumentGed(${doc.id})">🗑️ Retirer</button></div>`;
+ grid.appendChild(card);
+ });
 }
 </script>
 </body>
 </html>
+
