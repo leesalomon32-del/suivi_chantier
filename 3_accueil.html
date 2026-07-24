@@ -59,50 +59,39 @@
  .card-nav:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1); border-color: #cbd5e1; }
  .card-nav-title { font-weight: bold; font-size: 13px; display: flex; align-items: center; gap: 6px; }
  .card-nav-desc { font-size: 11px; color: #64748b; padding-left: 18px; }
- .btn { padding: 6px 12px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; color: white; font-size: 12px; display: inline-flex; align-items: center; gap: 5px; }
+ .btn { padding: 6px 12px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; color: white; font-size: 12px; display: inline-flex; align-items: center; gap: 5px; text-transform: uppercase; }
  .btn-primary { background-color: var(--accent-blue); }
  .btn-toggle { background: transparent; color: var(--primary-dark); font-size: 18px; padding: 4px 8px; border-radius: 4px; }
  .btn-toggle:hover { background: #f1f5f9; }
- .backup-box-sidebar { border-top: 1px dashed #475569; margin-top: auto; padding-top: 15px; display: flex; flex-direction: column; gap: 8px; }
- .btn-backup { width: 100%; padding: 8px; font-size: 11px; font-weight: bold; text-transform: uppercase; border-radius: 6px; justify-content: center; }
  </style>
 </head>
 <body>
 <div class="app-layout" id="mainAppLayout">
  <!-- COLONNE 1 : LISTE DES PROJETS -->
  <div class="col-sidebar">
- <div class="col-title"> Liste des Projets 📂</div> 
- <input type="text" id="searchProjInput" class="search-proj-input" placeholder=" Rechercher un projet..." oninput="filtrerLaListeDesProjets()">
+ <div class="col-title"> Liste des Projets </div> 📂
+ <input type="text" id="searchProjInput" class="search-proj-input" placeholder="Rechercher un projet..." oninput="filtrerLaListeDesProjets()">
  <div id="listeProjetsContainer" style="overflow-y:auto; flex-grow:1; padding-right:2px;"></div>
+ </div>
  
- <div class="backup-box-sidebar">
- <div style="font-size: 10px; color: #94a3b8; font-weight: bold; text-transform: uppercase; text-align: center; margin-bottom: 2px;">Passerelle de secours :</div>
- <button class="btn btn-backup" style="background: #0284c7;" onclick="exporterFichierClasseurJsonAccueil()">Exporter JSON 📤</button> 
- <label class="btn btn-backup" style="background: #16a34a; margin: 0; cursor: pointer; color: white;">
- Importer JSON 📥
- <input type="file" style="display: none;" onchange="importerFichierClasseurJsonAccueil(this)">
- </label>
- </div>
- </div>
-
  <!-- COLONNE 2 : FICHE SYNTHÉTIQUE CENTRALE -->
  <div class="col-content-wrapper">
  <div class="navbar-top-actions">
  <div style="display: flex; align-items: center; gap: 8px;">
- <button class="btn btn-toggle" onclick="toggleSidebarLeft()" title="Masquer/Afficher les projets">☰</button> 
- <button class="btn" style="background:var(--danger-red);" onclick="deconnecterSessionConsole()"> Déconnexion 🚪</button> 
+ <button class="btn btn-toggle" onclick="toggleSidebarLeft()" title="Masquer/Afficher les projets">☰</button>
+ <button class="btn" style="background:var(--danger-red);" onclick="deconnecterSessionConsole()"> Déconnexion 🚪</button>
  </div>
  <div style="font-weight:bold; font-size:14px; color:var(--primary-dark);" id="txtModuleActuelCentral">Fiche Synthétique du Projet</div>
  <div style="display: flex; align-items: center; gap: 12px;">
  <div style="font-size:12px; color:var(--accent-blue); font-weight:bold;" id="txtProjetActifLabelTop">PROJET SELECTIONNÉ : Aucun</div>
- <button class="btn btn-toggle" onclick="toggleSidebarRight()" title="Masquer/Afficher les modules">☰</button> 
+ <button class="btn btn-toggle" onclick="toggleSidebarRight()" title="Masquer/Afficher les modules">☰</button>
  </div>
  </div>
  <div class="col-content">
  <div class="map-card-full">
  <div class="map-img-placeholder">
  <input type="file" id="mapFileInput" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer; z-index:999;" onchange="sauvegarderPhotoEmplacement(this)">
- <span id="mapTxt" style="z-index:10; padding:15px;"> Cliquez ici pour 📸 lier le Plan ou la Photo de l'Emplacement</span>
+ <span id="mapTxt" style="z-index:10; padding:15px;"> Cliquez ici pour lier 📸 le Plan ou la Photo de l'Emplacement</span>
  <img id="mapImgView" style="width:100%; height:100%; object-fit:contain; position:absolute; top:0; left:0; display:none; z-index:20;">
  </div>
  </div>
@@ -122,19 +111,30 @@
  <div class="metric-box-premium" style="border-top:4px solid var(--accent-amber);"><div class="metric-title"> Enveloppe Budgétaire 💰 Totale</div><div class="metric-value" id="txtBudgetFiche" style="font-size:15px; color:var(--primary-dark);">-</div><div id="txtDetailAvenantFiche" style="font-size:11px; color:var(--accent-amber); font-weight:bold; display:none; margin-top:3px;">-</div></div>
  </div>
  <div class="section-card" style="border-top:4px solid var(--success-green);">
- <div class="metric-title" style="text-align:center; margin-bottom:8px;"> Taux d'Avancements Généraux Consolidés 📊</div> 
+ <div class="metric-title" style="text-align:center; margin-bottom:8px;"> Taux d'Avancements Généraux Consolidés 📊</div>
  <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
  <div> Physique Global : <span id="txtPctPhy" style="font-weight:bold; float:right; color:var(--accent-blue);">0.00%</span><div class="progress-container"><div class="progress-bar" id="barPctPhy" style="background:var(--accent-blue);"></div></div></div>
  <div> Financier Global : <span id="txtPctFin" style="font-weight:bold; float:right; color:var(--success-green);">0.00%</span><div class="progress-container"><div class="progress-bar" id="barPctFin" style="background:var(--success-green);"></div></div></div>
  </div>
  </div>
  <div><div class="metric-title" style="margin-bottom:6px; color:var(--primary-dark);"> Notes de l'administration / Consignes 📌 :</div><textarea id="blocNotesAdmin" class="bloc-note-area" rows="2" placeholder="Saisir les consignes..." onchange="sauvegarderBlocNotesLocal(this.value)"></textarea></div>
+ 
+ <!-- AJOUT : Intégration esthétique de la passerelle Master de sauvegarde identique à la page Admin -->
+ <div class="section-card" style="border-top: 4px solid #7c3aed; margin-top: 5px; display: flex; justify-content: space-between; align-items: center; padding: 12px 20px;">
+ <div>
+ <div style="font-size: 12px; font-weight: bold; color: var(--primary-dark); text-transform: uppercase;">Passerelle d'Import/Export Instantané de l'Écosystème ⚙️</div>
+ <div style="font-size: 11px; color: #64748b;">Générez ou restaurez un fichier global de secours.</div>
+ </div>
+ <div style="display: flex; gap: 8px;">
+ <button class="btn" style="background: #0284c7; padding: 8px 14px; font-size: 11px;" onclick="exporterFichierClasseurJsonAccueil()">EXPORTER LE FICHIER JSON MASTER</button>
+ <label class="btn" style="background: #16a34a; padding: 8px 14px; font-size: 11px; margin: 0; cursor: pointer; color: white;">IMPORTER UN FICHIER JSON MASTER <input type="file" style="display: none;" onchange="importerFichierClasseurJsonAccueil(this)"></label>
  </div>
  </div>
-
+ </div>
+ </div>
  <!-- COLONNE 3 : LIENS DIRECTS PASSERELLES MODULES -->
  <div class="col-menu">
- <div class="col-title"> Exploration Modules 🚀</div> 
+ <div class="col-title"> Exploration Modules 🚀</div>
  <div class="card-nav" style="border-left:4px solid var(--accent-blue);" onclick="ouvrirVraiePageLien('4_bdqe.html')"><div class="card-nav-title"> 📊 Saisie du BDQE</div><div class="card-nav-desc">Bordereau initial</div></div>
  <div class="card-nav" style="border-left:4px solid var(--accent-amber);" onclick="ouvrirVraiePageLien('5_avenants.html')"><div class="card-nav-title"> ➕ Suivi des Avenants</div><div class="card-nav-desc">Ajustements budgétaires</div></div>
  <div class="card-nav" style="border-left:4px solid #64748b;" onclick="ouvrirVraiePageLien('6-planning.html')"><div class="card-nav-title"> 📅 Planning & Gantt</div><div class="card-nav-desc">Calendrier de chantier</div></div>
@@ -144,350 +144,242 @@
  <div class="card-nav" style="border-left:4px solid var(--primary-dark); background: #f8fafc;" onclick="ouvrirVraiePageLien('10_recap.html')"><div class="card-nav-title" style="color: var(--primary-dark);"> Page 10 : Rapport 📊 Bailleurs</div><div class="card-nav-desc">Rapport Executif horizontal</div></div>
  </div>
 </div>
+
 <script>
 const DB_NAME = "GenieCivilPro_DB";
 const DB_VERSION = 1;
 let dbInstance = null;
 
 function initialiserLeMeubleDB() {
-    return new Promise((resolve, reject) => {
-        let requete = indexedDB.open(DB_NAME, DB_VERSION);
-        requete.onupgradeneeded = function(e) {
-            let db = e.target.result;
-            if (!db.objectStoreNames.contains("projets")) {
-                db.createObjectStore("projets", { keyPath: "id" });
-            }
-            if (!db.objectStoreNames.contains("utilisateurs")) {
-                db.createObjectStore("utilisateurs", { keyPath: "id" });
-            }
-            if (!db.objectStoreNames.contains("dossiers_techniques")) {
-                db.createObjectStore("dossiers_techniques");
-            }
-        };
-        requete.onsuccess = function(e) {
-            dbInstance = e.target.result;
-            resolve(dbInstance);
-        };
-        requete.onerror = function() {
-            reject("Erreur meuble");
-        };
-    });
+ return new Promise((resolve, reject) => {
+ let requete = indexedDB.open(DB_NAME, DB_VERSION);
+ requete.onupgradeneeded = function(e) {
+ let db = e.target.result;
+ if (!db.objectStoreNames.contains("projets")) { db.createObjectStore("projets", { keyPath: "id" }); }
+ if (!db.objectStoreNames.contains("utilisateurs")) { db.createObjectStore("utilisateurs", { keyPath: "id" }); }
+ if (!db.objectStoreNames.contains("dossiers_techniques")) { db.createObjectStore("dossiers_techniques"); }
+ };
+ requete.onsuccess = function(e) { dbInstance = e.target.result; resolve(dbInstance); };
+ requete.onerror = function() { reject("Erreur meuble"); };
+ });
 }
 
 function lireDonneeDB(tiroir, cle) {
-    return new Promise((resolve) => {
-        if(!dbInstance) return resolve(null);
-        let transaction = dbInstance.transaction([tiroir], "readonly");
-        let requete = transaction.objectStore(tiroir).get(cle);
-        requete.onsuccess = () => resolve(requete.result);
-        requete.onerror = () => resolve(null);
-    });
+ return new Promise((resolve) => {
+ if(!dbInstance) return resolve(null);
+ let transaction = dbInstance.transaction([tiroir], "readonly");
+ let requete = transaction.objectStore(tiroir).get(cle);
+ requete.onsuccess = () => resolve(requete.result);
+ requete.onerror = () => resolve(null);
+ });
 }
 
 function lireToutesLesDonneesDB(tiroir) {
-    return new Promise((resolve) => {
-        if(!dbInstance) return resolve([]);
-        let transaction = dbInstance.transaction([tiroir], "readonly");
-        let requete = transaction.objectStore(tiroir).getAll();
-        requete.onsuccess = () => resolve(requete.result || []);
-        requete.onerror = () => resolve([]);
-    });
+ return new Promise((resolve) => {
+ if(!dbInstance) return resolve([]);
+ let transaction = dbInstance.transaction([tiroir], "readonly");
+ let requete = transaction.objectStore(tiroir).getAll();
+ requete.onsuccess = () => resolve(requete.result || []);
+ requete.onerror = () => resolve([]);
+ });
 }
 
 function ecrireDonneeDB(tiroir, objet, cleOptionnelle) {
-    return new Promise((resolve) => {
-        if(!dbInstance) return resolve(false);
-        let transaction = dbInstance.transaction([tiroir], "readwrite");
-        let magasin = transaction.objectStore(tiroir);
-        let requete = cleOptionnelle !== undefined ? magasin.put(objet, cleOptionnelle) : magasin.put(objet);
-        requete.onsuccess = () => resolve(true);
-        requete.onerror = () => resolve(false);
-    });
+ return new Promise((resolve) => {
+ if(!dbInstance) return resolve(false);
+ let transaction = dbInstance.transaction([tiroir], "readwrite");
+ let magasin = transaction.objectStore(tiroir);
+ let requete = cleOptionnelle !== undefined ? magasin.put(objet, cleOptionnelle) : magasin.put(objet);
+ requete.onsuccess = () => resolve(true);
+ requete.onerror = () => resolve(false);
+ });
 }
+
 let listeProjetsGlobal = [];
 let idProjetActif = null;
 let etatsDossiersReplies = {};
 let userRoleActuel = localStorage.getItem("session_user_role") || "agents";
 let userLotsAutorises = [];
 try { userLotsAutorises = JSON.parse(localStorage.getItem("session_user_lots")) || []; } catch(e) { userLotsAutorises = []; }
-
 function toggleSidebarLeft() {
-    let layout = document.getElementById('mainAppLayout');
-    if (layout.classList.contains('no-sidebar-left')) { layout.classList.remove('no-sidebar-left'); } 
-    else if (layout.classList.contains('no-sidebars')) { layout.classList.remove('no-sidebars'); layout.classList.add('no-sidebar-right'); } 
-    else if (layout.classList.contains('no-sidebar-right')) { layout.classList.add('no-sidebars'); } 
-    else { layout.classList.add('no-sidebar-left'); }
+ let layout = document.getElementById('mainAppLayout');
+ if (layout.classList.contains('no-sidebar-left')) { layout.classList.remove('no-sidebar-left'); } 
+ else if (layout.classList.contains('no-sidebars')) { layout.classList.remove('no-sidebars'); layout.classList.add('no-sidebar-right'); } 
+ else if (layout.classList.contains('no-sidebar-right')) { layout.classList.add('no-sidebars'); } 
+ else { layout.classList.add('no-sidebar-left'); }
 }
 
 function toggleSidebarRight() {
-    let layout = document.getElementById('mainAppLayout');
-    if (layout.classList.contains('no-sidebar-right')) { layout.classList.remove('no-sidebar-right'); } 
-    else if (layout.classList.contains('no-sidebars')) { layout.classList.remove('no-sidebars'); layout.classList.add('no-sidebar-left'); } 
-    else if (layout.classList.contains('no-sidebar-left')) { layout.classList.add('no-sidebars'); } 
-    else { layout.classList.add('no-sidebar-right'); }
+ let layout = document.getElementById('mainAppLayout');
+ if (layout.classList.contains('no-sidebar-right')) { layout.classList.remove('no-sidebar-right'); } 
+ else if (layout.classList.contains('no-sidebars')) { layout.classList.remove('no-sidebars'); layout.classList.add('no-sidebar-left'); } 
+ else if (layout.classList.contains('no-sidebar-left')) { layout.classList.add('no-sidebars'); } 
+ else { layout.classList.add('no-sidebar-right'); }
 }
 
 window.onload = function() {
-    if (localStorage.getItem("session_securisee_active_gc") !== "VALIDE") { 
-        window.location.href = "1_login.html"; 
-        return; 
-    }
-    initialiserLeMeubleDB().then(async () => {
-        if (userRoleActuel === "admin") {
-            let navbar = document.querySelector('.navbar-top-actions');
-            if (navbar) {
-                let btnAdmin = document.createElement('button'); 
-                btnAdmin.className = "btn btn-primary"; 
-                btnAdmin.style.cssText = "background:var(--accent-amber); padding:6px 12px; font-size:11px; cursor:pointer;";
-                btnAdmin.innerText = "Paramètres Admin ";
-                btnAdmin.onclick = function() { window.location.href = "2_admin.html"; };
-                navbar.insertBefore(btnAdmin, navbar.firstChild);
-            }
-        }
-        if (userRoleActuel === "agents") {
-            document.querySelectorAll('.col-menu .card-nav').forEach(carte => {
-                let act = carte.getAttribute('onclick') || "";
-                if (!act.includes('7_avancement.html') && !act.includes('8_ccpms.html') && !act.includes('9_pv.html') && !act.includes('10_recap.html')) { 
-                    carte.style.display = "none"; 
-                }
-            });
-        }
-        listeProjetsGlobal = await lireToutesLesDonneesDB("projets");
-        if(listeProjetsGlobal.length > 0) {
-            idProjetActif = localStorage.getItem("id_projet_actif_lee") || String(listeProjetsGlobal.id);
-            listeProjetsGlobal.forEach(p => { if(p.type === 'PAPA') etatsDossiersReplies[p.id] = false; });
-        }
-        renderProjetsSidebar(); 
-        if(idProjetActif) { await chargerFicheProjetSelectionne(); }
-    });
+ if (localStorage.getItem("session_securisee_active_gc") !== "VALIDE") { window.location.href = "1_login.html"; return; }
+ initialiserLeMeubleDB().then(async () => {
+ if (userRoleActuel === "admin") {
+ let navbar = document.querySelector('.navbar-top-actions');
+ if (navbar) {
+ let btnAdmin = document.createElement('button'); btnAdmin.className = "btn btn-primary"; btnAdmin.style.cssText = "background:var(--accent-amber); padding:6px 12px; font-size:11px; cursor:pointer;";
+ btnAdmin.innerText = "Paramètres Admin"; btnAdmin.onclick = function() { window.location.href = "2_admin.html"; };
+ navbar.insertBefore(btnAdmin, navbar.firstChild);
+ }
+ }
+ if (userRoleActuel === "agents") {
+ document.querySelectorAll('.col-menu .card-nav').forEach(carte => {
+ let act = carte.getAttribute('onclick') || "";
+ if (!act.includes('7_avancement.html') && !act.includes('8_ccpms.html') && !act.includes('9_pv.html') && !act.includes('10_recap.html')) { carte.style.display = "none"; }
+ });
+ }
+ listeProjetsGlobal = await lireToutesLesDonneesDB("projets");
+ if(listeProjetsGlobal.length > 0) {
+ idProjetActif = localStorage.getItem("id_projet_actif_lee") || String(listeProjetsGlobal[0].id);
+ listeProjetsGlobal.forEach(p => { if(p.type === 'PAPA') etatsDossiersReplies[p.id] = false; });
+ }
+ renderProjetsSidebar(); 
+ if(idProjetActif) { await chargerFicheProjetSelectionne(); }
+ });
 };
 
 function renderProjetsSidebar() {
-    let container = document.getElementById('listeProjetsContainer'); 
-    if(!container) return; 
-    container.innerHTML = "";
-    let racines = listeProjetsGlobal.filter(p => p.type === 'PAPA' || p.type === 'CLASSIQUE');
-    if(racines.length === 0) {
-        container.innerHTML = "<div style='padding:20px; font-size:13px; color:#94a3b8; text-align:center;'>Aucun projet. Allez dans Admin pour importer votre JSON.</div>";
-        return;
-    }
-    racines.forEach(r => {
-        if (userRoleActuel !== "admin" && userRoleActuel !== "cadres" && !userLotsAutorises.includes(String(r.id))) {
-            if (!listeProjetsGlobal.some(e => e.type === 'ENFANT' && e.parentId == r.id && userLotsAutorises.includes(String(e.id)))) return;
-        }
-        let blockParent = document.createElement('div'); 
-        let estActif = idProjetActif == r.id ? 'active' : '';
-        let icone = r.type === 'PAPA' ? '🏢' : '💼';
-        let flecheHTML = r.type === 'PAPA' ? `<span class="project-arrow ${etatsDossiersReplies[r.id] ? 'collapsed':''}" onclick="toggleDossierAccordéon(${r.id}, event)">▼</span>` : "";
-        blockParent.className = `project-item ${estActif}`; 
-        blockParent.innerHTML = `<span onclick="selectionnerProjetLigne(${r.id})">${icone}</span><span class="project-item-text" onclick="selectionnerProjetLigne(${r.id})">${r.nom}</span>${flecheHTML}`;
-        container.appendChild(blockParent);
-        if (r.type === 'PAPA') {
-            let childContainer = document.createElement('div'); 
-            childContainer.className = "child-container" + (etatsDossiersReplies[r.id] ? ' hidden' : '');
-            listeProjetsGlobal.filter(p => p.type === 'ENFANT' && p.parentId == r.id).forEach(e => {
-                if (userRoleActuel !== "admin" && userRoleActuel !== "cadres" && !userLotsAutorises.includes(String(e.id))) return;
-                let divE = document.createElement('div'); 
-                divE.className = `project-item project-child ${idProjetActif == e.id ? 'active' : ''}`;
-                divE.innerHTML = `<span class="project-item-text" onclick="selectionnerProjetLigne(${e.id})"> ↳ ${e.nom}</span>`;
-                childContainer.appendChild(divE);
-            });
-            container.appendChild(childContainer);
-        }
-    });
+ let container = document.getElementById('listeProjetsContainer'); if(!container) return; container.innerHTML = "";
+ let racines = listeProjetsGlobal.filter(p => p.type === 'PAPA' || p.type === 'CLASSIQUE');
+ if(racines.length === 0) { container.innerHTML = "<div style='padding:20px; font-size:13px; color:#94a3b8; text-align:center;'>Aucun projet. Allez dans Admin pour importer votre JSON.</div>"; return; }
+ racines.forEach(r => {
+ if (userRoleActuel !== "admin" && userRoleActuel !== "cadres" && !userLotsAutorises.includes(String(r.id))) {
+ if (!listeProjetsGlobal.some(e => e.type === 'ENFANT' && e.parentId == r.id && userLotsAutorises.includes(String(e.id)))) return;
+ }
+ let blockParent = document.createElement('div'); let estActif = idProjetActif == r.id ? 'active' : '';
+ let icone = r.type === 'PAPA' ? '🏢' : '💼';
+ let flecheHTML = r.type === 'PAPA' ? `<span class="project-arrow ${etatsDossiersReplies[r.id] ? 'collapsed':''}" onclick="toggleDossierAccordéon(${r.id}, event)">▼</span>` : "";
+ blockParent.className = `project-item ${estActif}`; 
+ blockParent.innerHTML = `<span onclick="selectionnerProjetLigne(${r.id})">${icone}</span><span class="project-item-text" onclick="selectionnerProjetLigne(${r.id})">${r.nom}</span>${flecheHTML}`;
+ container.appendChild(blockParent);
+ if (r.type === 'PAPA') {
+ let childContainer = document.createElement('div'); childContainer.className = "child-container" + (etatsDossiersReplies[r.id] ? ' hidden' : '');
+ listeProjetsGlobal.filter(p => p.type === 'ENFANT' && p.parentId == r.id).forEach(e => {
+ if (userRoleActuel !== "admin" && userRoleActuel !== "cadres" && !userLotsAutorises.includes(String(e.id))) return;
+ let divE = document.createElement('div'); divE.className = `project-item project-child ${idProjetActif == e.id ? 'active' : ''}`;
+ divE.innerHTML = `<span class="project-item-text" onclick="selectionnerProjetLigne(${e.id})">↳ ${e.nom}</span>`; childContainer.appendChild(divE);
+ });
+ container.appendChild(childContainer);
+ }
+ });
 }
 
-function toggleDossierAccordéon(papaId, event) { 
-    event.stopPropagation(); 
-    etatsDossiersReplies[papaId] = !etatsDossiersReplies[papaId]; 
-    renderProjetsSidebar(); 
-}
-
-async function selectionnerProjetLigne(id) { 
-    idProjetActif = id; 
-    localStorage.setItem("id_projet_actif_lee", idProjetActif); 
-    renderProjetsSidebar(); 
-    await chargerFicheProjetSelectionne(); 
-}
+function toggleDossierAccordéon(papaId, event) { event.stopPropagation(); etatsDossiersReplies[papaId] = !etatsDossiersReplies[papaId]; renderProjetsSidebar(); }
+async function selectionnerProjetLigne(id) { idProjetActif = id; localStorage.setItem("id_projet_actif_lee", idProjetActif); renderProjetsSidebar(); await chargerFicheProjetSelectionne(); }
 
 async function chargerFicheProjetSelectionne() {
-    if (!idProjetActif || listeProjetsGlobal.length === 0) return;
-    let p = listeProjetsGlobal.find(i => i.id == idProjetActif); 
-    if(!p) return;
-    let d = await lireDonneeDB("dossiers_techniques", `charte_administrative_${idProjetActif}`) || {};
-    let m = {};
-    if (p.type === "ENFANT" && p.parentId) {
-        m = await lireDonneeDB("dossiers_techniques", `charte_administrative_${p.parentId}`) || {};
-    }
-    let nomProjetAffiche = p.type === "ENFANT" ? `${(listeProjetsGlobal.find(i => i.id == p.parentId)?.nom || m.objet || "").toUpperCase()} — (${p.nom.toUpperCase()})` : p.nom.toUpperCase();
-    document.getElementById('txtProjetActifLabelTop').innerText = "PROJET SÉLECTIONNÉ : " + p.nom.toUpperCase();
-    document.getElementById('lblNomProjet').innerText = nomProjetAffiche;
-    document.getElementById('lblFin').innerText = d.financement || m.financement || "-";
-    document.getElementById('lblMO').innerText = d.mo || m.mo || "-";
-    document.getElementById('lblMOE').innerText = d.moe || m.moe || "-";
-    document.getElementById('lblEnt').innerText = d.entreprise || m.entreprise || "-";
-    document.getElementById('lblNumContrat').innerText = d.numContrat || m.numContrat || "-";
-    let zoneNotes = document.getElementById('blocNotesAdmin');
-    if (zoneNotes) {
-        zoneNotes.value = p.bloc_notes || "";
-        if (userRoleActuel !== "admin" && userRoleActuel !== "cadres") { 
-            zoneNotes.readOnly = true; zoneNotes.style.background = "#f1f5f9"; zoneNotes.placeholder = "Lecture seule"; 
-        } else { 
-            zoneNotes.readOnly = false; zoneNotes.style.background = "#fffdeb"; 
-        }
-    }
-    let imgView = document.getElementById('mapImgView'); 
-    let txtMapPlaceholder = document.getElementById('mapTxt');
-    if(p.photoEmplacement && p.photoEmplacement.trim() !== "") { 
-        imgView.src = p.photoEmplacement; imgView.style.display = "block"; txtMapPlaceholder.style.display = "none"; 
-    } else { 
-        imgView.style.display = "none"; txtMapPlaceholder.style.display = "block"; 
-    }
-    await lancerCalculsConsolidationFiche(p);
+ if (!idProjetActif || listeProjetsGlobal.length === 0) return;
+ let p = listeProjetsGlobal.find(i => i.id == idProjetActif); if(!p) return;
+ let d = await lireDonneeDB("dossiers_techniques", `charte_administrative_${idProjetActif}`) || {};
+ let m = {}; if (p.type === "ENFANT" && p.parentId) { m = await lireDonneeDB("dossiers_techniques", `charte_administrative_${p.parentId}`) || {}; }
+ let nomProjetAffiche = p.type === "ENFANT" ? `${(listeProjetsGlobal.find(i => i.id == p.parentId)?.nom || m.objet || "").toUpperCase()} — (${p.nom.toUpperCase()})` : p.nom.toUpperCase();
+ document.getElementById('txtProjetActifLabelTop').innerText = "PROJET SÉLECTIONNÉ : " + p.nom.toUpperCase();
+ document.getElementById('lblNomProjet').innerText = nomProjetAffiche;
+ document.getElementById('lblFin').innerText = d.financement || m.financement || "-";
+ document.getElementById('lblMO').innerText = d.mo || m.mo || "-";
+ document.getElementById('lblMOE').innerText = d.moe || m.moe || "-";
+ document.getElementById('lblEnt').innerText = d.entreprise || m.entreprise || "-";
+ document.getElementById('lblNumContrat').innerText = d.numContrat || m.numContrat || "-";
+ let zoneNotes = document.getElementById('blocNotesAdmin');
+ if (zoneNotes) {
+ zoneNotes.value = p.bloc_notes || "";
+ if (userRoleActuel !== "admin" && userRoleActuel !== "cadres") { zoneNotes.readOnly = true; zoneNotes.style.background = "#f1f5f9"; zoneNotes.placeholder = "Lecture seule"; } 
+ else { zoneNotes.readOnly = false; zoneNotes.style.background = "#fffdeb"; }
+ }
+ let imgView = document.getElementById('mapImgView'); let txtMapPlaceholder = document.getElementById('mapTxt');
+ if(p.photoEmplacement && p.photoEmplacement.trim() !== "") { imgView.src = p.photoEmplacement; imgView.style.display = "block"; txtMapPlaceholder.style.display = "none"; } 
+ else { imgView.style.display = "none"; txtMapPlaceholder.style.display = "block"; }
+ await lancerCalculsConsolidationFiche(p);
 }
+
 async function lancerCalculsConsolidationFiche(p) {
-    let totalInitial = 0; let totalAvenants = 0; let totalLignesSuivi = 0; 
-    let sumPhyRatio = 0; let mntMarchatTotal = 0; let mntRealiseTotal = 0; 
-    let dateMinProjet = null; let dateMaxProjet = null;
-    let chantiers = [p]; 
-    if (p.type === "PAPA") {
-        chantiers = chantiers.concat(listeProjetsGlobal.filter(item => item.type === "ENFANT" && item.parentId == p.id));
-    }
-    for (let c of chantiers) {
-        let dataBdqe = await lireDonneeDB("dossiers_techniques", `bdqe_${c.id}`) || [];
-        let dataAvenants = await lireDonneeDB("dossiers_techniques", `avenants_${c.id}`) || [];
-        let dataPlanning = await lireDonneeDB("dossiers_techniques", `planning_${c.id}`) || [];
-        let dataSuivi = await lireDonneeDB("dossiers_techniques", `suivi_${c.id}`) || [];
-        dataBdqe.forEach(i => totalInitial += (i.total || 0)); 
-        dataAvenants.forEach(i => totalAvenants += (i.total_av || 0));
-        dataPlanning.forEach(item => { 
-            if (item.date_debut && item.date_fin) { 
-                let d1 = new Date(item.date_debut); let d2 = new Date(item.date_fin); 
-                if (!dateMinProjet || d1 < dateMinProjet) dateMinProjet = d1; 
-                if (!dateMaxProjet || d2 > dateMaxProjet) dateMaxProjet = d2; 
-            } 
-        });
-        dataSuivi.forEach(item => { 
-            if (item.quantite_contrat > 0) { 
-                totalLignesSuivi++; 
-                let pL = Math.min((item.qte_realisee / item.quantite_contrat) * 100, 100); 
-                sumPhyRatio += pL; mntMarchatTotal += (item.total_contrat || 0); 
-                mntRealiseTotal += ((item.total_contrat || 0) * (pL / 100)); 
-            } 
-        });
-    }
-    document.getElementById('txtBudgetFiche').innerText = totalInitial > 0 ? (totalInitial + totalAvenants).toLocaleString('fr-FR', {minimumFractionDigits:2}) + " Ar" : "0,00 Ar";
-    let rowAvLbl = document.getElementById('txtDetailAvenantFiche'); 
-    if(totalAvenants !== 0) { 
-        rowAvLbl.innerText = `Dont Avenants : ${totalAvenants >= 0 ? '+':''}${totalAvenants.toLocaleString('fr-FR')} Ar`; rowAvLbl.style.display = "block"; 
-    } else { 
-        rowAvLbl.style.display = "none"; 
-    }
-    if (dateMinProjet && dateMaxProjet) {
-        let auj = new Date(); 
-        let dTotale = Math.ceil(Math.abs(dateMaxProjet - dateMinProjet) / (1000*60*60*24)) + 1; 
-        let dEcoulee = Math.max(0, Math.min(dTotale, Math.ceil((auj - dateMinProjet) / (1000*60*60*24))));
-        document.getElementById('txtCalculCalendrier').innerHTML = `<b>${dEcoulee}/${dTotale} jours</b> (${Math.round((dEcoulee / dTotale) * 100)}%)<br><span style="font-size:11px;color:grey;">Période : ${dateMinProjet.toLocaleDateString('fr-FR')} — ${dateMaxProjet.toLocaleDateString('fr-FR')}</span>`;
-    } else { 
-        document.getElementById('txtCalculCalendrier').innerText = "Aucun calendrier planifié."; 
-    }
-    let tPhy = totalLignesSuivi > 0 ? (sumPhyRatio / totalLignesSuivi) : 0; 
-    let tFin = mntMarchatTotal > 0 ? (mntRealiseTotal / mntMarchatTotal) * 100 : 0;
-    document.getElementById('txtPctPhy').innerText = tPhy.toFixed(2) + "%"; 
-    document.getElementById('barPctPhy').style.width = tPhy + "%";
-    document.getElementById('txtPctFin').innerText = tFin.toFixed(2) + "%"; 
-    document.getElementById('barPctFin').style.width = tFin + "%";
+ let totalInitial = 0; let totalAvenants = 0; let totalLignesSuivi = 0; let sumPhyRatio = 0; let mntMarchatTotal = 0; let mntRealiseTotal = 0; let dateMinProjet = null; let dateMaxProjet = null;
+ let chantiers = [p]; if (p.type === "PAPA") { chantiers = chantiers.concat(listeProjetsGlobal.filter(item => item.type === "ENFANT" && item.parentId == p.id)); }
+ for (let c of chantiers) {
+ let dataBdqe = await lireDonneeDB("dossiers_techniques", `bdqe_${c.id}`) || [];
+ let dataAvenants = await lireDonneeDB("dossiers_techniques", `avenants_${c.id}`) || [];
+ let dataPlanning = await lireDonneeDB("dossiers_techniques", `planning_${c.id}`) || [];
+ let dataSuivi = await lireDonneeDB("dossiers_techniques", `suivi_${c.id}`) || [];
+ dataBdqe.forEach(i => totalInitial += (i.total || 0)); dataAvenants.forEach(i => totalAvenants += (i.total_av || 0));
+ dataPlanning.forEach(item => { if (item.date_debut && item.date_fin) { let d1 = new Date(item.date_debut); let d2 = new Date(item.date_fin); if (!dateMinProjet || d1 < dateMinProjet) dateMinProjet = d1; if (!dateMaxProjet || d2 > dateMaxProjet) dateMaxProjet = d2; } });
+ dataSuivi.forEach(item => { if (item.quantite_contrat > 0) { totalLignesSuivi++; let pL = Math.min((item.qte_realisee / item.quantite_contrat) * 100, 100); sumPhyRatio += pL; mntMarchatTotal += (item.total_contrat || 0); mntRealiseTotal += ((item.total_contrat || 0) * (pL / 100)); } });
+ }
+ document.getElementById('txtBudgetFiche').innerText = totalInitial > 0 ? (totalInitial + totalAvenants).toLocaleString('fr-FR', {minimumFractionDigits:2}) + " Ar" : "0,00 Ar";
+ let rowAvLbl = document.getElementById('txtDetailAvenantFiche'); 
+ if(totalAvenants !== 0) { rowAvLbl.innerText = `Dont Avenants : ${totalAvenants >= 0 ? '+':''}${totalAvenants.toLocaleString('fr-FR')} Ar`; rowAvLbl.style.display = "block"; } else { rowAvLbl.style.display = "none"; }
+ if (dateMinProjet && dateMaxProjet) {
+ let auj = new Date(); let dTotale = Math.ceil(Math.abs(dateMaxProjet - dateMinProjet) / (1000*60*60*24)) + 1; let dEcoulee = Math.max(0, Math.min(dTotale, Math.ceil((auj - dateMinProjet) / (1000*60*60*24))));
+ document.getElementById('txtCalculCalendrier').innerHTML = `<b>${dEcoulee}/${dTotale} jours</b> (${Math.round((dEcoulee / dTotale) * 100)}%)<br><span style="font-size:11px;color:grey;">Période : ${dateMinProjet.toLocaleDateString('fr-FR')} — ${dateMaxProjet.toLocaleDateString('fr-FR')}</span>`;
+ } else { document.getElementById('txtCalculCalendrier').innerText = "Aucun calendrier planifié."; }
+ let tPhy = totalLignesSuivi > 0 ? (sumPhyRatio / totalLignesSuivi) : 0; let tFin = mntMarchatTotal > 0 ? (mntRealiseTotal / mntMarchatTotal) * 100 : 0;
+ document.getElementById('txtPctPhy').innerText = tPhy.toFixed(2) + "%"; document.getElementById('barPctPhy').style.width = tPhy + "%";
+ document.getElementById('txtPctFin').innerText = tFin.toFixed(2) + "%"; document.getElementById('barPctFin').style.width = tFin + "%";
 }
-
 function filtrerLaListeDesProjets() {
-    let motCle = document.getElementById('searchProjInput').value.toLowerCase().trim();
-    document.querySelectorAll('#listeProjetsContainer .project-item').forEach(item => { 
-        item.style.display = (!motCle || item.querySelector('.project-item-text').innerText.toLowerCase().includes(motCle)) ? "flex" : "none"; 
-    });
+ let motCle = document.getElementById('searchProjInput').value.toLowerCase().trim();
+ document.querySelectorAll('#listeProjetsContainer .project-item').forEach(item => { item.style.display = (!motCle || item.querySelector('.project-item-text').innerText.toLowerCase().includes(motCle)) ? "flex" : "none"; });
 }
-
-function ouvrirVraiePageLien(fichierHtml) { 
-    if(!idProjetActif) return alert("Sélectionnez d'abord un projet !"); 
-    localStorage.setItem("id_projet_en_cours_de_saisie_temporaire", idProjetActif); 
-    window.location.href = fichierHtml; 
-}
-
-function deconnecterSessionConsole() { 
-    if(confirm("Fermer la session ?")) { 
-        localStorage.removeItem("session_securisee_active_gc"); window.location.href = "1_login.html"; 
-    } 
-}
-
-async function sauvegarderBlocNotesLocal(valeur) { 
-    let p = listeProjetsGlobal.find(i => i.id == idProjetActif); 
-    if(p) { p.bloc_notes = valeur; await ecrireDonneeDB("projets", p); } 
-}
+function ouvrirVraiePageLien(fichierHtml) { if(!idProjetActif) return alert("Sélectionnez d'abord un projet !"); localStorage.setItem("id_projet_en_cours_de_saisie_temporaire", idProjetActif); window.location.href = fichierHtml; }
+function deconnecterSessionConsole() { if(confirm("Fermer la session ?")) { localStorage.removeItem("session_securisee_active_gc"); window.location.href = "1_login.html"; } }
+async function sauvegarderBlocNotesLocal(valeur) { let p = listeProjetsGlobal.find(i => i.id == idProjetActif); if(p) { p.bloc_notes = valeur; await ecrireDonneeDB("projets", p); } }
 
 async function sauvegarderPhotoEmplacement(input) { 
-    if (input.files && input.files) {
-        let reader = new FileReader(); 
-        reader.onload = async function(e) { 
-            let imgData = e.target.result; 
-            let p = listeProjetsGlobal.find(i => i.id == idProjetActif); 
-            if(p) { p.photoEmplacement = imgData; await ecrireDonneeDB("projets", p); } 
-            let listC = await lireDonneeDB("dossiers_techniques", `ccpms_${idProjetActif}`) || [];
-            listC.unshift({
-                id: Date.now(), categorie: "Photos", dateDoc: new Date().toISOString().substring(0,10), 
-                titre: `Emplacement : ${p.nom}`, description: `Plan.`, fichierBrut: imgData
-            }); 
-            await ecrireDonneeDB("dossiers_techniques", listC, `ccpms_${idProjetActif}`); 
-            document.getElementById('mapImgView').src = imgData; 
-            document.getElementById('mapImgView').style.display = "block"; 
-            document.getElementById('mapTxt').style.display = "none"; 
-            alert("Succès"); 
-        }; 
-        reader.readAsDataURL(input.files); 
-    } 
+ if (input.files && input.files[0]) {
+ let reader = new FileReader(); reader.onload = async function(e) { 
+ let imgData = e.target.result; let p = listeProjetsGlobal.find(i => i.id == idProjetActif); if(p) { p.photoEmplacement = imgData; await ecrireDonneeDB("projets", p); } 
+ let listC = await lireDonneeDB("dossiers_techniques", `ccpms_${idProjetActif}`) || [];
+ listC.unshift({ id: Date.now(), categorie: "Photos", dateDoc: new Date().toISOString().substring(0,10), titre: `Emplacement : ${p.nom}`, description: `Plan.`, fichierBrut: imgData }); 
+ await ecrireDonneeDB("dossiers_techniques", listC, `ccpms_${idProjetActif}`); 
+ document.getElementById('mapImgView').src = imgData; document.getElementById('mapImgView').style.display = "block"; document.getElementById('mapTxt').style.display = "none"; alert("Succès"); 
+ }; reader.readAsDataURL(input.files[0]);
+ } 
 }
 
+/* CORRECTION TECHNIQUE : Export global unifié */
 async function exporterFichierClasseurJsonAccueil() {
-    let projets = await lireToutesLesDonneesDB("projets");
-    let utilisateurs = await lireToutesLesDonneesDB("utilisateurs");
-    let toutesLesChartes = {}; let bdqeIsolees = {}; let ccpmsIsolees = {}; let suiviIsolees = {}; let planningIsolees = {};
-    for (let p of projets) {
-        let charte = await lireDonneeDB("dossiers_techniques", `charte_administrative_${p.id}`); if(charte) toutesLesChartes[p.id] = charte;
-        let bdqe = await lireDonneeDB("dossiers_techniques", `bdqe_${p.id}`); if(bdqe) bdqeIsolees[p.id] = bdqe;
-        let ccpms = await lireDonneeDB("dossiers_techniques", `ccpms_${p.id}`); if(ccpms) ccpmsIsolees[p.id] = ccpms;
-        let suivi = await lireDonneeDB("dossiers_techniques", `suivi_${p.id}`); if(suivi) suiviIsolees[p.id] = suivi;
-        let planning = await lireDonneeDB("dossiers_techniques", `planning_${p.id}`); if(planning) planningIsolees[p.id] = planning;
-    }
-    let paquetGlobalData = { dateExport: new Date().toISOString(), projets, utilisateurs, chartesIsolees, bdqeIsolees, ccpmsIsolees, suiviIsolees, planningIsolees };
-    let blob = new Blob([JSON.stringify(paquetGlobalData, null, 2)], { type: "application/json" });
-    let lien = document.createElement("a"); lien.href = URL.createObjectURL(blob); lien.download = `GENIE_CIVIL_PRO_DATABASE_MASTER.json`;
-    document.body.appendChild(lien); lien.click(); document.body.removeChild(lien);
-    alert("Base exportée avec succès !"); 
+ let projets = await lireToutesLesDonneesDB("projets"); let utilisateurs = await lireToutesLesDonneesDB("utilisateurs");
+ let chartesIsolees = {}; let bdqeIsolees = {}; let ccpmsIsolees = {}; let suiviIsolees = {}; let planningIsolees = {};
+ for (let p of projets) {
+ let charte = await lireDonneeDB("dossiers_techniques", `charte_administrative_${p.id}`); if(charte) chartesIsolees[p.id] = charte;
+ let bdqe = await lireDonneeDB("dossiers_techniques", `bdqe_${p.id}`); if(bdqe) bdqeIsolees[p.id] = bdqe;
+ let ccpms = await lireDonneeDB("dossiers_techniques", `ccpms_${p.id}`); if(ccpms) ccpmsIsolees[p.id] = ccpms;
+ let suivi = await lireDonneeDB("dossiers_techniques", `suivi_${p.id}`); if(suivi) suiviIsolees[p.id] = suivi;
+ let planning = await lireDonneeDB("dossiers_techniques", `planning_${p.id}`); if(planning) planningIsolees[p.id] = planning;
+ }
+ let blob = new Blob([JSON.stringify({ dateExport: new Date().toISOString(), projets, utilisateurs, chartesIsolees, bdqeIsolees, ccpmsIsolees, suiviIsolees, planningIsolees }, null, 2)], { type: "application/json" });
+ let lien = document.createElement("a"); lien.href = URL.createObjectURL(blob); lien.download = `GENIE_CIVIL_PRO_DATABASE_MASTER.json`;
+ document.body.appendChild(lien); lien.click(); document.body.removeChild(lien); alert("Base exportée avec succès ! 💾");
 }
 
-async function importerFichierClasseurJsonAccueil(input) {
-    if (input.files && input.files) {
-        let reader = new FileReader();
-        reader.onload = async function(e) {
-            try {
-                let paquet = JSON.parse(e.target.result);
-                if (!paquet.projets) return alert("Fichier invalide."); 
-                if (confirm("Écraser tout le contenu par ce fichier JSON ?")) {
-                    await initialiserLeMeubleDB();
-                    let tx1 = dbInstance.transaction(["projets"], "readwrite"); await tx1.objectStore("projets").clear();
-                    let tx2 = dbInstance.transaction(["utilisateurs"], "readwrite"); await tx2.objectStore("utilisateurs").clear();
-                    let tx3 = dbInstance.transaction(["dossiers_techniques"], "readwrite"); await tx3.objectStore("dossiers_techniques").clear();
-                    for(let prj of paquet.projets) { await ecrireDonneeDB("projets", prj); }
-                    if (paquet.utilisateurs) { for(let usr of paquet.utilisateurs) { await ecrireDonneeDB("utilisateurs", usr); } }
-                    if (paquet.chartesIsolees) { for (let id in paquet.chartesIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.chartesIsolees[id], `charte_administrative_${id}`); }
-                    if (paquet.bdqeIsolees) { for (let id in paquet.bdqeIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.bdqeIsolees[id], `bdqe_${id}`); }
-                    if (paquet.ccpmsIsolees) { for (let id in paquet.ccpmsIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.ccpmsIsolees[id], `ccpms_${id}`); }
-                    if (paquet.suiviIsolees) { for (let id in paquet.suiviIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.suiviIsolees[id], `suivi_${id}`); }
-                    if (paquet.planningIsolees) { for (let id in paquet.planningIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.planningIsolees[id], `planning_${id}`); }
-                    alert("Restauration réussie !"); window.location.reload();
-                }
-            } catch (err) { alert("Erreur JSON"); }
-        };
-        reader.readAsText(input.files);
-    }
+/* CORRECTION TECHNIQUE : Import écrasant sécurisé et indexé */
+function importerFichierClasseurJsonAccueil(input) {
+ if (input.files && input.files[0]) {
+ let reader = new FileReader();
+ reader.onload = async function(e) {
+ try {
+ let paquet = JSON.parse(e.target.result); if (!paquet.projets) return alert("Fichier invalide."); 
+ if (confirm("ATTENTION : Écraser TOUT le contenu actuel par ce fichier JSON ?")) {
+ await initialiserLeMeubleDB();
+ let tx1 = dbInstance.transaction(["projets", "utilisateurs", "dossiers_techniques"], "readwrite");
+ await tx1.objectStore("projets").clear(); await tx1.objectStore("utilisateurs").clear(); await tx1.objectStore("dossiers_techniques").clear();
+ for(let prj of paquet.projets) { await ecrireDonneeDB("projets", prj); }
+ if (paquet.utilisateurs) { for(let usr of paquet.utilisateurs) { await ecrireDonneeDB("utilisateurs", usr); } }
+ if (paquet.chartesIsolees) { for (let id in paquet.chartesIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.chartesIsolees[id], `charte_administrative_${id}`); }
+ if (paquet.bdqeIsolees) { for (let id in paquet.bdqeIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.bdqeIsolees[id], `bdqe_${id}`); }
+ if (paquet.ccpmsIsolees) { for (let id in paquet.ccpmsIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.ccpmsIsolees[id], `ccpms_${id}`); }
+ if (paquet.suiviIsolees) { for (let id in paquet.suiviIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.suiviIsolees[id], `suivi_${id}`); }
+ if (paquet.planningIsolees) { for (let id in paquet.planningIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.planningIsolees[id], `planning_${id}`); }
+ alert("Restauration complète de l'écosystème réussie ! 🔄"); window.location.reload();
+ }
+ } catch (err) { alert("Erreur lors de la lecture du fichier JSON."); }
+ }; reader.readAsText(input.files[0]);
+ }
 }
 </script>
 </body>
