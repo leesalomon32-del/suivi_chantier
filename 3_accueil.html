@@ -211,7 +211,7 @@ function ecrireDonneeDB(tiroir, objet, cleOptionnelle) {
  });
 }
 
-// ARBORESCENCE UNIQUE SANS AUCUN DOUBLON DE DÉCLARATION
+// ARBORESCENCE ET CONNECTEURS CLOUD UNIFIÉS
 let listeProjetsGlobal = [];
 let idProjetActif = null;
 let etatsDossiersReplies = {};
@@ -231,7 +231,7 @@ async function chargerDonneesDepuisLeCloudSupabase() {
     if (errP) throw errP;
     listeProjetsGlobal = prjs || [];
   } catch (err) {
-    console.log("⚠️ Supabase injoignable, lecture sur mémoire machine.");
+    console.log("⚠️ Mode secours local activé (Supabase déconnecté)");
     listeProjetsGlobal = await lireToutesLesDonneesDB("projets");
   }
 
@@ -261,7 +261,7 @@ async function chargerDonneesDepuisLeCloudSupabase() {
 function renderProjetsSidebar() {
  let container = document.getElementById('listeProjetsContainer'); if(!container) return; container.innerHTML = "";
  let racines = listeProjetsGlobal.filter(p => p.type === 'PAPA' || p.type === 'CLASSIQUE');
- if(racines.length === 0) { container.innerHTML = "<div style='padding:20px; font-size:13px; color:#94a3b8; text-align:center;'>Aucun projet. Initialisez le serveur en ligne via le bouton orange en bas.</div>"; return; }
+ if(racines.length === 0) { container.innerHTML = "<div style='padding:20px; font-size:13px; color:#94a3b8; text-align:center;'>Aucun projet en ligne. Initialisez Supabase via le bouton orange.</div>"; return; }
  racines.forEach(r => {
  if (userRoleActuel !== "admin" && userRoleActuel !== "cadres" && !userLotsAutorises.includes(String(r.id))) {
  if (!listeProjetsGlobal.some(e => e.type === 'ENFANT' && e.parentId == r.id && userLotsAutorises.includes(String(e.id)))) return;
@@ -295,7 +295,7 @@ async function chargerFicheProjetSelectionne() {
    if (r1) d = r1.contenu_json;
    if (p.type === "ENFANT" && p.parentId) {
      let { data: r2 } = await window.supabaseClient.from('dossiers_techniques').select('*').eq('id', `charte_administrative_${p.parentId}`).maybeSingle();
-     if (r2) m = r2.contenu_json;
+     if (r2) m = r2.contents_json || r2.contenu_json;
    }
  }
  if(!d) d = await lireDonneeDB("dossiers_techniques", `charte_administrative_${idProjetActif}`) || {};
@@ -330,13 +330,13 @@ async function lancerCalculsConsolidationFiche(p) {
   let dataBdqe = null; let dataAvenants = null; let dataPlanning = null; let dataSuivi = null;
   if (window.supabaseClient) {
     let { data: rBdqe } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `bdqe_${c.id}`).maybeSingle();
-    if(rBdqe) dataBdqe = rBdqe.contenu_json;
+    if(rBdqe) dataBdqe = rBdqe.contents_json || rBdqe.contenu_json;
     let { data: rAv } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `avenants_${c.id}`).maybeSingle();
-    if(rAv) dataAvenants = rAv.contenu_json;
+    if(rAv) dataAvenants = rAv.contents_json || rAv.contenu_json;
     let { data: rPl } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `planning_${c.id}`).maybeSingle();
-    if(rPl) dataPlanning = rPl.contenu_json;
+    if(rPl) dataPlanning = rPl.contents_json || rPl.contenu_json;
     let { data: rSu } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `suivi_${c.id}`).maybeSingle();
-    if(rSu) dataSuivi = rSu.contenu_json;
+    if(rSu) dataSuivi = rSu.contents_json || rSu.contenu_json;
   }
   if(!dataBdqe) dataBdqe = await lireDonneeDB("dossiers_techniques", `bdqe_${c.id}`) || [];
   if(!dataAvenants) dataAvenants = await lireDonneeDB("dossiers_techniques", `avenants_${c.id}`) || [];
@@ -360,8 +360,6 @@ async function lancerCalculsConsolidationFiche(p) {
  document.getElementById('txtPctPhy').innerText = tPhy.toFixed(2) + "%"; document.getElementById('barPctPhy').style.width = tPhy + "%";
  document.getElementById('txtPctFin').innerText = tFin.toFixed(2) + "%"; document.getElementById('barPctFin').style.width = tFin + "%";
 }
-
-function src(v) {}
 function filtrerLaListeDesProjets() {
  let motCle = document.getElementById('searchProjInput').value.toLowerCase().trim();
  document.querySelectorAll('#listeProjetsContainer .project-item').forEach(item => { item.style.display = (!motCle || item.querySelector('.project-item-text').innerText.toLowerCase().includes(motCle)) ? "flex" : "none"; });
@@ -373,6 +371,7 @@ async function sauvegarderBlocNotesLocal(valeur) {
  let p = listeProjetsGlobal.find(i => i.id == idProjetActif); if(!p) return; p.bloc_notes = valeur;
  await ecrireDonneeDB("projets", p); if (window.supabaseClient) await window.supabaseClient.from('projets').upsert(p);
 }
+
 async function sauvegarderPhotoEmplacement(input) { 
  if (input.files && input.files) {
  let reader = new FileReader(); reader.onload = async function(e) { 
@@ -454,3 +453,4 @@ async function initialiserDonneesMassivesVersSupabase(input) {
 </script>
 </body>
 </html>
+
