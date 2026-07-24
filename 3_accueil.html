@@ -371,9 +371,8 @@ async function sauvegarderBlocNotesLocal(valeur) {
  let p = listeProjetsGlobal.find(i => i.id == idProjetActif); if(!p) return; p.bloc_notes = valeur;
  await ecrireDonneeDB("projets", p); if (window.supabaseClient) await window.supabaseClient.from('projets').upsert(p);
 }
-
 async function sauvegarderPhotoEmplacement(input) { 
- if (input.files && input.files) {
+ if (input.files && input.files[0]) { // <- Correction de l'index ici
  let reader = new FileReader(); reader.onload = async function(e) { 
  let imgData = e.target.result; let p = listeProjetsGlobal.find(i => i.id == idProjetActif); if(!p) return; p.photoEmplacement = imgData; 
  await ecrireDonneeDB("projets", p); if (window.supabaseClient) await window.supabaseClient.from('projets').upsert(p);
@@ -382,9 +381,11 @@ async function sauvegarderPhotoEmplacement(input) {
  await ecrireDonneeDB("dossiers_techniques", listC, `ccpms_${idProjetActif}`);
  if (window.supabaseClient) await window.supabaseClient.from('dossiers_techniques').upsert({ id: `ccpms_${idProjetActif}`, projet_id: String(idProjetActif), type_donnee: 'ccpms', contenu_json: listC });
  document.getElementById('mapImgView').src = imgData; document.getElementById('mapImgView').style.display = "block"; document.getElementById('mapTxt').style.display = "none"; alert("Plan mis à jour ! 📸"); 
- }; reader.readAsDataURL(input.files);
+ }; reader.readAsDataURL(input.files[0]); // <- Correction de l'index ici
  } 
 }
+
+
 
 async function exporterFichierClasseurJsonAccueil() {
  let projets = await lireToutesLesDonneesDB("projets"); let utilisateurs = await lireToutesLesDonneesDB("utilisateurs");
