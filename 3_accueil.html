@@ -223,18 +223,13 @@ window.onload = function() {
  if (localStorage.getItem("session_securisee_active_gc") !== "VALIDE") { window.location.href = "1_login.html"; return; }
  if (window.supabaseClient) { chargerDonneesDepuisLeCloudSupabase(); } else { setTimeout(chargerDonneesDepuisLeCloudSupabase, 1000); }
 };
-
+// REMPLACEZ CETTE FONCTION POUR ACTIVER L'AFFICHAGE INSTANTANÉ SANS ATTENTE
 async function chargerDonneesDepuisLeCloudSupabase() {
+  // 1. CHARGEMENT INSTANTANÉ : On lit d'abord la mémoire locale (0.1 seconde d'attente)
   await initialiserLeMeubleDB();
-  try {
-    const { data: prjs, error: errP } = await window.supabaseClient.from('projets').select('*');
-    if (errP) throw errP;
-    listeProjetsGlobal = prjs || [];
-  } catch (err) {
-    console.log("⚠️ Mode secours local activé (Supabase déconnecté)");
-    listeProjetsGlobal = await lireToutesLesDonneesDB("projets");
-  }
+  listeProjetsGlobal = await lireToutesLesDonneesDB("projets");
 
+  // Rendu visuel immédiat pour l'utilisateur
   if (userRoleActuel === "admin") {
     let navbar = document.querySelector('.navbar-top-actions');
     if (navbar && !document.getElementById('btnLienParametresAdmin')) {
@@ -256,7 +251,31 @@ async function chargerDonneesDepuisLeCloudSupabase() {
   }
   renderProjetsSidebar(); 
   if(idProjetActif) { await chargerFicheProjetSelectionne(); }
+
+  // 2. MISE À JOUR SILENCIEUSE : On télécharge le Cloud en arrière-plan sans bloquer l'écran
+  if (window.supabaseClient && navigator.onLine) {
+    console.log("🌐 Réseau détecté : Synchronisation en arrière-plan...");
+    try {
+      const { data: prjs, error: errP } = await window.supabaseClient.from('projets').select('*');
+      if (errP) throw errP;
+      
+      if (prjs && prjs.length > 0) {
+        listeProjetsGlobal = prjs;
+        
+        // On écrase proprement le meuble local pour que le prochain démarrage ait les dernières nouveautés
+        for(let p of listeProjetsGlobal) { await ecrireDonneeDB("projets", p); }
+        
+        // On rafraîchit discrètement l'affichage à l'écran
+        renderProjetsSidebar();
+        if(idProjetActif) { await chargerFicheProjetSelectionne(); }
+        console.log("✅ Données Cloud synchronisées en tâche de fond !");
+      }
+    } catch (err) {
+      console.log("⚠️ Échec de la mise à jour Cloud en arrière-plan :", err.message);
+    }
+  }
 }
+
 
 function renderProjetsSidebar() {
  let container = document.getElementById('listeProjetsContainer'); if(!container) return; container.innerHTML = "";
