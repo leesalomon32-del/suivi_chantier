@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+ <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
  <meta charset="UTF-8">
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
  <title>Génie Civil Pro - Suivi Avancement Isolé</title>
@@ -88,31 +90,41 @@ const DB_VERSION = 1;
 let dbInstance = null;
 
 function initialiserLeMeubleDB() {
-    return new Promise((resolve, reject) => {
-        let requete = indexedDB.open(DB_NAME, DB_VERSION);
-        requete.onsuccess = function(e) { dbInstance = e.target.result; resolve(dbInstance); };
-        requete.onerror = function() { reject("Meuble bloqué."); };
-    });
+ return new Promise((resolve, reject) => {
+ let requete = indexedDB.open(DB_NAME, DB_VERSION);
+ requete.onsuccess = function(e) { dbInstance = e.target.result; resolve(dbInstance); };
+ requete.onerror = function() { reject("Meuble bloqué."); };
+ });
 }
 
 function lireDonneeDB(tiroir, cle) {
-    return new Promise((resolve) => {
-        if(!dbInstance) return resolve(null);
-        let tx = dbInstance.transaction([tiroir], "readonly");
-        let req = tx.objectStore(tiroir).get(cle);
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => resolve(null);
-    });
+ return new Promise((resolve) => {
+ if(!dbInstance) return resolve(null);
+ let tx = dbInstance.transaction([tiroir], "readonly");
+ let req = tx.objectStore(tiroir).get(cle);
+ req.onsuccess = () => resolve(req.result);
+ req.onerror = () => resolve(null);
+ });
 }
 
 function ecrireDonneeDB(tiroir, objet, cleOptionnelle) {
-    return new Promise((resolve) => {
-        if(!dbInstance) return resolve(false);
-        let tx = dbInstance.transaction([tiroir], "readwrite");
-        let req = cleOptionnelle !== undefined ? tx.objectStore(tiroir).put(objet, cleOptionnelle) : tx.objectStore(tiroir).put(objet);
-        req.onsuccess = () => resolve(true);
-        req.onerror = () => resolve(false);
-    });
+ return new Promise((resolve) => {
+ if(!dbInstance) return resolve(false);
+ let tx = dbInstance.transaction([tiroir], "readwrite");
+ let req = cleOptionnelle !== undefined ? tx.objectStore(tiroir).put(objet, cleOptionnelle) : tx.objectStore(tiroir).put(objet);
+ req.onsuccess = () => resolve(true);
+ req.onerror = () => resolve(false);
+ });
+}
+
+function lireToutesLesDonneesDB(tiroir) {
+ return new Promise((resolve) => {
+ if(!dbInstance) return resolve([]);
+ let tx = dbInstance.transaction([tiroir], "readonly");
+ let req = tx.objectStore(tiroir).getAll();
+ req.onsuccess = () => resolve(req.result || []);
+ req.onerror = () => resolve([]);
+ });
 }
 
 let listeAvancement = [];
@@ -122,149 +134,171 @@ let idProjetCourant = localStorage.getItem("id_projet_en_cours_de_saisie_tempora
 let cleStockageSuivi = `suivi_${idProjetCourant}`;
 let cleStockageAvenants = `avenants_${idProjetCourant}`;
 let cleStockageBDQE = `bdqe_${idProjetCourant}`;
+
 window.onload = function() {
-    if (localStorage.getItem("session_securisee_active_gc") !== "VALIDE") {
-        window.location.href = "1_login.html"; return;
-    }
-    initialiserLeMeubleDB().then(async () => {
-        let suiviSauve = await lireDonneeDB("dossiers_techniques", cleStockageSuivi);
-        let bdqeInitial = await lireDonneeDB("dossiers_techniques", cleStockageBDQE) || [];
-        let avenantsSauves = await lireDonneeDB("dossiers_techniques", cleStockageAvenants) || [];
-        
-        let listeFusionnee = [];
-        bdqeInitial.forEach(baseItem => {
-            let avenantAssocie = avenantsSauves.find(av => av.code_bdqe === baseItem.code_bdqe && av.designation === baseItem.designation);
-            let qteContrat = baseItem.quantite; let puContrat = baseItem.prix_unitaire;
-            if (avenantAssocie) {
-                qteContrat = avenantAssocie.qte_av !== null ? avenantAssocie.qte_av : baseItem.quantite;
-                puContrat = avenantAssocie.pu_av !== null ? avenantAssocie.pu_av : baseItem.prix_unitaire;
-            }
-            listeFusionnee.push({
-                ouvrage: baseItem.ouvrage, code_bdqe: baseItem.code_bdqe, structure: baseItem.structure,
-                designation: baseItem.designation, unite: baseItem.unite, prix_unitaire: puContrat,
-                quantite_contrat: qteContrat, total_contrat: (qteContrat !== null && puContrat !== null) ? qteContrat * puContrat : null, qte_realisee: 0
-            });
-        });
-        
-        avenantsSauves.forEach(avItem => {
-            if(avItem.est_nouveau) {
-                let qteContrat = avItem.qte_av !== null ? avItem.qte_av : 0; let puContrat = avItem.pu_av !== null ? avItem.pu_av : 0;
-                listeFusionnee.push({
-                    ouvrage: avItem.ouvrage, code_bdqe: avItem.code_bdqe, structure: avItem.structure,
-                    designation: avItem.designation, unite: avItem.unite, prix_unitaire: puContrat,
-                    quantite_contrat: qteContrat, total_contrat: qteContrat * puContrat, qte_realisee: 0
-                });
-            }
-        });
-        
-        // SÉCURITÉ : Si un historique existe, on injecte les valeurs saisies à leur place exacte
-        if (suiviSauve && suiviSauve.length > 0) {
-            listeFusionnee.forEach(item => {
-                let exLigne = suiviSauve.find(h => h.code_bdqe === item.code_bdqe && h.designation === item.designation);
-                if(exLigne) item.qte_realisee = exLigne.qte_realisee;
-            });
-        }
-        
-        listeAvancement = listeFusionnee;
-        trierDonnees(); genererSegments(); afficherTableauSuivi(); calculerTauxGlobauxDashboard();
-    });
+ if (localStorage.getItem("session_securisee_active_gc") !== "VALIDE") { window.location.href = "1_login.html"; return; }
+ 
+ initialiserLeMeubleDB().then(async () => {
+   // 1. CHARGEMENT HORS-LIGNE INSTANTANÉ (0.1 seconde d'attente utilisateur)
+   let suiviSauve = null; let bdqeInitial = null; let avenantsSauves = null;
+   
+   if (window.supabaseClient && navigator.onLine) {
+     try {
+       let { data: rB } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', cleStockageBDQE).maybeSingle();
+       if(rB) bdqeInitial = rB.contenu_json;
+       let { data: rA } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', cleStockageAvenants).maybeSingle();
+       if(rA) avenantsSauves = rA.contenu_json;
+       let { data: rS } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', cleStockageSuivi).maybeSingle();
+       if(rS) suiviSauve = rS.contenu_json;
+     } catch(e) {}
+   }
+   
+   if(!bdqeInitial) bdqeInitial = await lireDonneeDB("dossiers_techniques", cleStockageBDQE) || [];
+   if(!avenantsSauves) avenantsSauves = await lireDonneeDB("dossiers_techniques", cleStockageAvenants) || [];
+   if(!suiviSauve) suiviSauve = await lireDonneeDB("dossiers_techniques", cleStockageSuivi) || [];
+   
+   let listeFusionnee = [];
+   bdqeInitial.forEach(baseItem => {
+     let avenantAssocie = avenantsSauves.find(av => av.code_bdqe === baseItem.code_bdqe && av.designation === baseItem.designation);
+     let qteContrat = baseItem.quantite; let puContrat = baseItem.prix_unitaire;
+     if (avenantAssocie) {
+       qteContrat = avenantAssocie.qte_av !== null ? avenantAssocie.qte_av : baseItem.quantite;
+       puContrat = avenantAssocie.pu_av !== null ? avenantAssocie.pu_av : baseItem.prix_unitaire;
+     }
+     listeFusionnee.push({
+       ouvrage: baseItem.ouvrage, code_bdqe: baseItem.code_bdqe, structure: baseItem.structure, designation: baseItem.designation, unite: baseItem.unite, prix_unitaire: puContrat, quantite_contrat: qteContrat, total_contrat: (qteContrat !== null && puContrat !== null) ? qteContrat * puContrat : null, qte_realisee: 0
+     });
+   });
+   
+   avenantsSauves.forEach(avItem => {
+     if(avItem.est_nouveau) {
+       let qteContrat = avItem.qte_av !== null ? avItem.qte_av : 0; let puContrat = avItem.pu_av !== null ? avItem.pu_av : 0;
+       listeFusionnee.push({
+         ouvrage: avItem.ouvrage, code_bdqe: avItem.code_bdqe, structure: avItem.structure, designation: avItem.designation, unite: avItem.unite, prix_unitaire: puContrat, quantite_contrat: qteContrat, total_contrat: qteContrat * puContrat, qte_realisee: 0
+       });
+     }
+   });
+   
+   if (suiviSauve && suiviSauve.length > 0) {
+     listeFusionnee.forEach(item => {
+       let exLigne = suiviSauve.find(h => h.code_bdqe === item.code_bdqe && h.designation === item.designation);
+       if(exLigne) item.qte_realisee = exLigne.qte_realisee;
+     });
+   }
+   
+   let role = localStorage.getItem("session_user_role") || "agents";
+   let lotsAutorises = JSON.parse(localStorage.getItem("session_user_lots") || "[]");
+   if (role === "agents" || (role === "controle" && !lotsAutorises.includes(String(idProjetCourant)))) {
+     let bandeauAlerte = document.createElement('div');
+     bandeauAlerte.style.cssText = "background:#eff6ff; color:#1e40af; padding:10px; border-radius:6px; font-weight:bold; margin-bottom:5px; border:1px solid #bfdbfe; font-size:11px; text-align:center; flex-shrink:0;";
+     bandeauAlerte.innerText = "Mode Consultation Uniquement (Lecture Seule Accès Terrain Restreints) 🔒";
+     document.body.insertBefore(bandeauAlerte, document.body.firstChild);
+     window.modeLectureSeulePlanning = true; 
+   }
+   
+   listeAvancement = listeFusionnee;
+   trierDonnees(); genererSegments(); afficherTableauSuivi(); calculerTauxGlobauxDashboard();
+ });
 };
 
 function formatArgent(nombre) { if (nombre === null || nombre === undefined || isNaN(nombre)) return ""; return nombre.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
-
 function trierDonnees() {
-    listeAvancement.sort((a, b) => {
-        let compOuvrage = a.ouvrage.localeCompare(b.ouvrage, 'fr', {sensitivity: 'base'}); if (compOuvrage !== 0) return compOuvrage;
-        let partsA = a.code_bdqe.split(/[\.,]/).map(Number); let partsB = b.code_bdqe.split(/[\.,]/).map(Number);
-        for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) { let numA = partsA[i] || 0; let numB = partsB[i] || 0; if (numA !== numB) return numA - numB; }
-        return 0;
-    });
+ listeAvancement.sort((a, b) => {
+ let compOuvrage = a.ouvrage.localeCompare(b.ouvrage, 'fr', {sensitivity: 'base'}); if (compOuvrage !== 0) return compOuvrage;
+ let partsA = a.code_bdqe.split(/[\.,]/).map(Number); let partsB = b.code_bdqe.split(/[\.,]/).map(Number);
+ for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) { let numA = partsA[i] || 0; let numB = partsB[i] || 0; if (numA !== numB) return numA - numB; }
+ return 0;
+ });
 }
-// CORRECTION : Utilisation de l'événement ONCHANGE pour figer la donnée uniquement à la validation
+
+// DOUBLE STOCKAGE AUTOMATIQUE : Écrit en local puis pousse vers le Cloud de manière transparente
 async function modifierQuantiteRealisee(index, valeur, inputElement) {
-    let item = listeAvancement[index];
-    let valNettoyee = valeur.trim() === "" ? 0 : parseFloat(valeur.replace(/\s/g, '').replace(',', '.')) || 0;
-    if(valNettoyee < 0) valNettoyee = 0;
-    
-    item.qte_realisee = valNettoyee;
-    
-    let mntConsomme = valNettoyee * (item.prix_unitaire || 0);
-    let tdConsomme = inputElement.closest('tr').querySelector('.cell-consomme');
-    if(tdConsomme) tdConsomme.innerText = formatArgent(mntConsomme) + " Ar";
-    
-    let tdBadge = inputElement.closest('tr').querySelector('.cell-badge');
-    if(tdBadge && item.quantite_contrat > 0) {
-        let pct = (valNettoyee / item.quantite_contrat) * 100;
-        let clr = pct > 100 ? "bg-purple-light" : pct === 100 ? "bg-green-light" : pct > 0 ? "bg-orange-light" : "bg-red-light";
-        tdBadge.innerHTML = `<span class="badge-percent ${clr}">${pct.toFixed(2)} %</span>`;
-    }
-    
-    calculerTauxGlobauxDashboard();
-    // Sauvegarde physique immédiate et définitive dans le meuble DB
-    await ecrireDonneeDB("dossiers_techniques", listeAvancement, cleStockageSuivi);
+ if(window.modeLectureSeulePlanning) return;
+ let item = listeAvancement[index];
+ let valNettoyee = valeur.trim() === "" ? 0 : parseFloat(valeur.replace(/\s/g, '').replace(',', '.')) || 0;
+ if(valNettoyee < 0) valNettoyee = 0;
+ 
+ item.qte_realisee = valNettoyee;
+ 
+ let mntConsomme = valNettoyee * (item.prix_unitaire || 0);
+ let tdConsomme = inputElement.closest('tr').querySelector('.cell-consomme');
+ if(tdConsomme) tdConsomme.innerText = formatArgent(mntConsomme) + " Ar";
+ 
+ let tdBadge = inputElement.closest('tr').querySelector('.cell-badge');
+ if(tdBadge && item.quantite_contrat > 0) {
+   let pct = (valNettoyee / item.quantite_contrat) * 100;
+   let clr = pct > 100 ? "bg-purple-light" : pct === 100 ? "bg-green-light" : pct > 0 ? "bg-orange-light" : "bg-red-light";
+   tdBadge.innerHTML = `<span class="badge-percent ${clr}">${pct.toFixed(2)} %</span>`;
+ }
+ 
+ calculerTauxGlobauxDashboard();
+ 
+ // 1. Enregistrement local instantané de sécurité
+ await ecrireDonneeDB("dossiers_techniques", listeAvancement, cleStockageSuivi);
+ 
+ // 2. Push asynchrone en arrière-plan vers Supabase
+ if (window.supabaseClient && navigator.onLine) {
+   await window.supabaseClient.from('dossiers_techniques').upsert({ id: cleStockageSuivi, projet_id: String(idProjetCourant), type_donnee: 'suivi', contenu_json: listeAvancement });
+ }
 }
 
 function genererSegments() {
-    let uniqueOuvrages = ["TOUS", ...new Set(listeAvancement.map(item => item.ouvrage).filter(Boolean))];
-    let containerOuvrage = document.getElementById('segmentOuvrages'); containerOuvrage.innerHTML = "";
-    uniqueOuvrages.forEach(ouv => {
-        let btn = document.createElement('button'); btn.className = `segment-btn ${filtreOuvrageActif === ouv ? 'active' : ''}`; btn.innerText = ouv;
-        btn.onclick = () => { filtreOuvrageActif = ouv; filtreStructureActif = "TOUS"; trierDonnees(); genererSegments(); afficherTableauSuivi(); }; containerOuvrage.appendChild(btn);
-    });
-    let containerStructure = document.getElementById('segmentStructures'); containerStructure.innerHTML = "";
-    let sub = filtreOuvrageActif === "TOUS" ? listeAvancement : listeAvancement.filter(item => item.ouvrage === filtreOuvrageActif);
-    let uniqueStructures = ["TOUS", ...new Set(sub.map(item => item.structure).filter(Boolean))];
-    uniqueStructures.forEach(str => {
-        let btn = document.createElement('button'); btn.className = `segment-btn ${filtreStructureActif === str ? 'active' : ''}`; btn.innerText = str;
-        btn.onclick = () => { filtreStructureActif = str; trierDonnees(); genererSegments(); afficherTableauSuivi(); }; containerStructure.appendChild(btn);
-    });
+ let uniqueOuvrages = ["TOUS", ...new Set(listeAvancement.map(item => item.ouvrage).filter(Boolean))];
+ let containerOuvrage = document.getElementById('segmentOuvrages'); if(!containerOuvrage) return; containerOuvrage.innerHTML = "";
+ uniqueOuvrages.forEach(ouv => {
+ let btn = document.createElement('button'); btn.className = `segment-btn ${filtreOuvrageActif === ouv ? 'active' : ''}`; btn.innerText = ouv;
+ btn.onclick = () => { filtreOuvrageActif = ouv; filtreStructureActif = "TOUS"; trierDonnees(); genererSegments(); afficherTableauSuivi(); }; containerOuvrage.appendChild(btn);
+ });
+ let containerStructure = document.getElementById('segmentStructures'); if(!containerStructure) return; containerStructure.innerHTML = "";
+ let sub = filtreOuvrageActif === "TOUS" ? listeAvancement : listeAvancement.filter(item => item.ouvrage === filtreOuvrageActif);
+ let uniqueStructures = ["TOUS", ...new Set(sub.map(item => item.structure).filter(Boolean))];
+ uniqueStructures.forEach(str => {
+ let btn = document.createElement('button'); btn.className = `segment-btn ${filtreStructureActif === str ? 'active' : ''}`; btn.innerText = str;
+ btn.onclick = () => { filtreStructureActif = str; trierDonnees(); genererSegments(); afficherTableauSuivi(); }; containerStructure.appendChild(btn);
+ });
 }
 
 function afficherTableauSuivi() {
-    let tbody = document.getElementById('tbodyAvancement'); tbody.innerHTML = "";
-    listeAvancement.forEach((item, index) => {
-        if (filtreOuvrageActif !== "TOUS" && item.ouvrage !== filtreOuvrageActif) return;
-        if (filtreStructureActif !== "TOUS" && item.structure !== filtreStructureActif) return;
-        
-        let txtPU = item.prix_unitaire !== null ? formatArgent(item.prix_unitaire) + " Ar" : "";
-        let txtQteContrat = item.quantite_contrat !== null ? item.quantite_contrat.toLocaleString('fr-FR', { minimumFractionDigits: 2 }) : "";
-        let txtTotalContrat = item.total_contrat !== null ? formatArgent(item.total_contrat) + " Ar" : "";
-        
-        // CORRECTION DE SÉCURITÉ : Remplacement de oninput par onchange
-        let zoneSaisie = item.quantite_contrat !== null ? `<input type="text" class="input-inline" value="${item.qte_realisee || ''}" onchange="modifierQuantiteRealisee(${index}, this.value, this)">` : "";
-        let mntConsomme = (item.qte_realisee && item.prix_unitaire) ? item.qte_realisee * item.prix_unitaire : 0;
-        
-        let pct = item.quantite_contrat > 0 ? (item.qte_realisee / item.quantite_contrat) * 100 : 0;
-        let clr = pct > 100 ? "bg-purple-light" : pct === 100 ? "bg-green-light" : pct > 0 ? "bg-orange-light" : "bg-red-light";
-        let badgeHTML = item.quantite_contrat > 0 ? `<span class="badge-percent ${clr}">${pct.toFixed(2)} %</span>` : "";
-        
-        let tr = document.createElement('tr'); if(pct > 100) tr.className = "ligne-depassement";
-        tr.innerHTML = `<td><b>${item.ouvrage}</b></td><td>${item.code_bdqe}</td><td>${item.structure}</td><td>${item.designation}</td><td>${item.unite}</td><td>${txtPU}</td><td>${txtQteContrat}</td><td><b>${txtTotalContrat}</b></td><td>${zoneSaisie}</td><td class="cell-consomme" style="font-weight:bold; color:var(--primary-color);">${formatArgent(mntConsomme)} Ar</td><td class="cell-badge" style="text-align:center;">${badgeHTML}</td>`;
-        tbody.appendChild(tr);
-    });
+ let tbody = document.getElementById('tbodyAvancement'); if(!tbody) return; tbody.innerHTML = "";
+ listeAvancement.forEach((item, index) => {
+ if (filtreOuvrageActif !== "TOUS" && item.ouvrage !== filtreOuvrageActif) return; if (filtreStructureActif !== "TOUS" && item.structure !== filtreStructureActif) return;
+ 
+ let txtPU = item.prix_unitaire !== null ? formatArgent(item.prix_unitaire) + " Ar" : "";
+ let txtQteContrat = item.quantite_contrat !== null ? item.quantite_contrat.toLocaleString('fr-FR', { minimumFractionDigits: 2 }) : "";
+ let txtTotalContrat = item.total_contrat !== null ? formatArgent(item.total_contrat) + " Ar" : "";
+ 
+ let desactive = window.modeLectureSeulePlanning ? "disabled" : "";
+ let zoneSaisie = item.quantite_contrat !== null ? `<input type="text" class="input-inline" value="${item.qte_realisee || ''}" ${desactive} onchange="modifierQuantiteRealisee(${index}, this.value, this)">` : "";
+ let mntConsomme = (item.qte_realisee && item.prix_unitaire) ? item.qte_realisee * item.prix_unitaire : 0;
+ 
+ let pct = item.quantite_contrat > 0 ? (item.qte_realisee / item.quantite_contrat) * 100 : 0;
+ let clr = pct > 100 ? "bg-purple-light" : pct === 100 ? "bg-green-light" : pct > 0 ? "bg-orange-light" : "bg-red-light";
+ let badgeHTML = item.quantite_contrat > 0 ? `<span class="badge-percent ${clr}">${pct.toFixed(2)} %</span>` : "";
+ 
+ let tr = document.createElement('tr'); if(pct > 100) tr.className = "ligne-depassement";
+ tr.innerHTML = `<td><b>${item.ouvrage}</b></td><td>${item.code_bdqe}</td><td>${item.structure}</td><td>${item.designation}</td><td>${item.unite}</td><td>${txtPU}</td><td>${txtQteContrat}</td><td><b>${txtTotalContrat}</b></td><td>${zoneSaisie}</td><td class="cell-consomme" style="font-weight:bold; color:var(--primary-color);">${formatArgent(mntConsomme)} Ar</td><td class="cell-badge" style="text-align:center;">${badgeHTML}</td>`;
+ tbody.appendChild(tr);
+ });
 }
 
 function calculerTauxGlobauxDashboard() {
-    let totalLignesPlanifiees = 0; let sommePourcentagesPhysiques = 0;
-    let enveloppeFinanciereTotaleMarché = 0; let enveloppeFinanciereConsommeeTerrain = 0;
-    listeAvancement.forEach(item => {
-        if (item.quantite_contrat !== null && item.quantite_contrat > 0) {
-            totalLignesPlanifiees++;
-            let pourcentLigneBrut = (item.qte_realisee / item.quantite_contrat) * 100;
-            let pourcentLigneBride = Math.min(pourcentLigneBrut, 100);
-            sommePourcentagesPhysiques += pourcentLigneBride;
-            let ligneMarchatTotal = item.total_contrat || 0;
-            enveloppeFinanciereTotaleMarché += ligneMarchatTotal;
-            enveloppeFinanciereConsommeeTerrain += (ligneMarchatTotal * (pourcentLigneBride / 100));
-        }
-    });
-    let tauxPhysiqueGlobal = totalLignesPlanifiees > 0 ? (sommePourcentagesPhysiques / totalLignesPlanifiees) : 0;
-    document.getElementById('valPhysique').innerText = tauxPhysiqueGlobal.toFixed(2) + " %";
-    document.getElementById('barPhysique').style.width = tauxPhysiqueGlobal + "%";
-    let pourcentFinancier = enveloppeFinanciereTotaleMarché > 0 ? (enveloppeFinanciereConsommeeTerrain / enveloppeFinanciereTotaleMarché) * 100 : 0;
-    document.getElementById('valFinancier').innerText = pourcentFinancier.toFixed(2) + " %";
-    document.getElementById('barFinancier').style.width = pourcentFinancier + "%";
+ let totalLignesPlanifiees = 0; let sommePourcentagesPhysiques = 0; let enveloppeFinanciereTotaleMarché = 0; let enveloppeFinanciereConsommeeTerrain = 0;
+ listeAvancement.forEach(item => {
+ if (item.quantite_contrat !== null && item.quantite_contrat > 0) {
+ totalLignesPlanifiees++;
+ let pourcentLigneBrut = (item.qte_realisee / item.quantite_contrat) * 100; let pourcentLigneBride = Math.min(pourcentLigneBrut, 100);
+ sommePourcentagesPhysiques += pourcentLigneBride;
+ let ligneMarchatTotal = item.total_contrat || 0; enveloppeFinanciereTotaleMarché += ligneMarchatTotal; enveloppeFinanciereConsommeeTerrain += (ligneMarchatTotal * (pourcentLigneBride / 100));
+ }
+ });
+ let tauxPhysiqueGlobal = totalLignesPlanifiees > 0 ? (sommePourcentagesPhysiques / totalLignesPlanifiees) : 0;
+ if(document.getElementById('valPhysique')) document.getElementById('valPhysique').innerText = tauxPhysiqueGlobal.toFixed(2) + " %";
+ if(document.getElementById('barPhysique')) document.getElementById('barPhysique').style.width = tauxPhysiqueGlobal + "%";
+ let pourcentFinancier = enveloppeFinanciereTotaleMarché > 0 ? (enveloppeFinanciereConsommeeTerrain / enveloppeFinanciereTotaleMarché) * 100 : 0;
+ if(document.getElementById('valFinancier')) document.getElementById('valFinancier').innerText = pourcentFinancier.toFixed(2) + " %";
+ if(document.getElementById('barFinancier')) document.getElementById('barFinancier').style.width = pourcentFinancier + "%";
 }
 </script>
 </body>
 </html>
+
