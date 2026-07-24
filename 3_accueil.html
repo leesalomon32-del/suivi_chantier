@@ -120,18 +120,18 @@
  <div><div class="metric-title" style="margin-bottom:6px; color:var(--primary-dark);"> Notes de l'administration / Consignes 📌 :</div><textarea id="blocNotesAdmin" class="bloc-note-area" rows="2" placeholder="Saisir les consignes..." onchange="sauvegarderBlocNotesLocal(this.value)"></textarea></div>
  
  <!-- AJOUT : Intégration esthétique de la passerelle Master de sauvegarde identique à la page Admin -->
- <div class="section-card" style="border-top: 4px solid #7c3aed; margin-top: 5px; display: flex; justify-content: space-between; align-items: center; padding: 12px 20px;">
+<div class="section-card" style="border-top: 4px solid #7c3aed; margin-top: 5px; display: flex; justify-content: space-between; align-items: center; padding: 12px 20px;">
  <div>
- <div style="font-size: 12px; font-weight: bold; color: var(--primary-dark); text-transform: uppercase;">Passerelle d'Import/Export Instantané de l'Écosystème ⚙️</div>
- <div style="font-size: 11px; color: #64748b;">Générez ou restaurez un fichier global de secours.</div>
+   <div style="font-size: 12px; font-weight: bold; color: var(--primary-dark); text-transform: uppercase;">Passerelle de Sauvegarde & Synchronisation ⚙️</div>
+   <div style="font-size: 11px; color: #64748b;">Gérez votre mémoire locale ou initialisez votre serveur Cloud en ligne.</div>
  </div>
- <div style="display: flex; gap: 8px;">
- <button class="btn" style="background: #0284c7; padding: 8px 14px; font-size: 11px;" onclick="exporterFichierClasseurJsonAccueil()">EXPORTER LE FICHIER JSON MASTER</button>
- <label class="btn" style="background: #16a34a; padding: 8px 14px; font-size: 11px; margin: 0; cursor: pointer; color: white;">IMPORTER UN FICHIER JSON MASTER <input type="file" style="display: none;" onchange="importerFichierClasseurJsonAccueil(this)"></label>
+ <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+   <button class="btn" style="background: #0284c7; padding: 8px 14px; font-size: 11px;" onclick="exporterFichierClasseurJsonAccueil()">EXPORTER LOCAL (JSON)</button>
+   <label class="btn" style="background: #64748b; padding: 8px 14px; font-size: 11px; margin: 0; cursor: pointer; color: white;">IMPORTER LOCAL (JSON) <input type="file" style="display: none;" onchange="importerFichierClasseurJsonAccueil(this)"></label>
+   <label class="btn" style="background: #d97706; padding: 8px 14px; font-size: 11px; margin: 0; cursor: pointer; color: white; border: 1px solid #b45309;">🚀 INITIALISER LE CLOUD SUPABASE <input type="file" style="display: none;" onchange="initialiserDonneesMassivesVersSupabase(this)"></label>
  </div>
- </div>
- </div>
- </div>
+</div>
+
  <!-- COLONNE 3 : LIENS DIRECTS PASSERELLES MODULES -->
  <div class="col-menu">
  <div class="col-title"> Exploration Modules 🚀</div>
@@ -411,6 +411,68 @@ function importerFichierClasseurJsonAccueil(input) {
  }
  } catch (err) { alert("Erreur lors de la lecture du fichier JSON."); }
  }; reader.readAsText(input.files[0]); // <- Correction ici aussi [0]
+ }
+}
+async function initialiserDonneesMassivesVersSupabase(input) {
+ if (input.files && input.files) {
+   let reader = new FileReader();
+   reader.onload = async function(e) {
+     try {
+       let paquet = JSON.parse(e.target.result);
+       let listeDesProjets = paquet.projets || paquet.classeur_maitre_projets_lee;
+       
+       if (!listeDesProjets) return alert("Fichier JSON non reconnu.");
+       
+       if (confirm(`🚀 CHEF : ${listeDesProjets.length} projets trouvés. Lancer la copie de secours vers votre serveur Supabase en ligne ?`)) {
+         
+         alert("Envoi en cours vers Supabase... Veuillez patienter quelques secondes.");
+
+         const { error: errProjets } = await window.supabaseClient.from('projets').upsert(listeDesProjets);
+         if (errProjets) throw errProjets;
+
+         let listeUsers = paquet.utilisateurs || paquet.matrice_utilisateurs_rbac_gc || [];
+         if (listeUsers.length > 0) {
+           const { error: errUsers } = await window.supabaseClient.from('utilisateurs').upsert(listeUsers);
+           if (errUsers) throw errUsers;
+         }
+
+         let lignesTechniques = [];
+         let tiroirs = {
+           "charte": paquet.chartesIsolees,
+           "bdqe": paquet.bdqeIsolees,
+           "ccpms": paquet.ccpmsIsolees,
+           "suivi": paquet.suiviIsolees,
+           "planning": paquet.planningIsolees
+         };
+
+         for (let typeTiroir in tiroirs) {
+           let donnees = tiroirs[typeTiroir];
+           if (donnees) {
+             for (let idProjet in donnees) {
+               lignesTechniques.push({
+                 id: `${typeTiroir}_${idProjet}`,
+                 projet_id: idProjet,
+                 type_donnee: typeTiroir,
+                 contenu_json: donnees[idProjet]
+               });
+             }
+           }
+         }
+
+         if (lignesTechniques.length > 0) {
+           const { error: errTech } = await window.supabaseClient.from('dossiers_techniques').upsert(lignesTechniques);
+           if (errTech) throw errTech;
+         }
+
+         alert("🏆 Succès total ! Votre serveur en ligne Supabase est maintenant initialisé et à jour.");
+         window.location.reload();
+       }
+     } catch (err) {
+       console.error(err);
+       alert("❌ Erreur d'injection Cloud : " + err.message);
+     }
+   };
+   reader.readAsText(input.files, 'UTF-8');
  }
 }
 
