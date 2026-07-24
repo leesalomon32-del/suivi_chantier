@@ -278,14 +278,12 @@ function renderAccordéonSidebarSelection() {
 
 function toggleDossierAdmin(pId, ev) { ev.stopPropagation(); etatsAccordéonAdmin[pId] = !etatsAccordéonAdmin[pId]; renderAccordéonSidebarSelection(); }
 function selectionnerProjetEnLigneAdmin(id) { idProjetSelectionneAdmin = id; renderAccordéonSidebarSelection(); basculerDonneesVersProjetSelectionne(id); }
-
 async function basculerDonneesVersProjetSelectionne(id) {
  let p = listeProjetsGlobal.find(i => i.id == id); if(!p) return;
  document.getElementById('cfgObjet').value = p.nom || "";
  document.getElementById('titreCharteActive').innerText = `I. Charte Contractuelle (Lot : ${p.nom.toUpperCase()})`;
  
- // Lecture de la charte correspondante dans Supabase
- const { data: resTech, error } = await window.supabaseClient.from('dossiers_techniques').select('*').eq('id', `charte_administrative_${id}`).maybeSingle();
+ const { data: resTech } = await window.supabaseClient.from('dossiers_techniques').select('*').eq('id', `charte_administrative_${id}`).maybeSingle();
  let d = (resTech && resTech.contenu_json) ? resTech.contenu_json : {};
  let m = {}; 
  if (p.type === 'ENFANT' && p.parentId) { 
@@ -300,11 +298,14 @@ async function basculerDonneesVersProjetSelectionne(id) {
  document.getElementById('cfgNumContrat').value = p.numContrat || d.numContrat || m.numContrat || "-";
  
  let sourceLogos = p.type === 'ENFANT' ? m : d;
- document.getElementById('preview_logoMO').innerHTML = sourceLogos.logoMO_html || ""; 
- document.getElementById('preview_logoFin').innerHTML = sourceLogos.logoFin_html || "";
- document.getElementById('preview_logoMOE').innerHTML = sourceLogos.logoMOE_html || ""; 
- document.getElementById('preview_logoEnterprise').innerHTML = sourceLogos.logoEnterprise_html || "";
+ 
+ // Correctif des identifiants exacts de prévisualisation HTML
+ if(document.getElementById('preview_logoMO')) document.getElementById('preview_logoMO').innerHTML = sourceLogos.logoMO_html || ""; 
+ if(document.getElementById('preview_logoFin')) document.getElementById('preview_logoFin').innerHTML = sourceLogos.logoFin_html || "";
+ if(document.getElementById('preview_logoMOE')) document.getElementById('preview_logoMOE').innerHTML = sourceLogos.logoMOE_html || ""; 
+ if(document.getElementById('preview_logoEntreprise')) document.getElementById('preview_logoEntreprise').innerHTML = sourceLogos.logoEnterprise_html || "";
 }
+
 function convertirLogoBinaire(input, cibleId) {
  if (input.files && input.files[0]) {
  let reader = new FileReader();
