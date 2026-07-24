@@ -47,6 +47,16 @@
  .btn { padding: 6px 12px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; color: white; font-size: 11px; display: inline-flex; align-items: center; gap: 5px; }
  .btn-secondary { background-color: #64748b; }
  .btn-primary { background-color: var(--accent-blue); }
+ 
+ /* Amélioration 3 : Styles de la fenêtre Pop-up de ventilation */
+ .modal-structures { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+ .modal-content { background: white; padding: 20px; border-radius: 8px; max-width: 420px; width: 90%; box-shadow: 0 10px 25px rgba(0,0,0,0.2); position: relative; animation: modalFadeIn 0.2s ease-out; }
+ .modal-close { position: absolute; top: 10px; right: 15px; font-size: 20px; cursor: pointer; font-weight: bold; color: #64748b; }
+ .modal-close:hover { color: var(--danger-red); }
+ .structure-item-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #e2e8f0; font-size: 12px; }
+ .structure-item-row:last-child { border-bottom: none; }
+ @keyframes modalFadeIn { from { transform: translateY(-10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
  @media (max-width: 768px) {
  body { padding: 5px; }
  .bdqe-container { height: calc(100vh - 10px); padding: 10px; gap: 8px; }
@@ -67,6 +77,7 @@
  <button class="btn btn-secondary" onclick="window.location.href='3_accueil.html'">« Retour Console Accueil</button>
  </div>
  <button class="toggle-form-btn" onclick="basculerAffichageFormulaireTiroir()">Ouvrir les Outils de Saisie & Import CSV </button> 🛠
+ 
  <div class="form-saisie-inline" id="formSaisieManuelleLigne">
  <div style="grid-column: 1 / -1; display:flex; justify-content:space-between; align-items:center; border-bottom:1px dashed var(--border-color); padding-bottom:5px; margin-bottom:5px;">
  <label style="color:var(--accent-blue); font-weight:bold;">Console d'injection des Prix</label>
@@ -80,10 +91,11 @@
  </div>
  <div class="form-cell"><label>Code BDQE</label><input type="text" id="inCode" placeholder="Ex: 1.1" oninput="declencherMoteurHeritageAutomatiqueFratrie(this.value)"></div>
  
- <!-- MODIFICATION : Remplacement de l'input par le select dynamique étanche -->
+ <!-- Amélioration 1 : Remplacement du select par une saisie libre avec datalist de suggestions -->
  <div class="form-cell" style="grid-column: span 2;">
  <label>Grand Ouvrage / Site</label>
- <select id="inOuvrage"></select>
+ <input type="text" id="inOuvrage" list="listeOuvragesExistants" placeholder="Choisir ou écrire...">
+ <datalist id="listeOuvragesExistants"></datalist>
  </div>
  
  <div class="form-cell" style="grid-column: span 2;"><label>Structure / Partie</label><input type="text" id="inStructure" placeholder="Ex: Infrastructures"></div>
@@ -93,12 +105,14 @@
  <div class="form-cell"><label>P.U (Ar)</label><input type="text" id="inPU" placeholder="0.00" style="text-align:right;"></div>
  <button class="btn btn-primary" style="padding:8px; justify-content:center; font-size:11px; height:31px;" onclick="ajouterNouvelleLigneBDQEManuelle()">Ajouter </button> ➕
  </div>
+ 
  <div class="filter-section">
  <div class="filter-title">1 Filtrer par Grand Ouvrage :</div> ⃣
  <div class="segment-container" id="boxSegmentsOuvragesBDQE" style="overflow-x:auto; white-space:nowrap; flex-wrap:nowrap; padding-bottom:3px;"></div>
  <div class="filter-title" style="margin-top:2px;">2 Affiner par Structure / Partie :</div> ⃣
  <div class="segment-container" id="boxSegmentsStructuresBDQE" style="overflow-x:auto; white-space:nowrap; flex-wrap:nowrap; padding-bottom:3px;"></div>
  </div>
+ 
  <div class="workspace-table-scroll">
  <table id="tableBDQEInitial">
  <thead>
@@ -111,20 +125,31 @@
  <th style="width:90px; text-align:right;">Quantité</th>
  <th style="width:110px; text-align:right;">P.U (Ariary)</th>
  <th style="width:130px; text-align:right;">Montant Total</th>
- <th style="width:45px; text-align:center;" class="col-action-modification">Action</th>
+ <th style="width:75px; text-align:center;" class="col-action-modification">Action</th>
  </tr>
  </thead>
  <tbody id="tbodyLignesBDQEGrid"></tbody>
  </table>
  </div>
+ 
  <div>
- <div class="filter-title" style="margin-bottom: 5px;"> Ventilation 📋 Budgétaire par Grand Ouvrage / Site :</div>
+ <div class="filter-title" style="margin-bottom: 5px;"> Ventilation 📋 Budgétaire par Grand Ouvrage / Site (Cliquez sur un ouvrage pour le détail) :</div>
  <div class="recap-grid-responsive" id="tbodyRecapFinancierOuvragesBDQE"></div>
  </div>
+ 
  <div class="total-banner-box">
  <span>Montant Global du Marché Initial pour ce Lot :</span>
  <span id="txtCalculSommeFinanciereBDQE" style="font-size:16px; font-weight:900; color:var(--accent-blue-hover);">0,00 Ar</span>
  </div>
+</div>
+
+<!-- Amélioration 3 : Structure HTML de la fenêtre Pop-up de ventilation des structures -->
+<div id="popupStructures" class="modal-structures" onclick="fermerModalStructures(event)">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <span class="modal-close" onclick="document.getElementById('popupStructures').style.display='none'">×</span>
+    <h3 id="modalTitreOuvrage" style="margin-top:0; color:var(--primary-dark); font-size:14px; text-transform:uppercase; border-bottom:2px solid var(--accent-blue); padding-bottom:5px;">Structures</h3>
+    <div id="modalListeStructuresBody" style="max-height: 260px; overflow-y: auto; padding-right: 5px;"></div>
+  </div>
 </div>
 <script>
 const DB_NAME = "GenieCivilPro_DB";
@@ -240,11 +265,11 @@ function remplirChampsFormulaireManuel(item) {
  document.getElementById('inUnite').value = item.unite || "";
  document.getElementById('inPU').value = item.prix_unitaire || "";
 }
+
 function formatArgent(num) {
  if (num === null || num === undefined || isNaN(num)) return "0,00";
  return num.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
-
 function ajouterNouvelleLigneBDQEManuelle() {
  let ouvrage = document.getElementById('inOuvrage').value.trim();
  let code_bdqe = document.getElementById('inCode').value.trim().replace(',', '.');
@@ -255,8 +280,13 @@ function ajouterNouvelleLigneBDQEManuelle() {
  let prix_unitaire = parseFloat(document.getElementById('inPU').value.replace(/\s/g, '').replace(',', '.')) || 0;
  if (!ouvrage || !code_bdqe || !designation) return alert("L'ouvrage, le code et la désignation doivent être renseignés.");
  listeBDQE.push({ ouvrage, code_bdqe, structure, designation, unite, quantite, prix_unitaire, total: quantite * prix_unitaire });
- document.getElementById('inCode').value = ""; document.getElementById('inOuvrage').value = ""; document.getElementById('inStructure').value = "";
- document.getElementById('inDesignation').value = ""; document.getElementById('inUnite').value = ""; document.getElementById('inQte').value = ""; document.getElementById('inPU').value = "";
+ document.getElementById('inCode').value = ""; 
+ document.getElementById('inOuvrage').value = ""; 
+ document.getElementById('inStructure').value = "";
+ document.getElementById('inDesignation').value = ""; 
+ document.getElementById('inUnite').value = ""; 
+ document.getElementById('inQte').value = ""; 
+ document.getElementById('inPU').value = "";
  rechargerTout();
 }
 
@@ -276,6 +306,22 @@ function trierDonneesAlphanumerique() {
 
 function supprimerLigneBDQESecurise(index) {
  if (confirm("Voulez-vous retirer cette ligne ?")) { listeBDQE.splice(index, 1); rechargerTout(); }
+}
+
+/* Amélioration 2 : Fonction de chargement d'une ligne pour modification */
+function chargerLignePourModification(index) {
+ let item = listeBDQE[index];
+ document.getElementById('inOuvrage').value = item.ouvrage || "";
+ document.getElementById('inCode').value = item.code_bdqe || "";
+ document.getElementById('inStructure').value = item.structure || "";
+ document.getElementById('inDesignation').value = item.designation || "";
+ document.getElementById('inUnite').value = item.unite || "";
+ document.getElementById('inQte').value = item.quantite || "";
+ document.getElementById('inPU').value = item.prix_unitaire || "";
+ let form = document.getElementById('formSaisieManuelleLigne');
+ if (!form.classList.contains('open')) { basculerAffichageFormulaireTiroir(); }
+ listeBDQE.splice(index, 1);
+ rechargerTout();
 }
 
 function gererImportationCSVLocal(input) {
@@ -319,13 +365,13 @@ function gererImportationCSVLocal(input) {
  reader.readAsText(input.files[0], 'UTF-8');
  }
 }
-
+/* Amélioration 1 : Injection des suggestions dans la datalist (Saisie libre assistée) */
 function actualiserSelectOuvrages() {
- let selectOuvrage = document.getElementById('inOuvrage'); if (!selectOuvrage) return;
+ let datalistOuvrage = document.getElementById('listeOuvragesExistants'); if (!datalistOuvrage) return;
  let ouvragesUniques = [...new Set(listeBDQE.map(item => item.ouvrage).filter(Boolean))];
- selectOuvrage.innerHTML = '<option value="">-- Choisir un ouvrage --</option>';
+ datalistOuvrage.innerHTML = '';
  ouvragesUniques.forEach(ouv => {
- let opt = document.createElement('option'); opt.value = ouv; opt.innerText = ouv.toUpperCase(); selectOuvrage.appendChild(opt);
+ let opt = document.createElement('option'); opt.value = ouv; datalistOuvrage.appendChild(opt);
  });
 }
 
@@ -355,6 +401,7 @@ function genererBoutonsSegmentsStructures() {
  });
 }
 
+/* Amélioration 2 : Intégration du bouton double "Modifier/Supprimer" dans la grille de données */
 function afficherGrilleDonneesBDQE() {
  let tbody = document.getElementById('tbodyLignesBDQEGrid'); if (!tbody) return; tbody.innerHTML = "";
  if (listeBDQE.length === 0) { tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:#94a3b8; padding:30px; font-style:italic;">Le bordereau est vide.</td></tr>`; return; }
@@ -362,12 +409,13 @@ function afficherGrilleDonneesBDQE() {
  if (filtreOuvrageActif !== "TOUS" && item.ouvrage !== filtreOuvrageActif) return;
  if (filtreStructureActif !== "TOUS" && item.structure !== filtreStructureActif) return;
  let tr = document.createElement('tr');
- let action = window.modeLectureSeuleActive ? "" : `<td style="text-align:center;"><button class="btn" style="background:var(--danger-red); padding:3px 6px; font-size:10px;" onclick="supprimerLigneBDQESecurise(${index})"> </button></td>`;
+ let action = window.modeLectureSeuleActive ? "" : `<td style="text-align:center; display:flex; gap:4px; justify-content:center;"><button class="btn" style="background:var(--accent-blue); padding:3px 6px; font-size:10px;" onclick="chargerLignePourModification(${index})">✏️</button><button class="btn" style="background:var(--danger-red); padding:3px 6px; font-size:10px;" onclick="supprimerLigneBDQESecurise(${index})">🗑️</button></td>`;
  tr.innerHTML = `<td><b>${item.ouvrage}</b></td><td style="font-family:monospace; font-weight:bold; color:var(--accent-blue);">${item.code_bdqe}</td><td><span style="font-size:11px; font-weight:600; color:#64748b;">${item.structure}</span></td><td>${item.designation}</td><td style="text-align:center;">${item.unite || 'ens'}</td><td class="txt-right">${item.quantite.toLocaleString('fr-FR', { minimumFractionDigits: 2 })}</td><td class="txt-right">${formatArgent(item.prix_unitaire)}</td><td class="txt-right" style="color:var(--primary-dark); font-weight:bold;">${formatArgent(item.total)}</td>${action}`;
  tbody.appendChild(tr);
  });
 }
 
+/* Amélioration 3 : Cartes récapitulatives cliquables */
 function afficherCartesRecapOuvrages() {
  let container = document.getElementById('tbodyRecapFinancierOuvragesBDQE'); if (!container) return; container.innerHTML = "";
  let dict = {}; listeBDQE.forEach(i => { let m = i.total || 0; if (!dict[i.ouvrage]) dict[i.ouvrage] = 0; dict[i.ouvrage] += m; });
@@ -375,8 +423,33 @@ function afficherCartesRecapOuvrages() {
  if (keys.length === 0) { container.innerHTML = `<div style="text-align:center; color:#94a3b8; font-style:italic; font-size:11px; padding:10px; width:100%;">Aucun ouvrage enregistré.</div>`; return; }
  keys.forEach(nom => {
  let card = document.createElement('div'); card.className = "recap-card-item";
- card.innerHTML = `<div class="recap-card-title" title="${nom}">${nom.toUpperCase()}</div><div class="recap-card-value">${formatArgent(dict[nom])} Ar</div>`; container.appendChild(card);
+ card.style.cursor = "pointer";
+ card.title = "Cliquez pour voir la ventilation par structure";
+ card.onclick = function() { ouvrirModalStructures(nom); };
+ card.innerHTML = `<div class="recap-card-title" title="${nom}">${nom.toUpperCase()}</div><div class="recap-card-value">${formatArgent(dict[nom])} Ar</div>`; 
+ container.appendChild(card);
  });
+}
+
+/* Amélioration 3 : Logique de calcul et d'affichage de la Pop-up */
+function ouvrirModalStructures(nomOuvrage) {
+ document.getElementById('modalTitreOuvrage').innerText = `Ventilation : ${nomOuvrage.toUpperCase()}`;
+ let containerBody = document.getElementById('modalListeStructuresBody'); containerBody.innerHTML = "";
+ let dictStructures = {};
+ listeBDQE.filter(item => item.ouvrage === nomOuvrage).forEach(i => {
+  let strNom = i.structure || "Non défini";
+  if (!dictStructures[strNom]) dictStructures[strNom] = 0; dictStructures[strNom] += (i.total || 0);
+ });
+ Object.keys(dictStructures).forEach(str => {
+  let row = document.createElement('div'); row.className = "structure-item-row";
+  row.innerHTML = `<span>${str}</span><span style="font-weight:bold; color:var(--accent-blue);">${formatArgent(dictStructures[str])} Ar</span>`;
+  containerBody.appendChild(row);
+ });
+ document.getElementById('popupStructures').style.display = 'flex';
+}
+
+function fermerModalStructures(event) {
+ document.getElementById('popupStructures').style.display = 'none';
 }
 
 async function viderLockerBDQELocalTotalement() {
