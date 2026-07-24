@@ -347,21 +347,37 @@ async function sauvegarderDonneesProjetSelectionne() {
  window.location.reload();
 }
 
+// RECHERCHEZ ET REMPLACEZ CETTE FONCTION DANS VOTRE CODE :
 function genererCheckboxesLotsArbreAccordéon() {
- let box = document.getElementById('boxCheckboxesLotsAssignes'); if(!box) return; box.innerHTML = "";
+ let box = document.getElementById('boxCheckboxesLotsAssignes'); 
+ if(!box) return; 
+ box.innerHTML = "";
+ 
  listeProjetsGlobal.filter(p => p.type === 'PAPA' || p.type === 'CLASSIQUE').forEach(r => {
- let divP = document.createElement('div'); divP.style.cssText = "display:flex; align-items:center; justify-content:space-between; font-weight:bold; color:var(--primary-dark); background:#f1f5f9; padding:5px 8px; border-radius:4px; width:100%; box-sizing:border-box; margin-top:2px;";
- let flecheM = r.type === 'PAPA' ? `<span style="font-size:9px; cursor:pointer; background:#cbd5e1; padding:2px 4px; border-radius:3px;" onclick="toggleDossierMatrixAssign(${r.id}, event)">${etatsAccordéonMatrixAssign[r.id]?'▼ masquer':'▲ déplier'}</span>` : '';
- divP.innerHTML = `<label style="display:inline-flex; align-items:center; gap:5px;"><input type="checkbox" name="assignationLot" value="${r.id}"> 🏢 ${r.nom}</label> ${flecheM}`; box.appendChild(divP);
+ let divP = document.createElement('div'); 
+ divP.style.cssText = "display:flex; align-items:center; justify-content:space-between; font-weight:bold; color:var(--primary-dark); background:#f1f5f9; padding:5px 8px; border-radius:4px; width:100%; box-sizing:border-box; margin-top:2px;";
+ 
+ // Correction de l'accent sur la variable etatsAccordéonMatrixAssign
+ let deploie = etatsAccordéonMatrixAssign[r.id] !== false;
+ let flecheM = r.type === 'PAPA' ? `<span style="font-size:9px; cursor:pointer; background:#cbd5e1; padding:2px 4px; border-radius:3px;" onclick="toggleDossierMatrixAssign(${r.id}, event)">${deploie ? '▼ masquer' : '▲ déplier'}</span>` : '';
+ 
+ divP.innerHTML = `<label style="display:inline-flex; align-items:center; gap:5px;"><input type="checkbox" name="assignationLot" value="${r.id}"> 🏢 ${r.nom}</label> ${flecheM}`; 
+ box.appendChild(divP);
+ 
  if (r.type === 'PAPA') {
  listeProjetsGlobal.filter(p => p.type === 'ENFANT' && p.parentId == r.id).forEach(e => {
- let divE = document.createElement('div'); divE.style.cssText = "display:flex; align-items:center; gap:5px; margin-left:18px; font-weight:normal; padding:2px 0;";
- if(!etatsAccordéonMatrixAssign[r.id]) divE.style.display = "none";
- divE.innerHTML = `<label style="display:inline-flex; align-items:center; gap:5px;"><input type="checkbox" name="assignationLot" value="${e.id}"> ↳ ${e.nom}</label>`; box.appendChild(divE);
+ let divE = document.createElement('div'); 
+ divE.style.cssText = "display:flex; align-items:center; gap:5px; margin-left:18px; font-weight:normal; padding:2px 0;";
+ 
+ if(!deploie) divE.style.display = "none";
+ 
+ divE.innerHTML = `<label style="display:inline-flex; align-items:center; gap:5px;"><input type="checkbox" name="assignationLot" value="${e.id}"> ↳ ${e.nom}</label>`; 
+ box.appendChild(divE);
  });
  }
  });
 }
+
 
 function toggleDossierMatrixAssign(papaId, event) { event.preventDefault(); event.stopPropagation(); etatsAccordéonMatrixAssign[papaId] = !etatsAccordéonMatrixAssign[papaId]; genererCheckboxesLotsArbreAccordéon(); }
 function basculerToutCocherLots(statut) { document.querySelectorAll('#boxCheckboxesLotsAssignes input[type="checkbox"]').forEach(cb => cb.checked = statut); }
