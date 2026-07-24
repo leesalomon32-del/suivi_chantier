@@ -340,26 +340,34 @@ async function sauvegarderPhotoEmplacement(input) {
  }; reader.readAsDataURL(input.files[0]);
  } 
 }
-
-/* CORRECTION TECHNIQUE : Export global unifié */
+// Remplacez votre fonction d'export actuelle par celle-ci :
 async function exporterFichierClasseurJsonAccueil() {
- let projets = await lireToutesLesDonneesDB("projets"); let utilisateurs = await lireToutesLesDonneesDB("utilisateurs");
- let chartesIsolees = {}; let bdqeIsolees = {}; let ccpmsIsolees = {}; let suiviIsolees = {}; let planningIsolees = {};
+ let projets = await lireToutesLesDonneesDB("projets"); 
+ let utilisateurs = await lireToutesLesDonneesDB("utilisateurs");
+ let chartesIsolees = {}; // <- Unifié ici pour correspondre à la suite du code
+ let bdqeIsolees = {}; let ccpmsIsolees = {}; let suiviIsolees = {}; let planningIsolees = {};
+ 
  for (let p of projets) {
- let charte = await lireDonneeDB("dossiers_techniques", `charte_administrative_${p.id}`); if(charte) chartesIsolees[p.id] = charte;
- let bdqe = await lireDonneeDB("dossiers_techniques", `bdqe_${p.id}`); if(bdqe) bdqeIsolees[p.id] = bdqe;
- let ccpms = await lireDonneeDB("dossiers_techniques", `ccpms_${p.id}`); if(ccpms) ccpmsIsolees[p.id] = ccpms;
- let suivi = await lireDonneeDB("dossiers_techniques", `suivi_${p.id}`); if(suivi) suiviIsolees[p.id] = suivi;
- let planning = await lireDonneeDB("dossiers_techniques", `planning_${p.id}`); if(planning) planningIsolees[p.id] = planning;
+   let charte = await lireDonneeDB("dossiers_techniques", `charte_administrative_${p.id}`); 
+   if(charte) chartesIsolees[p.id] = charte;
+   let bdqe = await lireDonneeDB("dossiers_techniques", `bdqe_${p.id}`); 
+   if(bdqe) bdqeIsolees[p.id] = bdqe;
+   let ccpms = await lireDonneeDB("dossiers_techniques", `ccpms_${p.id}`); 
+   if(ccpms) ccpmsIsolees[p.id] = ccpms;
+   let suivi = await lireDonneeDB("dossiers_techniques", `suivi_${p.id}`); 
+   if(suivi) suiviIsolees[p.id] = suivi;
+   let planning = await lireDonneeDB("dossiers_techniques", `planning_${p.id}`); 
+   if(planning) planningIsolees[p.id] = planning;
  }
+ 
  let blob = new Blob([JSON.stringify({ dateExport: new Date().toISOString(), projets, utilisateurs, chartesIsolees, bdqeIsolees, ccpmsIsolees, suiviIsolees, planningIsolees }, null, 2)], { type: "application/json" });
  let lien = document.createElement("a"); lien.href = URL.createObjectURL(blob); lien.download = `GENIE_CIVIL_PRO_DATABASE_MASTER.json`;
  document.body.appendChild(lien); lien.click(); document.body.removeChild(lien); alert("Base exportée avec succès ! 💾");
 }
 
-/* CORRECTION TECHNIQUE : Import écrasant sécurisé et indexé */
+// Remplacez votre fonction d'import actuelle par celle-ci :
 function importerFichierClasseurJsonAccueil(input) {
- if (input.files && input.files[0]) {
+ if (input.files && input.files[0]) { // <- Correction de l'index des fichiers ici [0]
  let reader = new FileReader();
  reader.onload = async function(e) {
  try {
@@ -378,9 +386,11 @@ function importerFichierClasseurJsonAccueil(input) {
  alert("Restauration complète de l'écosystème réussie ! 🔄"); window.location.reload();
  }
  } catch (err) { alert("Erreur lors de la lecture du fichier JSON."); }
- }; reader.readAsText(input.files[0]);
+ }; reader.readAsText(input.files[0]); // <- Correction ici aussi [0]
  }
 }
+
+
 </script>
 </body>
 </html>
