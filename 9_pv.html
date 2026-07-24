@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+ <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
  <meta charset="UTF-8">
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
  <title>Génie Civil Pro - Procès-Verbal de Chantier Isolé</title>
@@ -127,160 +129,169 @@ const DB_VERSION = 1;
 let dbInstance = null;
 
 function initialiserLeMeubleDB() {
-    return new Promise((resolve, reject) => {
-        let requete = indexedDB.open(DB_NAME, DB_VERSION);
-        requete.onsuccess = function(e) { dbInstance = e.target.result; resolve(dbInstance); };
-        requete.onerror = function() { reject("Meuble bloqué."); };
-    });
+ return new Promise((resolve, reject) => {
+ let requete = indexedDB.open(DB_NAME, DB_VERSION);
+ requete.onsuccess = function(e) { dbInstance = e.target.result; resolve(dbInstance); };
+ requete.onerror = function() { reject("Meuble bloqué."); };
+ });
 }
 
 function lireDonneeDB(tiroir, cle) {
-    return new Promise((resolve) => {
-        if(!dbInstance) return resolve(null);
-        let tx = dbInstance.transaction([tiroir], "readonly");
-        let req = tx.objectStore(tiroir).get(cle);
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => resolve(null);
-    });
+ return new Promise((resolve) => {
+ if(!dbInstance) return resolve(null);
+ let tx = dbInstance.transaction([tiroir], "readonly");
+ let req = tx.objectStore(tiroir).get(cle);
+ req.onsuccess = () => resolve(req.result);
+ req.onerror = () => resolve(null);
+ });
 }
 
 function ecrireDonneeDB(tiroir, objet, cleOptionnelle) {
-    return new Promise((resolve) => {
-        if(!dbInstance) return resolve(false);
-        let tx = dbInstance.transaction([tiroir], "readwrite");
-        let req = cleOptionnelle !== undefined ? tx.objectStore(tiroir).put(objet, cleOptionnelle) : tx.objectStore(tiroir).put(objet);
-        req.onsuccess = () => resolve(true);
-        req.onerror = () => resolve(false);
-    });
+ return new Promise((resolve) => {
+ if(!dbInstance) return resolve(false);
+ let tx = dbInstance.transaction([tiroir], "readwrite");
+ let req = cleOptionnelle !== undefined ? tx.objectStore(tiroir).put(objet, cleOptionnelle) : tx.objectStore(tiroir).put(objet);
+ req.onsuccess = () => resolve(true);
+ req.onerror = () => resolve(false);
+ });
+}
+
+function lireToutesLesDonneesDB(tiroir) {
+ return new Promise((resolve) => {
+ if(!dbInstance) return resolve([]);
+ let tx = dbInstance.transaction([tiroir], "readonly");
+ let req = tx.objectStore(tiroir).getAll();
+ req.onsuccess = () => resolve(req.result || []);
+ req.onerror = () => resolve([]);
+ });
 }
 
 let compteurLignes = 0;
 let compteurSignataires = 0;
 const MAX_SIGNATAIRES = 12;
 let idProjetUnique = localStorage.getItem("id_projet_en_cours_de_saisie_temporaire") || "101";
+
 window.onload = function() {
-    if (localStorage.getItem("session_securisee_active_gc") !== "VALIDE") { window.location.href = "1_login.html"; return; }
-    initialiserLeMeubleDB().then(async () => {
-        let listeProjetsGlobal = [];
-        let tx = dbInstance.transaction(["projets"], "readonly");
-        let req = tx.objectStore("projets").getAll();
-        req.onsuccess = async function() {
-            listeProjetsGlobal = req.result || [];
-            let pActuel = listeProjetsGlobal.find(i => i.id == idProjetUnique);
-            let n = await lireDonneeDB("dossiers_techniques", `charte_administrative_${idProjetUnique}`) || {};
-            let m = {}; if (pActuel && pActuel.type === 'ENFANT' && pActuel.parentId) { m = await lireDonneeDB("dossiers_techniques", `charte_administrative_${pActuel.parentId}`) || {}; }
-            let objetPVText = pActuel ? pActuel.nom.toUpperCase() : "-";
-            if (pActuel && pActuel.type === "ENFANT" && pActuel.parentId) {
-                let papa = listeProjetsGlobal.find(i => i.id == pActuel.parentId); if (papa) objetPVText = `${papa.nom.toUpperCase()} — LOT : ${pActuel.nom.toUpperCase()}`;
-            }
-            if(document.getElementById('viewObjet')) document.getElementById('viewObjet').innerText = objetPVText;
-            if(document.getElementById('viewFinancement')) document.getElementById('viewFinancement').innerText = n.financement || m.financement || "-";
-            if(document.getElementById('viewMO')) document.getElementById('viewMO').innerText = n.mo || m.mo || "-";
-            if(document.getElementById('viewMOE')) document.getElementById('viewMOE').innerText = n.moe || m.moe || "-";
-            let elEnt = document.getElementById('viewEntreprise'); if(elEnt) elEnt.innerText = n.entreprise || m.entreprise || "-";
-            if(document.getElementById('viewNumContrat')) document.getElementById('viewNumContrat').innerText = n.numContrat || m.numContrat || "-";
-            
-            let sourceLogos = pActuel && pActuel.type === 'ENFANT' ? m : n;
-            let styleStyle = 'style="max-height:35px; max-width:100%; object-fit:contain; vertical-align:middle;"';
-            if(document.getElementById('pvLogoFin') && sourceLogos.logoFin_html) document.getElementById('pvLogoFin').innerHTML = sourceLogos.logoFin_html.replace('<img', `<img ${styleStyle}`);
-            if(document.getElementById('pvLogoMO') && sourceLogos.logoMO_html) document.getElementById('pvLogoMO').innerHTML = sourceLogos.logoMO_html.replace('<img', `<img ${styleStyle}`);
-            if(document.getElementById('pvLogoMOE') && sourceLogos.logoMOE_html) document.getElementById('pvLogoMOE').innerHTML = sourceLogos.logoMOE_html.replace('<img', `<img ${styleStyle}`);
-            if(document.getElementById('pvLogoEntreprise') && sourceLogos.logoEnterprise_html) document.getElementById('pvLogoEntreprise').innerHTML = sourceLogos.logoEnterprise_html.replace('<img', `<img ${styleStyle}`);
-            if(document.getElementById('siteSaisie') && pActuel) document.getElementById('siteSaisie').value = pActuel.nom.toUpperCase();
-        };
-        ajouterLigneConstat(); ajouterUnSignataire("Mission de Contrôle\n(MOE)"); ajouterUnSignataire("Entreprise Titulaire\n(Titulaire)");
-    });
+ if (localStorage.getItem("session_securisee_active_gc") !== "VALIDE") { window.location.href = "1_login.html"; return; }
+ initialiserLeMeubleDB().then(async () => {
+   // 1. CHARGEMENT HORS-LIGNE IMMÉDIAT (0.1 seconde d'attente utilisateur)
+   let listeProjetsGlobal = await lireToutesLesDonneesDB("projets");
+   let pActuel = listeProjetsGlobal.find(i => i.id == idProjetUnique);
+   
+   let n = null; let m = null;
+   if (window.supabaseClient && navigator.onLine) {
+     try {
+       let { data: rN } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `charte_administrative_${idProjetUnique}`).maybeSingle();
+       if(rN) n = rN.contenu_json;
+       if (pActuel && pActuel.type === 'ENFANT' && pActuel.parentId) {
+         let { data: rM } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `charte_administrative_${pActuel.parentId}`).maybeSingle();
+         if(rM) m = rM.contenu_json;
+       }
+     } catch(e) {}
+   }
+   
+   if(!n) n = await lireDonneeDB("dossiers_techniques", `charte_administrative_${idProjetUnique}`) || {};
+   if(!m && pActuel && pActuel.type === 'ENFANT' && pActuel.parentId) m = await lireDonneeDB("dossiers_techniques", `charte_administrative_${pActuel.parentId}`) || {};
+   
+   let objetPVText = pActuel ? pActuel.nom.toUpperCase() : "-";
+   if (pActuel && pActuel.type === "ENFANT" && pActuel.parentId) {
+     let papa = listeProjetsGlobal.find(i => i.id == pActuel.parentId); 
+     if (papa) objetPVText = `${papa.nom.toUpperCase()} — LOT : ${pActuel.nom.toUpperCase()}`;
+   }
+   
+   if(document.getElementById('viewObjet')) document.getElementById('viewObjet').innerText = objetPVText;
+   if(document.getElementById('viewFinancement')) document.getElementById('viewFinancement').innerText = n.financement || m.financement || "-";
+   if(document.getElementById('viewMO')) document.getElementById('viewMO').innerText = n.mo || m.mo || "-";
+   if(document.getElementById('viewMOE')) document.getElementById('viewMOE').innerText = n.moe || m.moe || "-";
+   let elEnt = document.getElementById('viewEntreprise'); if(elEnt) elEnt.innerText = n.entreprise || m.entreprise || "-";
+   if(document.getElementById('viewNumContrat')) document.getElementById('viewNumContrat').innerText = n.numContrat || m.numContrat || "-";
+   
+   let sourceLogos = pActuel && pActuel.type === 'ENFANT' ? m : n;
+   let styleStyle = 'style="max-height:35px; max-width:100%; object-fit:contain; vertical-align:middle;"';
+   if(document.getElementById('pvLogoFin') && sourceLogos.logoFin_html) document.getElementById('pvLogoFin').innerHTML = sourceLogos.logoFin_html.replace('<img', `<img ${styleStyle}`);
+   if(document.getElementById('pvLogoMO') && sourceLogos.logoMO_html) document.getElementById('pvLogoMO').innerHTML = sourceLogos.logoMO_html.replace('<img', `<img ${styleStyle}`);
+   if(document.getElementById('pvLogoMOE') && sourceLogos.logoMOE_html) document.getElementById('pvLogoMOE').innerHTML = sourceLogos.logoMOE_html.replace('<img', `<img ${styleStyle}`);
+   if(document.getElementById('pvLogoEntreprise') && sourceLogos.logoEnterprise_html) document.getElementById('pvLogoEntreprise').innerHTML = sourceLogos.logoEnterprise_html.replace('<img', `<img ${styleStyle}`);
+   if(document.getElementById('siteSaisie') && pActuel) document.getElementById('siteSaisie').value = pActuel.nom.toUpperCase();
+
+   ajouterLigneConstat(); 
+   ajouterUnSignataire("Mission de Contrôle\n(MOE)"); 
+   ajouterUnSignataire("Entreprise Titulaire\n(Titulaire)");
+ });
 };
 
 function ajouterLigneConstat() {
-    compteurLignes++;
-    let tbody = document.getElementById('tbodyConstats');
-    let tr = document.createElement('tr'); tr.id = `ligneConstat_${compteurLignes}`;
-    tr.innerHTML = `<td style="text-align:center; font-weight:bold; padding-top:12px;">${compteurLignes}</td><td class="cell-constat-text"><textarea class="textarea-cell" placeholder="Saisir le constat visuel..." oninput="ajusterHauteurTextarea(this)"></textarea><div class="print-text-block"></div></td><td class="cell-obs-text"><textarea class="textarea-cell" placeholder="Directives / Recommandations..." oninput="ajusterHauteurTextarea(this)"></textarea><div class="print-text-block"></div></td><td><input type="file" accept="image/*" id="imgInput_${compteurLignes}" onchange="previsualiserPhotoConstat(${compteurLignes}, this)"><div id="prevBox_${compteurLignes}" style="margin-top:5px; max-width:200px; display:none;"><img id="prevImg_${compteurLignes}" style="width:100%; max-height:120px; object-fit:contain; border-radius:4px; border:1px solid #cbd5e1;"></div></td>`;
-    tbody.appendChild(tr);
+ compteurLignes++; let tbody = document.getElementById('tbodyConstats'); if(!tbody) return; let tr = document.createElement('tr'); tr.id = `ligneConstat_${compteurLignes}`;
+ tr.innerHTML = `<td style="text-align:center; font-weight:bold; padding-top:12px;">${compteurLignes}</td><td class="cell-constat-text"><textarea class="textarea-cell" placeholder="Saisir le constat visuel..." oninput="ajusterHauteurTextarea(this)"></textarea><div class="print-text-block"></div></td><td class="cell-obs-text"><textarea class="textarea-cell" placeholder="Directives / Recommandations..." oninput="ajusterHauteurTextarea(this)"></textarea><div class="print-text-block"></div></td><td><input type="file" accept="image/*" id="imgInput_${compteurLignes}" onchange="previsualiserPhotoConstat(${compteurLignes}, this)"><div id="prevBox_${compteurLignes}" style="margin-top:5px; max-width:200px; display:none;"><img id="prevImg_${compteurLignes}" style="width:100%; max-height:120px; object-fit:contain; border-radius:4px; border:1px solid #cbd5e1;"></div></td>`;
+ tbody.appendChild(tr);
 }
-
 function ajusterHauteurTextarea(element) { element.style.height = "auto"; element.style.height = element.scrollHeight + "px"; }
-
 function previsualiserPhotoConstat(numLigne, input) {
-    let box = document.getElementById(`prevBox_${numLigne}`); let img = document.getElementById(`prevImg_${numLigne}`);
-    if (input.files && input.files[0]) {
-        let reader = new FileReader();
-        reader.onload = function(e) {
-            let imageTemporaire = new Image();
-            imageTemporaire.onload = function() {
-                let canvas = document.createElement('canvas'); let max_size = 800;
-                let width = imageTemporaire.width; let height = imageTemporaire.height;
-                if (width > height) { if (width > max_size) { height *= max_size / width; width = max_size; } } 
-                else { if (height > max_size) { width *= max_size / height; height = max_size; } }
-                canvas.width = width; canvas.height = height;
-                canvas.getContext('2d').drawImage(imageTemporaire, 0, 0, width, height);
-                let dataUrlCalibre = canvas.toDataURL('image/jpeg', 0.7);
-                if (img) { img.src = dataUrlCalibre; img.style.display = 'block'; }
-                if (box) box.style.display = 'block';
-            };
-            imageTemporaire.src = e.target.result;
-        };
-        reader.readAsDataURL(input.files[0]);
-    }
+ let box = document.getElementById(`prevBox_${numLigne}`); let img = document.getElementById(`prevImg_${numLigne}`);
+ if (input.files && input.files[0]) {
+ let reader = new FileReader(); reader.onload = function(e) {
+ let imageTemporaire = new Image(); imageTemporaire.onload = function() {
+ let canvas = document.createElement('canvas'); let max_size = 800; let width = imageTemporaire.width; let height = imageTemporaire.height;
+ if (width > height) { if (width > max_size) { height *= max_size / width; width = max_size; } } else { if (height > max_size) { width *= max_size / height; height = max_size; } }
+ canvas.width = width; canvas.height = height; canvas.getContext('2d').drawImage(imageTemporaire, 0, 0, width, height);
+ let dataUrlCalibre = canvas.toDataURL('image/jpeg', 0.7);
+ if (img) { img.src = dataUrlCalibre; img.style.display = 'block'; }
+ if (box) box.style.display = 'block';
+ }; imageTemporaire.src = e.target.result;
+ }; reader.readAsDataURL(input.files[0]);
+ }
 }
 
 function ajouterUnSignataire(texteParDefaut = "") {
-    if (compteurSignataires >= MAX_SIGNATAIRES) return alert("Limite de 12 signataires.");
-    compteurSignataires++; let zone = document.getElementById('zoneSignatures'); let card = document.createElement('div');
-    card.className = "signature-card"; card.id = `sigCard_${compteurSignataires}`;
-    card.innerHTML = `<button class="btn-del-sig" onclick="retirerSignataire(${compteurSignataires})">&times;</button><textarea class="signature-title-input" rows="2" style="text-align:center;" oninput="ajusterHauteurTextarea(this)">${texteParDefaut || 'Nom\nFonction'}</textarea><div class="print-text-block" style="text-align:center; font-weight:bold; margin-bottom:55px;"></div><div style="font-size:11px; color:#a1a1aa; font-style:italic;">(Signature & Cachet)</div>`;
-    zone.appendChild(card);
+ if (compteurSignataires >= MAX_SIGNATAIRES) return alert("Limite de 12 signataires.");
+ compteurSignataires++; let zone = document.getElementById('zoneSignatures'); if(!zone) return; let card = document.createElement('div'); card.className = "signature-card"; card.id = `sigCard_${compteurSignataires}`;
+ card.innerHTML = `<button class="btn-del-sig" onclick="retirerSignataire(${compteurSignataires})">&times;</button><textarea class="signature-title-input" rows="2" style="text-align:center;" oninput="ajusterHauteurTextarea(this)">${texteParDefaut || 'Nom\nFonction'}</textarea><div class="print-text-block" style="text-align:center; font-weight:bold; margin-bottom:55px;"></div><div style="font-size:11px; color:#a1a1aa; font-style:italic;">(Signature & Cachet)</div>`;
+ zone.appendChild(card);
 }
+
 function retirerSignataire(id) { let card = document.getElementById(`sigCard_${id}`); if(card) { card.remove(); compteurSignataires--; } }
 
-// L'ALGORITHME DE CLONAGE MAGIQUE IMPARABLE CONTRE LES TEXTAREAS RIGIDES
 function executerImpressionDynamiqueDéroulée() {
-    // 1. Copie des métadonnées du haut
-    document.getElementById('print_titrePV').innerText = document.getElementById('titrePV').value;
-    document.getElementById('print_dateSaisie').innerText = document.getElementById('dateSaisie').value;
-    document.getElementById('print_siteSaisie').innerText = document.getElementById('siteSaisie').value;
-    
-    // 2. Copie du texte de chaque ligne de constat et recommandation dans son bloc div fluide alternatif
-    document.querySelectorAll('#tbodyConstats tr').forEach(tr => {
-        let textareas = tr.querySelectorAll('textarea');
-        let blocks = tr.querySelectorAll('.print-text-block');
-        if(textareas[0] && blocks[0]) blocks[0].innerText = textareas[0].value;
-        if(textareas[1] && blocks[1]) blocks[1].innerText = textareas[1].value;
-    });
-    
-    // 3. Copie du texte des blocs de signatures
-    document.querySelectorAll('#zoneSignatures .signature-card').forEach(card => {
-        let tx = card.querySelector('textarea'); let bl = card.querySelector('.print-text-block');
-        if(tx && bl) bl.innerText = tx.value;
-    });
-    
-    // 4. Lancement officiel de la boîte de dialogue d'impression Chrome
-    window.print();
+ document.getElementById('print_titrePV').innerText = document.getElementById('titrePV').value;
+ document.getElementById('print_dateSaisie').innerText = document.getElementById('dateSaisie').value;
+ document.getElementById('print_siteSaisie').innerText = document.getElementById('siteSaisie').value;
+ document.querySelectorAll('#tbodyConstats tr').forEach(tr => {
+ let textareas = tr.querySelectorAll('textarea'); let blocks = tr.querySelectorAll('.print-text-block');
+ if(textareas[0] && blocks[0]) blocks[0].innerText = textareas[0].value;
+ if(textareas[1] && blocks[1]) blocks[1].innerText = textareas[1].value;
+ });
+ document.querySelectorAll('#zoneSignatures .signature-card').forEach(card => { let tx = card.querySelector('textarea'); let bl = card.querySelector('.print-text-block'); if(tx && bl) bl.innerText = tx.value; });
+ window.print();
 }
 
+// DOUBLE ENREGISTREMENT SYNC : Archive en local, alimente la GED locale et pousse le tout sur Supabase Cloud
 async function sauvegarderPVChantier() {
-    let site = document.getElementById('siteSaisie') ? document.getElementById('siteSaisie').value.trim() : "";
-    let datePV = document.getElementById('dateSaisie') ? document.getElementById('dateSaisie').value : new Date().toLocaleDateString('fr-FR');
-    if(!site) return alert("Veuillez renseigner le nom du site avant d'enregistrer !");
-    let photosEnvoyeesCCPMS = 0;
-    let armoireSauvee = await lireDonneeDB("dossiers_techniques", `ccpms_${idProjetUnique}`) || [];
-    let toutesLesLignes = document.querySelectorAll('[id^="ligneConstat_"]');
-    toutesLesLignes.forEach((conteneurLigne) => {
-        let i = conteneurLigne.id.split('_')[1]; let imgElement = document.getElementById(`prevImg_${i}`);
-        let zoneTexte = conteneurLigne.querySelector('textarea'); let textConstat = zoneTexte ? zoneTexte.value.trim() : "";
-        if (imgElement && imgElement.src && imgElement.src.startsWith("data:image")) {
-            armoireSauvee.unshift({
-                id: Date.now() + parseInt(i), categorie: "Photos", dateDoc: new Date().toISOString().substring(0,10),
-                titre: `[PV] - Constat Terrain N°${i}`, description: `Site : ${site}\nObservations : ${textConstat}`,
-                fichierBrut: imgElement.src, nomFichier: `Photo_PV_Constat_${i}_${idProjetUnique}.jpg`, typeMime: "image/jpeg"
-            });
-            photosEnvoyeesCCPMS++;
-        }
-    });
-    await ecrireDonneeDB("dossiers_techniques", armoireSauvee, `ccpms_${idProjetUnique}`);
-    alert(`✔️ PV enregistré localement !\n📸 Passerelle automatique : ${photosEnvoyeesCCPMS} photo(s) ont alimenté l'armoire GED CCPMS !`);
+ let site = document.getElementById('siteSaisie') ? document.getElementById('siteSaisie').value.trim() : "";
+ let datePV = document.getElementById('dateSaisie') ? document.getElementById('dateSaisie').value : new Date().toLocaleDateString('fr-FR');
+ if(!site) return alert("Veuillez renseigner le nom du site avant d'enregistrer !");
+ let photosEnvoyeesCCPMS = 0;
+ let armoireSauvee = await lireDonneeDB("dossiers_techniques", `ccpms_${idProjetUnique}`) || [];
+ let toutesLesLignes = document.querySelectorAll('[id^="ligneConstat_"]');
+ 
+ toutesLesLignes.forEach((conteneurLigne) => {
+ let i = conteneurLigne.id.split('_')[1]; let imgElement = document.getElementById(`prevImg_${i}`);
+ let zoneTexte = conteneurLigne.querySelector('textarea'); let textConstat = zoneTexte ? zoneTexte.value.trim() : "";
+ if (imgElement && imgElement.src && imgElement.src.startsWith("data:image")) {
+ armoireSauvee.unshift({ id: Date.now() + parseInt(i), categorie: "Photos", dateDoc: new Date().toISOString().substring(0,10), titre: `[PV] - Constat Terrain N°${i}`, description: `Site : ${site}\nObservations : ${textConstat}`, fichierBrut: imgElement.src, nomFichier: `Photo_PV_Constat_${i}_${idProjetUnique}.jpg`, typeMime: "image/jpeg" });
+ photosEnvoyeesCCPMS++;
+ }
+ });
+ 
+ // 1. Rangement de sécurité instantané sur la machine
+ await ecrireDonneeDB("dossiers_techniques", armoireSauvee, `ccpms_${idProjetUnique}`);
+ 
+ // 2. Push asynchrone automatique en arrière-plan vers Supabase Cloud
+ if (window.supabaseClient && navigator.onLine) {
+   await window.supabaseClient.from('dossiers_techniques').upsert({ id: `ccpms_${idProjetUnique}`, projet_id: String(idProjetUnique), type_donnee: 'ccpms', contenu_json: armoireSauvee });
+ }
+ alert(`🏆 PV et photos synchronisés en ligne et raccordés à l'armoire GED CCPMS !`);
 }
 </script>
 </body>
 </html>
+
