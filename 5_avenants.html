@@ -174,40 +174,41 @@ window.onload = function() {
  window.modeLectureSeuleActive = true;
  }
 
- // 1. RENDU CHARGEMENT INSTANTANÉ : Lecture immédiate de la mémoire de la machine
+ // 1. CHARGEMENT INSTANTANÉ DE SÉCURITÉ LOCAL
  let avenantsSauves = await lireDonneeDB("dossiers_techniques", CLE_AVENANTS_PROJET);
  let bdqeInitial = null;
  
  if (window.supabaseClient && navigator.onLine) {
    try {
      let { data: rB } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', CLE_BDQE_PROJET).maybeSingle();
-     if (rB) bdqeInitial = rB.contenu_json;
+     if (rB && rB.contenu_json) bdqeInitial = rB.contenu_json;
    } catch(e) {}
  }
  if(!bdqeInitial) bdqeInitial = await lireDonneeDB("dossiers_techniques", CLE_BDQE_PROJET) || [];
 
- if (avenantsSauves) {
- listeAvenants = avenantsSauves;
- bdqeInitial.forEach(baseItem => {
- let existe = listeAvenants.find(avItem => avItem.code_bdqe === baseItem.code_bdqe && avItem.designation === baseItem.designation);
- if(!existe) { listeAvenants.push({ ...baseItem, qte_av: null, pu_av: null, total_av: null, est_nouveau: false }); }
- });
- } else {
- listeAvenants = bdqeInitial.map(item => { return { ...item, qte_av: null, pu_av: null, total_av: null, est_nouveau: false }; });
+ function assemblerListesAvenants(sourceAvenants) {
+   let temp = sourceAvenants ? [...sourceAvenants] : [];
+   bdqeInitial.forEach(baseItem => {
+     let existe = temp.find(avItem => avItem.code_bdqe === baseItem.code_bdqe && avItem.designation === baseItem.designation);
+     if(!existe) { temp.push({ ...baseItem, qte_av: null, pu_av: null, total_av: null, est_nouveau: false }); }
+   });
+   return temp;
  }
+
+ listeAvenants = assemblerListesAvenants(avenantsSauves);
  rechargerTout();
 
- // 2. REQUÊTE ET MISE À JOUR SILENCIEUSE CLOUD EN ARRIÈRE-PLAN
+ // 2. CHARGEMENT NETTOYÉ CLOUD SUPABASE (SANS EFFACEMENT)
  if (window.supabaseClient && navigator.onLine) {
    try {
      let { data: resTech } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', CLE_AVENANTS_PROJET).maybeSingle();
-     if (resTech && resTech.contenu_json) {
-       listeAvenants = resTech.contenu_json;
+     if (resTech && resTech.contenu_json && Array.isArray(resTech.contenu_json)) {
+       listeAvenants = assemblerListesAvenants(resTech.contenu_json);
        await ecrireDonneeDB("dossiers_techniques", listeAvenants, CLE_AVENANTS_PROJET);
        rechargerTout();
-       console.log("🌐 Module Avenants synchronisé avec le Cloud !");
+       console.log("🌐 Module Avenants synchronisé avec succès !");
      }
-   } catch (err) { console.log("Réseau brousse instable."); }
+   } catch (err) { console.log("Lenteur réseau."); }
  }
  });
 };
@@ -217,17 +218,19 @@ function formatCodePoint() { let input = document.getElementById('code_bdqe'); i
 function trierDonnees() {
  listeAvenants.sort((a, b) => {
  let compOuvrage = a.ouvrage.localeCompare(b.ouvrage, 'fr', {sensitivity: 'base'}); if (compOuvrage !== 0) return compOuvrage;
- let partsA = a.code_bdqe.split(/[\.,]/).map(Number); let partsB = b.code_bdqe.split(/[\.,]/).map(Number);
+ let partsA = String(a.code_bdqe).split(/[\.,]/).map(Number); let partsB = String(b.code_bdqe).split(/[\.,]/).map(Number);
  for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) { let numA = partsA[i] || 0; let numB = partsB[i] || 0; if (numA !== numB) return numA - numB; }
  return 0;
  });
 }
 
 function répercuterValeursLigne(indexModifié, code, champ, valeur) {
+ if(window.modeLectureSeuleActive) return;
  let parsedVal = valeur.trim() === "" ? null : parseFloat(valeur.replace(/\s/g, '').replace(',', '.')) || 0;
  let itemSaisi = listeAvenants[indexModifié];
  if(champ === 'qte') itemSaisi.qte_av = parsedVal;
  if(champ === 'pu') itemSaisi.pu_av = parsedVal;
+ 
  listeAvenants.forEach((item, idx) => {
  if(item.code_bdqe === code) {
  if(champ === 'pu' && idx !== indexModifié) { item.pu_av = parsedVal; }
@@ -248,14 +251,9 @@ function ajouterNouveauCodeAvenant() {
  rechargerTout();
 }
 
-// LE MOTEUR DOUBLE DE SAUVEGARDE : Écrit simultanément en local et sur le Cloud
 async function rechargerTout() {
  trierDonnees(); genererSegments(); afficherTableauAvenants(); calculerBilansFinanciers(); actualiserSuggestionsOuvrages();
- 
- // 1. Rangement local immédiat de brousse
  await ecrireDonneeDB("dossiers_techniques", listeAvenants, CLE_AVENANTS_PROJET);
- 
- // 2. Envoi automatique instantané en arrière-plan vers Supabase
  if (window.supabaseClient && navigator.onLine) {
    await window.supabaseClient.from('dossiers_techniques').upsert({ id: CLE_AVENANTS_PROJET, projet_id: String(idProjetCourant), type_donnee: 'avenants', contenu_json: listeAvenants });
  }
@@ -286,10 +284,11 @@ function afficherTableauAvenants() {
  let valQteAv = item.qte_av !== null ? item.qte_av : ""; let valPUAv = item.pu_av !== null ? item.pu_av : "";
  let txtTotalAv = ""; let couleurTotalAv = "inherit";
  if (item.total_av !== null) { txtTotalAv = formatArgent(item.total_av) + " Ar"; couleurTotalAv = item.total_av < 0 ? "red" : item.total_av > 0 ? "green" : "inherit"; }
- let btnActions = item.est_nouveau ? `<button class="btn btn-danger" style="padding:4px 8px; font-size:12px;" onclick="supprimerNouveauCode(${index})">🗑️</button>` : `<span style="font-size:11px;color:grey;">Marché</span>`;
+ let btnActions = item.est_nouveau ? `<button class="btn btn-danger" style="padding:4px 8px; font-size:12px;" onclick="supprimerNouveauCode(${index})">🗑️</button>` : `<span style="font-size:11px;color:#94a3b8;font-weight:bold;">Marché</span>`;
  if(window.modeLectureSeuleActive) btnActions = "";
+ let desactive = window.modeLectureSeuleActive ? "disabled" : "";
  let tr = document.createElement('tr');
- tr.innerHTML = `<td><b>${item.ouvrage}</b></td><td>${item.code_bdqe}</td><td>${item.structure}</td><td>${item.designation}</td><td>${item.unite}</td><td>${txtQteInit}</td><td>${txtPUInit}</td><td><b>${txtTotInit}</b></td><td><input type="text" class="input-inline" value="${valQteAv}" onchange="répercuterValeursLigne(${index}, '${item.code_bdqe}', 'qte', this.value)"></td><td><input type="text" class="input-inline" value="${valPUAv}" onchange="répercuterValeursLigne(${index}, '${item.code_bdqe}', 'pu', this.value)"></td><td style="color:${couleurTotalAv}; font-weight:bold;">${txtTotalAv}</td><td class="col-action-modification">${btnActions}</td>`;
+ tr.innerHTML = `<td><b>${item.ouvrage}</b></td><td>${item.code_bdqe}</td><td>${item.structure}</td><td>${item.designation}</td><td>${item.unite}</td><td>${txtQteInit}</td><td>${txtPUInit}</td><td><b>${txtTotInit}</b></td><td><input type="text" class="input-inline" value="${valQteAv}" ${desactive} onchange="répercuterValeursLigne(${index}, '${item.code_bdqe}', 'qte', this.value)"></td><td><input type="text" class="input-inline" value="${valPUAv}" ${desactive} onchange="répercuterValeursLigne(${index}, '${item.code_bdqe}', 'pu', this.value)"></td><td style="color:${couleurTotalAv}; font-weight:bold;">${txtTotalAv}</td><td class="col-action-modification">${btnActions}</td>`;
  tbody.appendChild(tr);
  });
 }
@@ -304,9 +303,9 @@ function calculerBilansFinanciers() {
  if (!dictOuvrage[item.ouvrage]) dictOuvrage[item.ouvrage] = { init: 0, av: 0 };
  dictOuvrage[item.ouvrage].init += init; dictOuvrage[item.ouvrage].av += av;
  });
- document.getElementById('bilanInitial').innerText = "Total Initial : " + formatArgent(sumInit) + " Ar";
- document.getElementById('bilanAvenants').innerText = "Bilan Total Avenants : " + (sumAv >= 0 ? "+":"") + formatArgent(sumAv) + " Ar";
- document.getElementById('bilanFinal').innerText = "Nouveau Budget Projet : " + formatArgent(sumInit + sumAv) + " Ar";
+ if(document.getElementById('bilanInitial')) document.getElementById('bilanInitial').innerText = "Total Initial : " + formatArgent(sumInit) + " Ar";
+ if(document.getElementById('bilanAvenants')) document.getElementById('bilanAvenants').innerText = "Bilan Total Avenants : " + (sumAv >= 0 ? "+":"") + formatArgent(sumAv) + " Ar";
+ if(document.getElementById('bilanFinal')) document.getElementById('bilanFinal').innerText = "Nouveau Budget Projet : " + formatArgent(sumInit + sumAv) + " Ar";
  let tbody = document.getElementById('tbodyRecapOuvrage'); if(!tbody) return; tbody.innerHTML = "";
  Object.keys(dictOuvrage).forEach(nom => { let o = dictOuvrage[nom]; let tr = document.createElement('tr'); tr.innerHTML = `<td><b>${nom}</b></td><td>${formatArgent(o.init)}</td><td>${formatArgent(o.av)}</td><td><b>${formatArgent(o.init + o.av)}</b></td>`; tbody.appendChild(tr); });
 }
