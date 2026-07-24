@@ -1,11 +1,14 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js"></script>
  <meta charset="UTF-8">
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
  <title>Génie Civil Pro - Console Dashboard Master</title>
+ 
+ <!-- Connecteurs Master Réseau Supabase Cloud intégrés nativement -->
+ <script src="https://jsdelivr.net"></script>
+ <script src="config.js"></script>
+
  <style>
  :root {
  --primary-dark: #0f172a;
@@ -61,21 +64,31 @@
  .card-nav:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1); border-color: #cbd5e1; }
  .card-nav-title { font-weight: bold; font-size: 13px; display: flex; align-items: center; gap: 6px; }
  .card-nav-desc { font-size: 11px; color: #64748b; padding-left: 18px; }
- .btn { padding: 6px 12px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; color: white; font-size: 12px; display: inline-flex; align-items: center; gap: 5px; text-transform: uppercase; }
+ .btn { padding: 6px 12px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; color: white; font-size: 12px; display: inline-flex; align-items: center; gap: 5px; }
  .btn-primary { background-color: var(--accent-blue); }
  .btn-toggle { background: transparent; color: var(--primary-dark); font-size: 18px; padding: 4px 8px; border-radius: 4px; }
  .btn-toggle:hover { background: #f1f5f9; }
+ .backup-box-sidebar { border-top: 1px dashed #475569; margin-top: auto; padding-top: 15px; display: flex; flex-direction: column; gap: 8px; }
+ .btn-backup { width: 100%; padding: 8px; font-size: 11px; font-weight: bold; text-transform: uppercase; border-radius: 6px; justify-content: center; }
  </style>
 </head>
 <body>
 <div class="app-layout" id="mainAppLayout">
  <!-- COLONNE 1 : LISTE DES PROJETS -->
  <div class="col-sidebar">
- <div class="col-title"> Liste des Projets </div> 📂
+ <div class="col-title"> Liste des Projets 📂</div>
  <input type="text" id="searchProjInput" class="search-proj-input" placeholder="Rechercher un projet..." oninput="filtrerLaListeDesProjets()">
  <div id="listeProjetsContainer" style="overflow-y:auto; flex-grow:1; padding-right:2px;"></div>
+ <div class="backup-box-sidebar">
+ <div style="font-size: 10px; color: #94a3b8; font-weight: bold; text-transform: uppercase; text-align: center; margin-bottom: 2px;">Passerelle de secours :</div>
+ <button class="btn btn-backup" style="background: #0284c7;" onclick="exporterFichierClasseurJsonAccueil()">Exporter JSON 📤</button>
+ <label class="btn btn-backup" style="background: #16a34a; margin: 0; cursor: pointer; color: white; display: flex; align-items: center; justify-content: center;">
+ Importer JSON 📥
+ <input type="file" style="display: none;" onchange="importerFichierClasseurJsonAccueil(this)">
+ </label>
  </div>
- 
+ </div>
+
  <!-- COLONNE 2 : FICHE SYNTHÉTIQUE CENTRALE -->
  <div class="col-content-wrapper">
  <div class="navbar-top-actions">
@@ -121,18 +134,20 @@
  </div>
  <div><div class="metric-title" style="margin-bottom:6px; color:var(--primary-dark);"> Notes de l'administration / Consignes 📌 :</div><textarea id="blocNotesAdmin" class="bloc-note-area" rows="2" placeholder="Saisir les consignes..." onchange="sauvegarderBlocNotesLocal(this.value)"></textarea></div>
  
- <!-- AJOUT : Intégration esthétique de la passerelle Master de sauvegarde identique à la page Admin -->
-<div class="section-card" style="border-top: 4px solid #7c3aed; margin-top: 5px; display: flex; justify-content: space-between; align-items: center; padding: 12px 20px;">
- <div>
-   <div style="font-size: 12px; font-weight: bold; color: var(--primary-dark); text-transform: uppercase;">Passerelle de Sauvegarde & Synchronisation ⚙️</div>
-   <div style="font-size: 11px; color: #64748b;">Gérez votre mémoire locale ou initialisez votre serveur Cloud en ligne.</div>
+ <!-- Passerelle Master de Sauvegarde Coordonnée -->
+ <div class="section-card" style="border-top: 4px solid #7c3aed; margin-top: 5px; display: flex; justify-content: space-between; align-items: center; padding: 12px 20px;">
+   <div>
+     <div style="font-size: 12px; font-weight: bold; color: var(--primary-dark); text-transform: uppercase;">Passerelle de Sauvegarde & Synchronisation ⚙️</div>
+     <div style="font-size: 11px; color: #64748b;">Gérez votre mémoire locale ou initialisez votre serveur Cloud en ligne.</div>
+   </div>
+   <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+     <button class="btn" style="background: #0284c7; padding: 8px 14px; font-size: 11px;" onclick="exporterFichierClasseurJsonAccueil()">EXPORTER LOCAL (JSON)</button>
+     <label class="btn" style="background: #64748b; padding: 8px 14px; font-size: 11px; margin: 0; cursor: pointer; color: white;">IMPORTER LOCAL (JSON) <input type="file" style="display: none;" onchange="importerFichierClasseurJsonAccueil(this)"></label>
+     <label class="btn" style="background: #d97706; padding: 8px 14px; font-size: 11px; margin: 0; cursor: pointer; color: white; border: 1px solid #b45309;">🚀 INITIALISER LE CLOUD SUPABASE <input type="file" style="display: none;" onchange="initialiserDonneesMassivesVersSupabase(this)"></label>
+   </div>
  </div>
- <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-   <button class="btn" style="background: #0284c7; padding: 8px 14px; font-size: 11px;" onclick="exporterFichierClasseurJsonAccueil()">EXPORTER LOCAL (JSON)</button>
-   <label class="btn" style="background: #64748b; padding: 8px 14px; font-size: 11px; margin: 0; cursor: pointer; color: white;">IMPORTER LOCAL (JSON) <input type="file" style="display: none;" onchange="importerFichierClasseurJsonAccueil(this)"></label>
-   <label class="btn" style="background: #d97706; padding: 8px 14px; font-size: 11px; margin: 0; cursor: pointer; color: white; border: 1px solid #b45309;">🚀 INITIALISER LE CLOUD SUPABASE <input type="file" style="display: none;" onchange="initialiserDonneesMassivesVersSupabase(this)"></label>
  </div>
-</div>
+ </div>
 
  <!-- COLONNE 3 : LIENS DIRECTS PASSERELLES MODULES -->
  <div class="col-menu">
@@ -146,7 +161,6 @@
  <div class="card-nav" style="border-left:4px solid var(--primary-dark); background: #f8fafc;" onclick="ouvrirVraiePageLien('10_recap.html')"><div class="card-nav-title" style="color: var(--primary-dark);"> Page 10 : Rapport 📊 Bailleurs</div><div class="card-nav-desc">Rapport Executif horizontal</div></div>
  </div>
 </div>
-
 <script>
 const DB_NAME = "GenieCivilPro_DB";
 const DB_VERSION = 1;
@@ -197,30 +211,7 @@ function ecrireDonneeDB(tiroir, objet, cleOptionnelle) {
  });
 }
 
-let listeProjetsGlobal = [];
-let idProjetActif = null;
-let etatsDossiersReplies = {};
-let userRoleActuel = localStorage.getItem("session_user_role") || "agents";
-let userLotsAutorises = [];
-try { userLotsAutorises = JSON.parse(localStorage.getItem("session_user_lots")) || []; } catch(e) { userLotsAutorises = []; }
-function toggleSidebarLeft() {
- let layout = document.getElementById('mainAppLayout');
- if (layout.classList.contains('no-sidebar-left')) { layout.classList.remove('no-sidebar-left'); } 
- else if (layout.classList.contains('no-sidebars')) { layout.classList.remove('no-sidebars'); layout.classList.add('no-sidebar-right'); } 
- else if (layout.classList.contains('no-sidebar-right')) { layout.classList.add('no-sidebars'); } 
- else { layout.classList.add('no-sidebar-left'); }
-}
-
-function toggleSidebarRight() {
- let layout = document.getElementById('mainAppLayout');
- if (layout.classList.contains('no-sidebar-right')) { layout.classList.remove('no-sidebar-right'); } 
- else if (layout.classList.contains('no-sidebars')) { layout.classList.remove('no-sidebars'); layout.classList.add('no-sidebar-left'); } 
- else if (layout.classList.contains('no-sidebar-left')) { layout.classList.add('no-sidebars'); } 
- else { layout.classList.add('no-sidebar-right'); }
-}
-// ==========================================
-// BOÎTE À OUTILS HYBRIDE & SÉCURISÉE SUPABASE
-// ==========================================
+// ARBORESCENCE UNIQUE SANS AUCUN DOUBLON DE DÉCLARATION
 let listeProjetsGlobal = [];
 let idProjetActif = null;
 let etatsDossiersReplies = {};
@@ -234,13 +225,13 @@ window.onload = function() {
 };
 
 async function chargerDonneesDepuisLeCloudSupabase() {
-  await initialiserLeMeubleDB(); // Maintient la compatibilité avec l'Import/Export local
+  await initialiserLeMeubleDB();
   try {
     const { data: prjs, error: errP } = await window.supabaseClient.from('projets').select('*');
     if (errP) throw errP;
     listeProjetsGlobal = prjs || [];
   } catch (err) {
-    console.log("⚠️ Supabase injoignable, bascule sur la mémoire de la machine.");
+    console.log("⚠️ Supabase injoignable, lecture sur mémoire machine.");
     listeProjetsGlobal = await lireToutesLesDonneesDB("projets");
   }
 
@@ -270,7 +261,7 @@ async function chargerDonneesDepuisLeCloudSupabase() {
 function renderProjetsSidebar() {
  let container = document.getElementById('listeProjetsContainer'); if(!container) return; container.innerHTML = "";
  let racines = listeProjetsGlobal.filter(p => p.type === 'PAPA' || p.type === 'CLASSIQUE');
- if(racines.length === 0) { container.innerHTML = "<div style='padding:20px; font-size:13px; color:#94a3b8; text-align:center;'>Aucun projet. Allez dans Admin pour configurer l'écosystème.</div>"; return; }
+ if(racines.length === 0) { container.innerHTML = "<div style='padding:20px; font-size:13px; color:#94a3b8; text-align:center;'>Aucun projet. Initialisez le serveur en ligne via le bouton orange en bas.</div>"; return; }
  racines.forEach(r => {
  if (userRoleActuel !== "admin" && userRoleActuel !== "cadres" && !userLotsAutorises.includes(String(r.id))) {
  if (!listeProjetsGlobal.some(e => e.type === 'ENFANT' && e.parentId == r.id && userLotsAutorises.includes(String(e.id)))) return;
@@ -291,7 +282,6 @@ function renderProjetsSidebar() {
  }
  });
 }
-
 function toggleDossierAccordéon(papaId, event) { event.stopPropagation(); etatsDossiersReplies[papaId] = !etatsDossiersReplies[papaId]; renderProjetsSidebar(); }
 async function selectionnerProjetLigne(id) { idProjetActif = id; localStorage.setItem("id_projet_actif_lee", idProjetActif); renderProjetsSidebar(); await chargerFicheProjetSelectionne(); }
 
@@ -331,7 +321,7 @@ async function chargerFicheProjetSelectionne() {
  else { imgView.style.display = "none"; txtMapPlaceholder.style.display = "block"; }
  await lancerCalculsConsolidationFiche(p);
 }
-// ANALYSE EN DIRECT DE L'ÉCOSYSTEME (BDQE, PLANNING, AVANCEMENT)
+
 async function lancerCalculsConsolidationFiche(p) {
  let totalInitial = 0; let totalAvenants = 0; let totalLignesSuivi = 0; let sumPhyRatio = 0; let mntMarchatTotal = 0; let mntRealiseTotal = 0; let dateMinProjet = null; let dateMaxProjet = null;
  let chantiers = [p]; if (p.type === "PAPA") { chantiers = chantiers.concat(listeProjetsGlobal.filter(item => item.type === "ENFANT" && item.parentId == p.id)); }
@@ -371,6 +361,7 @@ async function lancerCalculsConsolidationFiche(p) {
  document.getElementById('txtPctFin').innerText = tFin.toFixed(2) + "%"; document.getElementById('barPctFin').style.width = tFin + "%";
 }
 
+function src(v) {}
 function filtrerLaListeDesProjets() {
  let motCle = document.getElementById('searchProjInput').value.toLowerCase().trim();
  document.querySelectorAll('#listeProjetsContainer .project-item').forEach(item => { item.style.display = (!motCle || item.querySelector('.project-item-text').innerText.toLowerCase().includes(motCle)) ? "flex" : "none"; });
@@ -382,9 +373,8 @@ async function sauvegarderBlocNotesLocal(valeur) {
  let p = listeProjetsGlobal.find(i => i.id == idProjetActif); if(!p) return; p.bloc_notes = valeur;
  await ecrireDonneeDB("projets", p); if (window.supabaseClient) await window.supabaseClient.from('projets').upsert(p);
 }
-
 async function sauvegarderPhotoEmplacement(input) { 
- if (input.files && input.files[0]) {
+ if (input.files && input.files) {
  let reader = new FileReader(); reader.onload = async function(e) { 
  let imgData = e.target.result; let p = listeProjetsGlobal.find(i => i.id == idProjetActif); if(!p) return; p.photoEmplacement = imgData; 
  await ecrireDonneeDB("projets", p); if (window.supabaseClient) await window.supabaseClient.from('projets').upsert(p);
@@ -392,12 +382,11 @@ async function sauvegarderPhotoEmplacement(input) {
  listC.unshift({ id: Date.now(), categorie: "Photos", dateDoc: new Date().toISOString().substring(0,10), titre: `Emplacement : ${p.nom}`, description: `Plan.`, fichierBrut: imgData }); 
  await ecrireDonneeDB("dossiers_techniques", listC, `ccpms_${idProjetActif}`);
  if (window.supabaseClient) await window.supabaseClient.from('dossiers_techniques').upsert({ id: `ccpms_${idProjetActif}`, projet_id: String(idProjetActif), type_donnee: 'ccpms', contenu_json: listC });
- document.getElementById('mapImgView').src = imgData; document.getElementById('mapImgView').style.display = "block"; document.getElementById('mapTxt').style.display = "none"; alert("Plan de l'emplacement mis à jour ! 📸"); 
- }; reader.readAsDataURL(input.files[0]);
+ document.getElementById('mapImgView').src = imgData; document.getElementById('mapImgView').style.display = "block"; document.getElementById('mapTxt').style.display = "none"; alert("Plan mis à jour ! 📸"); 
+ }; reader.readAsDataURL(input.files);
  } 
 }
 
-// TRAVAIL HYBRIDE : Exporte le JSON en aspirant la mémoire physique locale (Double filet de sécurité actif)
 async function exporterFichierClasseurJsonAccueil() {
  let projets = await lireToutesLesDonneesDB("projets"); let utilisateurs = await lireToutesLesDonneesDB("utilisateurs");
  let chartesIsolees = {}; let bdqeIsolees = {}; let ccpmsIsolees = {}; let suiviIsolees = {}; let planningIsolees = {};
@@ -408,18 +397,17 @@ async function exporterFichierClasseurJsonAccueil() {
  let suivi = await lireDonneeDB("dossiers_techniques", `suivi_${p.id}`); if(suivi) suiviIsolees[p.id] = suivi;
  let planning = await lireDonneeDB("dossiers_techniques", `planning_${p.id}`); if(planning) planningIsolees[p.id] = planning;
  }
- let paquetGlobalData = { dateExport: new Date().toISOString(), projets, utilisateurs, chartesIsolees, bdqeIsolees, ccpmsIsolees, suiviIsolees, planningIsolees };
- let blob = new Blob([JSON.stringify(paquetGlobalData, null, 2)], { type: "application/json" });
+ let blob = new Blob([JSON.stringify({ dateExport: new Date().toISOString(), projets, utilisateurs, chartesIsolees, bdqeIsolees, ccpmsIsolees, suiviIsolees, planningIsolees }, null, 2)], { type: "application/json" });
  let lien = document.createElement("a"); lien.href = URL.createObjectURL(blob); lien.download = `GENIE_CIVIL_PRO_DATABASE_MASTER.json`;
- document.body.appendChild(lien); lien.click(); document.body.removeChild(lien); alert("Sauvegarde JSON locale générée avec succès ! 💾");
+ document.body.appendChild(lien); lien.click(); document.body.removeChild(lien); alert("Sauvegarde JSON locale générée ! 💾");
 }
 
 function importerFichierClasseurJsonAccueil(input) {
- if (input.files && input.files[0]) {
+ if (input.files && input.files) {
  let reader = new FileReader(); reader.onload = async function(e) {
  try {
  let paquet = JSON.parse(e.target.result); if (!paquet.projets) return alert("Fichier invalide."); 
- if (confirm("ATTENTION : Remplacer les données de cette machine uniquement ?")) {
+ if (confirm("Remplacer les données de cette machine ?")) {
  await initialiserLeMeubleDB(); let tx1 = dbInstance.transaction(["projets", "utilisateurs", "dossiers_techniques"], "readwrite");
  await tx1.objectStore("projets").clear(); await tx1.objectStore("utilisateurs").clear(); await tx1.objectStore("dossiers_techniques").clear();
  for(let prj of paquet.projets) { await ecrireDonneeDB("projets", prj); }
@@ -432,10 +420,37 @@ function importerFichierClasseurJsonAccueil(input) {
  alert("Restauration locale réussie ! 🔄"); window.location.reload();
  }
  } catch (err) { alert("Erreur JSON"); }
- }; reader.readAsText(input.files[0]);
+ }; reader.readAsText(input.files);
+ }
+}
+
+async function initialiserDonneesMassivesVersSupabase(input) {
+ if (input.files && input.files) {
+   let reader = new FileReader();
+   reader.onload = async function(e) {
+     try {
+       let paquet = JSON.parse(e.target.result);
+       let listeDesProjets = paquet.projets || paquet.classeur_maitre_projets_lee;
+       if (!listeDesProjets) return alert("Fichier JSON non reconnu.");
+       if (confirm(`🚀 Lancer la copie vers votre serveur Supabase ?`)) {
+         alert("Envoi en cours vers Supabase...");
+         const { error: errProjets } = await window.supabaseClient.from('projets').upsert(listeDesProjets);
+         if (errProjets) throw errProjets;
+         let listeUsers = paquet.utilisateurs || paquet.matrice_utilisateurs_rbac_gc || [];
+         if (listeUsers.length > 0) { const { error: errUsers } = await window.supabaseClient.from('utilisateurs').upsert(listeUsers); if (errUsers) throw errUsers; }
+         let lignesTechniques = [];
+         let tiroirs = { "charte": paquet.chartesIsolees, "bdqe": paquet.bdqeIsolees, "ccpms": paquet.ccpmsIsolees, "suivi": paquet.suiviIsolees, "planning": paquet.planningIsolees };
+         for (let typeTiroir in tiroirs) {
+           let donnees = tiroirs[typeTiroir];
+           if (donnees) { for (let idProjet in donnees) { lignesTechniques.push({ id: `${typeTiroir}_${idProjet}`, projet_id: idProjet, type_donnee: typeTiroir, contenu_json: donnees[idProjet] }); } }
+         }
+         if (lignesTechniques.length > 0) { const { error: errTech } = await window.supabaseClient.from('dossiers_techniques').upsert(lignesTechniques); if (errTech) throw errTech; }
+         alert("🏆 Succès total !"); window.location.reload();
+       }
+     } catch (err) { alert("❌ Erreur Cloud : " + err.message); }
+   }; reader.readAsText(input.files, 'UTF-8');
  }
 }
 </script>
 </body>
 </html>
-
