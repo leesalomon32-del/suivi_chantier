@@ -162,7 +162,7 @@ window.onload = function() {
  if (userRoleActuel === "agents") { alert("Accès Refusé : Privilèges budgétaires insuffisants."); window.location.href = "3_accueil.html"; return; }
  
  initialiserLeMeubleDB().then(async () => {
- if (userRoleActuel === "cadres" || (userRoleActuel === "controle" && !userLotsAutorises.includes(String(idProjetCourant)))) {
+  if (userRoleActuel === "agents" || (userRoleActuel === "controle" && !userLotsAutorises.includes(String(idProjetCourant)))) {
  let formSaisie = document.getElementById('formAvenantLigne') || document.querySelector('.form-group');
  if (formSaisie) formSaisie.style.display = 'none';
  document.querySelector('.toggle-form-btn').style.display = 'none';
