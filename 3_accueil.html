@@ -413,8 +413,9 @@ function importerFichierClasseurJsonAccueil(input) {
  }; reader.readAsText(input.files[0]); // <- Correction ici aussi [0]
  }
 }
+// REMPLACEZ LA FONCTION TOUT EN BAS PAR CELLE-CI (CORRIGÉE)
 async function initialiserDonneesMassivesVersSupabase(input) {
- if (input.files && input.files) {
+ if (input.files && input.files[0]) { // <- Correction ici : [0]
    let reader = new FileReader();
    reader.onload = async function(e) {
      try {
@@ -425,17 +426,20 @@ async function initialiserDonneesMassivesVersSupabase(input) {
        
        if (confirm(`🚀 CHEF : ${listeDesProjets.length} projets trouvés. Lancer la copie de secours vers votre serveur Supabase en ligne ?`)) {
          
-         alert("Envoi en cours vers Supabase... Veuillez patienter quelques secondes.");
+         alert("Envoi en cours vers Supabase... Veuillez patienter quelques secondes sans fermer la page.");
 
+         // 1. Envoi massif des projets
          const { error: errProjets } = await window.supabaseClient.from('projets').upsert(listeDesProjets);
          if (errProjets) throw errProjets;
 
+         // 2. Envoi massif des utilisateurs
          let listeUsers = paquet.utilisateurs || paquet.matrice_utilisateurs_rbac_gc || [];
          if (listeUsers.length > 0) {
            const { error: errUsers } = await window.supabaseClient.from('utilisateurs').upsert(listeUsers);
            if (errUsers) throw errUsers;
          }
 
+         // 3. Transformation et envoi des sous-dossiers (BDQE, Plannings, Suivi...)
          let lignesTechniques = [];
          let tiroirs = {
            "charte": paquet.chartesIsolees,
@@ -472,9 +476,10 @@ async function initialiserDonneesMassivesVersSupabase(input) {
        alert("❌ Erreur d'injection Cloud : " + err.message);
      }
    };
-   reader.readAsText(input.files, 'UTF-8');
+   reader.readAsText(input.files[0], 'UTF-8'); // <- Correction ici : [0]
  }
 }
+
 
 
 </script>
