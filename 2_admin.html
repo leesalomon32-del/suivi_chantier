@@ -293,14 +293,21 @@ async function basculerDonneesVersProjetSelectionne(id) {
  if(document.getElementById('preview_logoMOE')) document.getElementById('preview_logoMOE').innerHTML = sourceLogos.logoMOE_html || ""; 
  if(document.getElementById('preview_logoEntreprise')) document.getElementById('preview_logoEntreprise').innerHTML = sourceLogos.logoEnterprise_html || "";
 }
+// REMPLACEZ UNIQUEMENT CETTE FONCTION DANS VOTRE CODE :
 function convertirLogoBinaire(input, cibleId) {
- if (input.files && input.files) {
- let reader = new FileReader(); reader.onload = function(e) {
- let boiteApercu = document.getElementById(`preview_${cibleId}`);
- if (boiteApercu) boiteApercu.innerHTML = `<img src="${e.target.result}" style="max-height:24px; max-width:100%; object-fit:contain; vertical-align:middle;">`;
- }; reader.readAsDataURL(input.files);
+ // Correction de l'indexation pour capturer précisément le fichier brut (Blob)
+ if (input.files && input.files[0]) {
+   let reader = new FileReader();
+   reader.onload = function(e) {
+     let boiteApercu = document.getElementById(`preview_${cibleId}`);
+     if (boiteApercu) {
+       boiteApercu.innerHTML = `<img src="${e.target.result}" style="max-height:24px; max-width:100%; object-fit:contain; vertical-align:middle;">`;
+     }
+   }; 
+   reader.readAsDataURL(input.files[0]); // <- Correction ici avec l'index [0]
  }
 }
+
 
 // SAUVEGARDE DOUBLE : Met à jour Supabase ET le stockage local de la machine
 async function sauvegarderDonneesProjetSelectionne() {
