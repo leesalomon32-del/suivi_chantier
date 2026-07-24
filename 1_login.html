@@ -98,109 +98,141 @@
     </div>
 </div>
 <script>
-// ==========================================
-// BLOC 2 : LE MOTEUR JAVASCRIPT LOCAL
-// ==========================================
+const DB_NAME = "GenieCivilPro_DB";
+const DB_VERSION = 1;
+let dbInstance = null;
 
-// Au démarrage, on vérifie si la base des utilisateurs existe.
-// Si elle est vide, on crée un compte "admin" avec le mot de passe "mada2026" pour pouvoir se connecter.
-window.onload = function() {
-    let utilisateursExistants = localStorage.getItem("matrice_utilisateurs_rbac_gc");
-    if (!utilisateursExistants) {
-        let premierAdmin = [{ id: "1", login: "admin", pass: "mada2026", role: "admin", lots: ["101", "102", "103"] }];
-        localStorage.setItem("matrice_utilisateurs_rbac_gc", JSON.stringify(premierAdmin));
-    }
-    
-    // On crée aussi des projets de démonstration si le stockage est tout neuf
-    if (!localStorage.getItem("classeur_maitre_projets_lee")) {
-        let projetsDemo = [
-            { id: "101", nom: "MARCHE CENTRAL 52 ECOLES", type: "PAPA", parentId: null, photoEmplacement: "", bloc_notes: "" },
-            { id: "102", nom: "Lot 1 - Arrondissement 4", type: "ENFANT", parentId: "101", photoEmplacement: "", bloc_notes: "" },
-            { id: "103", nom: "Lot 2 - Arrondissement 5", type: "ENFANT", parentId: "101", photoEmplacement: "", bloc_notes: "" }
-        ];
-        localStorage.setItem("classeur_maitre_projets_lee", JSON.stringify(projetsDemo));
-    }
-};
-
-// Fonction pour vérifier l'identifiant et le mot de passe localement
-function tenterConnexionLocale() {
-    let nomSaisi = document.getElementById('username').value.trim();
-    let codeSaisi = document.getElementById('password').value.trim();
-    
-    if (!nomSaisi || !codeSaisi) {
-        return alert("Veuillez remplir tous les champs !");
-    }
-    
-    // Sécurité de secours intégrée en dur (comme dans ton prototype)
-    if (nomSaisi === "lee" && codeSaisi === "SEAP2026") {
-        localStorage.setItem("session_securisee_active_gc", "VALIDE");
-        localStorage.setItem("session_user_login", "lee");
-        localStorage.setItem("session_user_role", "admin");
-        localStorage.setItem("session_user_lots", JSON.stringify(["101", "102", "103"]));
-        window.location.href = "3_accueil.html";
-        return;
-    }
-    
-    // Sinon, on cherche dans notre liste d'utilisateurs locaux
-    let listeUsers = JSON.parse(localStorage.getItem("matrice_utilisateurs_rbac_gc") || "[]");
-    let utilisateurTrouve = listeUsers.find(u => u.login === nomSaisi && u.pass === codeSaisi);
-    
-    if (utilisateurTrouve) {
-        localStorage.setItem("session_securisee_active_gc", "VALIDE");
-        localStorage.setItem("session_user_login", utilisateurFound.login);
-        localStorage.setItem("session_user_role", utilisateurFound.role);
-        localStorage.setItem("session_user_lots", JSON.stringify(utilisateurFound.lots));
-        window.location.href = "3_accueil.html";
-    } else {
-        alert("❌ Identifiant ou mot de passe incorrect !");
-    }
+// On initialise IndexedDB pour que l'importateur puisse y accéder
+function initialiserLeMeubleDB() {
+ return new Promise((resolve, reject) => {
+   let requete = indexedDB.open(DB_NAME, DB_VERSION);
+   requete.onupgradeneeded = function(e) {
+     let db = e.target.result;
+     if (!db.objectStoreNames.contains("projets")) { db.createObjectStore("projets", { keyPath: "id" }); }
+     if (!db.objectStoreNames.contains("utilisateurs")) { db.createObjectStore("utilisateurs", { keyPath: "id" }); }
+     if (!db.objectStoreNames.contains("dossiers_techniques")) { db.createObjectStore("dossiers_techniques"); }
+   };
+   requete.onsuccess = function(e) { dbInstance = e.target.result; resolve(dbInstance); };
+   requete.onerror = function() { reject("Erreur meuble"); };
+ });
 }
 
-// L'IMPORTATEUR UNIVERSEL : Il aspire et range TOUT d'un coup dans le navigateur
-function restaurerBaseDepuisJsonLocal(input) {
-    if (input.files && input.files[0]) {
-        let reader = new FileReader();
-        reader.onload = function(e) {
-            try {
-                let paquet = JSON.parse(e.target.result);
-                
-                // On vérifie que c'est bien un fichier Génie Civil Pro valide
-                if (!paquet.projets && !paquet.classeur_maitre_projets_lee) {
-                    return alert("❌ Ce fichier JSON n'est pas valide pour Génie Civil Pro.");
-                }
-                
-                if (confirm("⚠️ ATTENTION : Valider la restauration ? Cela va écraser les données actuelles de ton écran.")) {
-                    
-                    // 1. Restauration des Projets et Utilisateurs
-                    let listeDesProjets = paquet.projets || paquet.classeur_maitre_projets_lee;
-                    localStorage.setItem("classeur_maitre_projets_lee", JSON.stringify(listeDesProjets));
-                    
-                    if (paquet.utilisateurs) localStorage.setItem("matrice_utilisateurs_rbac_gc", JSON.stringify(paquet.utilisateurs));
-                    if (paquet.ficheMaitrePapa) localStorage.setItem("base_donnees_fiche_projet_maitre", JSON.stringify(paquet.ficheMaitrePapa));
-                    if (paquet.bdqe) localStorage.setItem("base_donnees_bdqe_global", JSON.stringify(paquet.bdqe));
-                    if (paquet.ccpms) localStorage.setItem("base_donnees_ccpms_global", JSON.stringify(paquet.ccpms));
-                    if (paquet.avenants) localStorage.setItem("base_donnees_avenants_global", JSON.stringify(paquet.avenants));
-                    if (paquet.planning) localStorage.setItem("base_donnees_planning_gantt", JSON.stringify(paquet.planning));
-                    if (paquet.suiviAvancement) localStorage.setItem("base_donnees_suivi_avancement_travaux", JSON.stringify(paquet.suiviAvancement));
-                    
-                    // 2. Restauration des tiroirs de données spécifiques à chaque lot (BDQE, Suivi, Armoire)
-                    if (paquet.chartesIsolees) { for (let id in paquet.chartesIsolees) localStorage.setItem(`charte_administrative_${id}`, JSON.stringify(paquet.chartesIsolees[id])); }
-                    if (paquet.bdqeIsolees) { for (let id in paquet.bdqeIsolees) localStorage.setItem(`bdqe_${id}`, JSON.stringify(paquet.bdqeIsolees[id])); }
-                    if (paquet.ccpmsIsolees) { for (let id in paquet.ccpmsIsolees) localStorage.setItem(`ccpms_${id}`, JSON.stringify(paquet.ccpmsIsolees[id])); }
-                    if (paquet.suiviIsolees) { for (let id in paquet.suiviIsolees) localStorage.setItem(`suivi_${id}`, JSON.stringify(paquet.suiviIsolees[id])); }
-                    if (paquet.planningIsolees) { for (let id in paquet.planningIsolees) localStorage.setItem(`planning_${id}`, JSON.stringify(paquet.planningIsolees[id])); }
-                    
-                    alert("🎉 Félicitations ! Toute la base de données a été réinjectée localement avec succès.");
-                    window.location.reload();
-                }
-            } catch (err) {
-                console.error(err);
-                alert("❌ Erreur lors de la lecture du fichier JSON.");
-            }
-        };
-        reader.readAsText(input.files[0], 'UTF-8');
+function ecrireDonneeDB(tiroir, objet, cleOptionnelle) {
+ return new Promise((resolve) => {
+   if(!dbInstance) return resolve(false);
+   let transaction = dbInstance.transaction([tiroir], "readwrite");
+   let magasin = transaction.objectStore(tiroir);
+   let requete = cleOptionnelle !== undefined ? magasin.put(objet, cleOptionnelle) : magasin.put(objet);
+   requete.onsuccess = () => resolve(true);
+   requete.onerror = () => resolve(false);
+ });
+}
+
+// Au démarrage, on initialise la DB et on crée le compte admin par défaut si besoin
+window.onload = async function() {
+  await initialiserLeMeubleDB();
+  
+  // Sécurité complémentaire : configuration du premier utilisateur en DB statique
+  let tx = dbInstance.transaction(["utilisateurs"], "readonly");
+  let store = tx.objectStore("utilisateurs");
+  let req = store.getAll();
+  req.onsuccess = async function() {
+    if(req.result.length === 0) {
+      await ecrireDonneeDB("utilisateurs", { id: 1, login: "admin", pass: "mada2026", role: "admin", lots: ["101", "102", "103"] });
+      await ecrireDonneeDB("projets", { id: 101, nom: "MARCHE CENTRAL 52 ECOLES", type: "PAPA", parentId: null });
+      await ecrireDonneeDB("projets", { id: 102, nom: "Lot 1 - Arrondissement 4", type: "ENFANT", parentId: 101 });
+      await ecrireDonneeDB("projets", { id: 103, nom: "Lot 2 - Arrondissement 5", type: "ENFANT", parentId: 101 });
     }
+  };
+};
+
+function tenterConnexionLocale() {
+  let nomSaisi = document.getElementById('username').value.trim();
+  let codeSaisi = document.getElementById('password').value.trim();
+  if (!nomSaisi || !codeSaisi) return alert("Veuillez remplir tous les champs !");
+
+  // Sécurité de secours intégrée en dur
+  if (nomSaisi === "lee" && codeSaisi === "SEAP2026") {
+    localStorage.setItem("session_securisee_active_gc", "VALIDE");
+    localStorage.setItem("session_user_login", "lee");
+    localStorage.setItem("session_user_role", "admin");
+    localStorage.setItem("session_user_lots", JSON.stringify(["101", "102", "103"]));
+    window.location.href = "3_accueil.html";
+    return;
+  }
+
+  // Requête de vérification sur la table IndexedDB
+  let tx = dbInstance.transaction(["utilisateurs"], "readonly");
+  let req = tx.objectStore("utilisateurs").getAll();
+  req.onsuccess = function() {
+    let utilisateurTrouve = req.result.find(u => u.login === nomSaisi && u.pass === codeSaisi);
+    if (utilisateurTrouve) {
+      localStorage.setItem("session_securisee_active_gc", "VALIDE");
+      localStorage.setItem("session_user_login", utilisateurTrouve.login);
+      localStorage.setItem("session_user_role", utilisateurTrouve.role);
+      localStorage.setItem("session_user_lots", JSON.stringify(utilisateurTrouve.lots || []));
+      window.location.href = "3_accueil.html";
+    } else {
+      alert("⚠️ Identifiant ou mot de passe incorrect !");
+    }
+  };
+}
+async function restaurerBaseDepuisJsonLocal(input) {
+ if (input.files && input.files[0]) {
+   let reader = new FileReader();
+   reader.onload = async function(e) {
+     try {
+       let paquet = JSON.parse(e.target.result);
+       let listeDesProjets = paquet.projets || paquet.classeur_maitre_projets_lee;
+       
+       if (!listeDesProjets) {
+         return alert("❌ Ce fichier JSON n'est pas valide pour Génie Civil Pro.");
+       }
+       
+       if (confirm("⚠️ ATTENTION : Valider la restauration ? Cela va écraser la totalité de la base de données.")) {
+         await initialiserLeMeubleDB();
+         
+         // On vide proprement les 3 magasins IndexedDB avant réinjection
+         let txClear = dbInstance.transaction(["projets", "utilisateurs", "dossiers_techniques"], "readwrite");
+         await txClear.objectStore("projets").clear();
+         await txClear.objectStore("utilisateurs").clear();
+         await txClear.objectStore("dossiers_techniques").clear();
+         
+         // 1. Restauration des Projets et des Utilisateurs en DB
+         for(let prj of listeDesProjets) { await ecrireDonneeDB("projets", prj); }
+         
+         let listeUsers = paquet.utilisateurs || paquet.matrice_utilisateurs_rbac_gc || [];
+         for(let usr of listeUsers) { await ecrireDonneeDB("utilisateurs", usr); }
+         
+         // 2. Restauration des tiroirs de données spécifiques (Structure unifiée avec Admin/Dashboard)
+         if (paquet.chartesIsolees) { 
+           for (let id in paquet.chartesIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.chartesIsolees[id], `charte_administrative_${id}`); 
+         }
+         if (paquet.bdqeIsolees) { 
+           for (let id in paquet.bdqeIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.bdqeIsolees[id], `bdqe_${id}`); 
+         }
+         if (paquet.ccpmsIsolees) { 
+           for (let id in paquet.ccpmsIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.ccpmsIsolees[id], `ccpms_${id}`); 
+         }
+         if (paquet.suiviIsolees) { 
+           for (let id in paquet.suiviIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.suiviIsolees[id], `suivi_${id}`); 
+         }
+         if (paquet.planningIsolees) { 
+           for (let id in paquet.planningIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.planningIsolees[id], `planning_${id}`); 
+         }
+         
+         alert("🏆 Félicitations ! Toute la base de données a été réinjectée localement avec succès.");
+         window.location.reload();
+       }
+     } catch (err) {
+       console.error(err);
+       alert("❌ Erreur lors du décodage ou de l'écriture du fichier JSON.");
+     }
+   };
+   reader.readAsText(input.files[0], 'UTF-8');
+ }
 }
 </script>
 </body>
 </html>
+
