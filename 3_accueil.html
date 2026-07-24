@@ -344,7 +344,7 @@ async function sauvegarderPhotoEmplacement(input) {
 async function exporterFichierClasseurJsonAccueil() {
  let projets = await lireToutesLesDonneesDB("projets"); 
  let utilisateurs = await lireToutesLesDonneesDB("utilisateurs");
- let chartesIsolees = {}; // <- Unifié ici pour correspondre à la suite du code
+ let chartesIsolees = {}; 
  let bdqeIsolees = {}; let ccpmsIsolees = {}; let suiviIsolees = {}; let planningIsolees = {};
  
  for (let p of projets) {
@@ -360,10 +360,34 @@ async function exporterFichierClasseurJsonAccueil() {
    if(planning) planningIsolees[p.id] = planning;
  }
  
- let blob = new Blob([JSON.stringify({ dateExport: new Date().toISOString(), projets, utilisateurs, chartesIsolees, bdqeIsolees, ccpmsIsolees, suiviIsolees, planningIsolees }, null, 2)], { type: "application/json" });
- let lien = document.createElement("a"); lien.href = URL.createObjectURL(blob); lien.download = `GENIE_CIVIL_PRO_DATABASE_MASTER.json`;
- document.body.appendChild(lien); lien.click(); document.body.removeChild(lien); alert("Base exportée avec succès ! 💾");
+ // 1. Récupération de l'identifiant de la session en cours
+ let loginUtilisateur = localStorage.getItem("session_user_login") || "anonyme";
+ 
+ // 2. Construction de la date et de l'heure au format : AAAA-MM-JJ_HHhMM
+ let maintenant = new Date();
+ let annee = maintenant.getFullYear();
+ let mois = String(maintenant.getMonth() + 1).padStart(2, '0');
+ let jour = String(maintenant.getDate()).padStart(2, '0');
+ let heures = String(maintenant.getHours()).padStart(2, '0');
+ let minutes = String(maintenant.getMinutes()).padStart(2, '0');
+ 
+ let horodatage = `${annee}-${mois}-${jour}_${heures}h${minutes}`;
+ 
+ // 3. Création du nom de fichier personnalisé
+ let nomFichier = `GC_PRO_MASTER_${horodatage}_par_${loginUtilisateur}.json`;
+ 
+ // Génération et téléchargement du fichier
+ let blob = new Blob([JSON.stringify({ dateExport: maintenant.toISOString(), projets, utilisateurs, chartesIsolees, bdqeIsolees, ccpmsIsolees, suiviIsolees, planningIsolees }, null, 2)], { type: "application/json" });
+ let lien = document.createElement("a"); 
+ lien.href = URL.createObjectURL(blob); 
+ lien.download = nomFichier; // <- Utilisation du nouveau nom dynamique
+ 
+ document.body.appendChild(lien); 
+ lien.click(); 
+ document.body.removeChild(lien); 
+ alert(`Base exportée avec succès !\nFichier : ${nomFichier} 💾`);
 }
+
 
 // Remplacez votre fonction d'import actuelle par celle-ci :
 function importerFichierClasseurJsonAccueil(input) {
