@@ -221,30 +221,70 @@ function toggleSidebarRight() {
 
 window.onload = function() {
  if (localStorage.getItem("session_securisee_active_gc") !== "VALIDE") { window.location.href = "1_login.html"; return; }
- initialiserLeMeubleDB().then(async () => {
- if (userRoleActuel === "admin") {
- let navbar = document.querySelector('.navbar-top-actions');
- if (navbar) {
- let btnAdmin = document.createElement('button'); btnAdmin.className = "btn btn-primary"; btnAdmin.style.cssText = "background:var(--accent-amber); padding:6px 12px; font-size:11px; cursor:pointer;";
- btnAdmin.innerText = "Paramètres Admin"; btnAdmin.onclick = function() { window.location.href = "2_admin.html"; };
- navbar.insertBefore(btnAdmin, navbar.firstChild);
+ 
+ // On vérifie si le connecteur Supabase est prêt
+ if (window.supabaseClient) {
+     chargerDonneesDepuisLeCloudSupabase();
+ } else {
+     // Si la connexion prend un peu de temps, on attend 1 seconde et on relance
+     setTimeout(chargerDonneesDepuisLeCloudSupabase, 1000);
  }
- }
- if (userRoleActuel === "agents") {
- document.querySelectorAll('.col-menu .card-nav').forEach(carte => {
- let act = carte.getAttribute('onclick') || "";
- if (!act.includes('7_avancement.html') && !act.includes('8_ccpms.html') && !act.includes('9_pv.html') && !act.includes('10_recap.html')) { carte.style.display = "none"; }
- });
- }
- listeProjetsGlobal = await lireToutesLesDonneesDB("projets");
- if(listeProjetsGlobal.length > 0) {
- idProjetActif = localStorage.getItem("id_projet_actif_lee") || String(listeProjetsGlobal[0].id);
- listeProjetsGlobal.forEach(p => { if(p.type === 'PAPA') etatsDossiersReplies[p.id] = false; });
- }
- renderProjetsSidebar(); 
- if(idProjetActif) { await chargerFicheProjetSelectionne(); }
- });
 };
+
+// NOUVELLE FONCTION DE LECTURE AUTOMATIQUE EN LIGNE
+async function chargerDonneesDepuisLeCloudSupabase() {
+  console.log("📥 Récupération des données en ligne depuis Supabase...");
+  
+  try {
+    // 1. On télécharge la liste des projets directement depuis Internet
+    const { data: projetsCloud, error: errP } = await window.supabaseClient
+      .from('projets')
+      .select('*');
+    if (errP) throw errP;
+    
+    listeProjetsGlobal = projetsCloud || [];
+    
+    // 2. On configure l'affichage des boutons administrateur selon le rôle
+    if (userRoleActuel === "admin") {
+      let navbar = document.querySelector('.navbar-top-actions');
+      if (navbar && !document.getElementById('btnLienParametresAdmin')) {
+        let btnAdmin = document.createElement('button'); 
+        btnAdmin.id = "btnLienParametresAdmin";
+        btnAdmin.className = "btn btn-primary"; 
+        btnAdmin.style.cssText = "background:var(--accent-amber); padding:6px 12px; font-size:11px; cursor:pointer;";
+        btnAdmin.innerText = "Paramètres Admin"; 
+        btnAdmin.onclick = function() { window.location.href = "2_admin.html"; };
+        navbar.insertBefore(btnAdmin, navbar.firstChild);
+      }
+    }
+    
+    // 3. Masquage des modules restreints pour les agents de terrain
+    if (userRoleActuel === "agents") {
+      document.querySelectorAll('.col-menu .card-nav').forEach(carte => {
+        let act = carte.getAttribute('onclick') || "";
+        if (!act.includes('7_avancement.html') && !act.includes('8_ccpms.html') && !act.includes('9_pv.html') && !act.includes('10_recap.html')) { 
+          carte.style.display = "none"; 
+        }
+      });
+    }
+
+    // 4. Initialisation de l'arbre graphique des lots
+    if (listeProjetsGlobal.length > 0) {
+      idProjetActif = localStorage.getItem("id_projet_actif_lee") || String(listeProjetsGlobal[0].id);
+      listeProjetsGlobal.forEach(p => { if(p.type === 'PAPA') etatsDossiersReplies[p.id] = false; });
+      
+      renderProjetsSidebar(); 
+      await chargerFicheProjetSelectionne();
+    } else {
+      renderProjetsSidebar();
+    }
+    
+    console.log("✅ Tableau de bord synchronisé avec le Cloud !");
+  } catch (err) {
+    console.error("❌ Erreur lors du rafraîchissement Cloud :", err.message);
+    alert("Problème de connexion au serveur Supabase. Vérifiez votre réseau.");
+  }
+}
 
 function renderProjetsSidebar() {
  let container = document.getElementById('listeProjetsContainer'); if(!container) return; container.innerHTML = "";
