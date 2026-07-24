@@ -203,9 +203,6 @@ function effacerDonneeDB(tiroir, cle) {
         req.onerror = () => resolve(false);
     });
 }
-// =======================================================
-// INITIALISATION ET SYNCHRONISATION AUTOMATIQUE SUPABASE
-// =======================================================
 let listeProjetsGlobal = [];
 let listeUtilisateursRBAC = [];
 let idProjetSelectionneAdmin = 101;
@@ -216,47 +213,34 @@ window.onload = async function() {
  if (localStorage.getItem("session_securisee_active_gc") !== "VALIDE" || localStorage.getItem("session_user_role") !== "admin") {
    window.location.href = "1_login.html"; return;
  }
- 
- if (!window.supabaseClient) {
-   return alert("⏳ En attente de connexion avec le serveur Supabase...");
+ // On démarre la base locale pour maintenir les imports/exports locaux fonctionnels
+ await initialiserLeMeubleDB();
+
+ if (window.supabaseClient) {
+   try {
+     const { data: prjs } = await window.supabaseClient.from('projets').select('*');
+     listeProjetsGlobal = prjs || [];
+     const { data: usrs } = await window.supabaseClient.from('utilisateurs').select('*');
+     listeUtilisateursRBAC = usrs || [];
+     console.log("🔌 Connecté en ligne à Supabase !");
+   } catch (err) { console.log("⚠️ Mode secours local activé (Erreur Supabase)"); }
  }
 
- try {
-   // 1. Lecture en temps réel de tous les projets en ligne
-   const { data: prjs, error: errP } = await window.supabaseClient.from('projets').select('*');
-   if (errP) throw errP;
-   listeProjetsGlobal = prjs || [];
-
-   // 2. Lecture en temps réel de tous les utilisateurs en ligne
-   const { data: usrs, error: errU } = await window.supabaseClient.from('utilisateurs').select('*');
-   if (errU) throw errU;
-   listeUtilisateursRBAC = usrs || [];
-
-   // 3. Configuration par défaut des accordéons d'arbre
-   if (listeProjetsGlobal.length > 0) {
-     idProjetSelectionneAdmin = listeProjetsGlobal[0].id;
-   }
-   
-   listeProjetsGlobal.forEach(p => { 
-     if(p.type === 'PAPA') { 
-       if(etatsAccordéonAdmin[p.id] === undefined) etatsAccordéonAdmin[p.id] = true; 
-       if(etatsAccordéonMatrixAssign[p.id] === undefined) etatsAccordéonMatrixAssign[p.id] = true; 
-     } 
-   });
-
-   // 4. Actualisation immédiate du rendu à l'écran
-   renderAccordéonSidebarSelection(); 
-   afficherTableauProjets(); 
-   afficherTableauUtilisateurs(); 
-   genererCheckboxesLotsArbreAccordéon(); 
-   gererAffichageSelectParent(); 
-   await basculerDonneesVersProjetSelectionne(idProjetSelectionneAdmin);
-
-   console.log("🚀 Administration synchronisée en ligne avec succès.");
- } catch (err) {
-   console.error(err);
-   alert("❌ Erreur lors du chargement des structures depuis Supabase : " + err.message);
+ if (listeProjetsGlobal.length === 0) {
+   listeProjetsGlobal = await lireToutesLesDonneesDB("projets");
+   listeUtilisateursRBAC = await lireToutesLesDonneesDB("utilisateurs");
  }
+
+ if (listeProjetsGlobal.length > 0) { idProjetSelectionneAdmin = listeProjetsGlobal[0].id; }
+ listeProjetsGlobal.forEach(p => { 
+   if(p.type === 'PAPA') { 
+     if(etatsAccordéonAdmin[p.id] === undefined) etatsAccordéonAdmin[p.id] = true; 
+     if(etatsAccordéonMatrixAssign[p.id] === undefined) etatsAccordéonMatrixAssign[p.id] = true; 
+   } 
+ });
+
+ renderAccordéonSidebarSelection(); afficherTableauProjets(); afficherTableauUtilisateurs(); genererCheckboxesLotsArbreAccordéon(); gererAffichageSelectParent();
+ await basculerDonneesVersProjetSelectionne(idProjetSelectionneAdmin);
 };
 
 function renderAccordéonSidebarSelection() {
@@ -278,19 +262,25 @@ function renderAccordéonSidebarSelection() {
 
 function toggleDossierAdmin(pId, ev) { ev.stopPropagation(); etatsAccordéonAdmin[pId] = !etatsAccordéonAdmin[pId]; renderAccordéonSidebarSelection(); }
 function selectionnerProjetEnLigneAdmin(id) { idProjetSelectionneAdmin = id; renderAccordéonSidebarSelection(); basculerDonneesVersProjetSelectionne(id); }
+
+// MOTEUR D'HÉRITAGE PAPA/ENFANT SÉCURISÉ (LIT EN LIGNE PUIS EN LOCAL EN CAS DE BESOIN)
 async function basculerDonneesVersProjetSelectionne(id) {
  let p = listeProjetsGlobal.find(i => i.id == id); if(!p) return;
  document.getElementById('cfgObjet').value = p.nom || "";
  document.getElementById('titreCharteActive').innerText = `I. Charte Contractuelle (Lot : ${p.nom.toUpperCase()})`;
  
- const { data: resTech } = await window.supabaseClient.from('dossiers_techniques').select('*').eq('id', `charte_administrative_${id}`).maybeSingle();
- let d = (resTech && resTech.contenu_json) ? resTech.contenu_json : {};
- let m = {}; 
- if (p.type === 'ENFANT' && p.parentId) { 
-   const { data: resPapa } = await window.supabaseClient.from('dossiers_techniques').select('*').eq('id', `charte_administrative_${p.parentId}`).maybeSingle();
-   if (resPapa && resPapa.contenu_json) m = resPapa.contenu_json;
+ let d = null; let m = null;
+ if (window.supabaseClient) {
+   let { data: resTech } = await window.supabaseClient.from('dossiers_techniques').select('*').eq('id', `charte_administrative_${id}`).maybeSingle();
+   if (resTech) d = resTech.contenu_json;
+   if (p.type === 'ENFANT' && p.parentId) {
+     let { data: resPapa } = await window.supabaseClient.from('dossiers_techniques').select('*').eq('id', `charte_administrative_${p.parentId}`).maybeSingle();
+     if (resPapa) m = resPapa.contenu_json;
+   }
  }
- 
+ if (!d) d = await lireDonneeDB("dossiers_techniques", `charte_administrative_${id}`) || {};
+ if (!m && p.type === 'ENFANT' && p.parentId) m = await lireDonneeDB("dossiers_techniques", `charte_administrative_${p.parentId}`) || {};
+
  document.getElementById('cfgFinancement').value = p.financement || d.financement || m.financement || "";
  document.getElementById('cfgMO').value = p.mo || d.mo || m.mo || "-"; 
  document.getElementById('cfgMOE').value = p.moe || d.moe || m.moe || "-";
@@ -298,25 +288,21 @@ async function basculerDonneesVersProjetSelectionne(id) {
  document.getElementById('cfgNumContrat').value = p.numContrat || d.numContrat || m.numContrat || "-";
  
  let sourceLogos = p.type === 'ENFANT' ? m : d;
- 
- // Correctif des identifiants exacts de prévisualisation HTML
  if(document.getElementById('preview_logoMO')) document.getElementById('preview_logoMO').innerHTML = sourceLogos.logoMO_html || ""; 
  if(document.getElementById('preview_logoFin')) document.getElementById('preview_logoFin').innerHTML = sourceLogos.logoFin_html || "";
  if(document.getElementById('preview_logoMOE')) document.getElementById('preview_logoMOE').innerHTML = sourceLogos.logoMOE_html || ""; 
  if(document.getElementById('preview_logoEntreprise')) document.getElementById('preview_logoEntreprise').innerHTML = sourceLogos.logoEnterprise_html || "";
 }
-
 function convertirLogoBinaire(input, cibleId) {
- if (input.files && input.files[0]) {
- let reader = new FileReader();
- reader.onload = function(e) {
+ if (input.files && input.files) {
+ let reader = new FileReader(); reader.onload = function(e) {
  let boiteApercu = document.getElementById(`preview_${cibleId}`);
  if (boiteApercu) boiteApercu.innerHTML = `<img src="${e.target.result}" style="max-height:24px; max-width:100%; object-fit:contain; vertical-align:middle;">`;
- }; reader.readAsDataURL(input.files[0]);
+ }; reader.readAsDataURL(input.files);
  }
 }
 
-// ACTION SUPABASE : Enregistrement de la charte contractuelle et des logos
+// SAUVEGARDE DOUBLE : Met à jour Supabase ET le stockage local de la machine
 async function sauvegarderDonneesProjetSelectionne() {
  let nomSaisi = document.getElementById('cfgObjet').value.trim(); if(!nomSaisi) return alert("Désignation manquante !");
  let p = listeProjetsGlobal.find(i => i.id == idProjetSelectionneAdmin); if(!p) return;
@@ -328,114 +314,69 @@ async function sauvegarderDonneesProjetSelectionne() {
  p.entreprise = document.getElementById('cfgEnterprise').value.trim();
  p.numContrat = document.getElementById('cfgNumContrat').value.trim();
 
- // 1. Mise à jour de la table 'projets' en ligne
- const { error: errP } = await window.supabaseClient.from('projets').upsert(p);
- if (errP) return alert("Erreur projets Cloud : " + errP.message);
- 
  let charteData = {
  financement: p.financement, mo: p.mo, moe: p.moe, entreprise: p.entreprise, numContrat: p.numContrat,
- logoMO_html: document.getElementById('preview_logoMO').innerHTML, logoFin_html: document.getElementById('preview_logoFin').innerHTML,
- logoMOE_html: document.getElementById('preview_logoMOE').innerHTML, logoEnterprise_html: document.getElementById('preview_logoEnterprise').innerHTML
+ logoMO_html: document.getElementById('preview_logoMO') ? document.getElementById('preview_logoMO').innerHTML : "", 
+ logoFin_html: document.getElementById('preview_logoFin') ? document.getElementById('preview_logoFin').innerHTML : "",
+ logoMOE_html: document.getElementById('preview_logoMOE') ? document.getElementById('preview_logoMOE').innerHTML : "", 
+ logoEnterprise_html: document.getElementById('preview_logoEntreprise') ? document.getElementById('preview_logoEntreprise').innerHTML : ""
  };
- 
- // 2. Sauvegarde des images dans 'dossiers_techniques'
- const { error: errD } = await window.supabaseClient.from('dossiers_techniques').upsert({
-   id: `charte_administrative_${idProjetSelectionneAdmin}`, projet_id: String(idProjetSelectionneAdmin), type_donnee: 'charte', contenu_json: charteData
- });
- if (errD) return alert("Erreur médias Cloud : " + errD.message);
 
- alert("🏆 Charte contractuelle et logos officiels synchronisés en ligne !");
+ // 1. Sauvegarde locale de secours (IndexedDB)
+ await ecrireDonneeDB("projets", p);
+ await ecrireDonneeDB("dossiers_techniques", charteData, `charte_administrative_${idProjetSelectionneAdmin}`);
+
+ // 2. Sauvegarde en ligne (Supabase Cloud)
+ if (window.supabaseClient) {
+   await window.supabaseClient.from('projets').upsert(p);
+   await window.supabaseClient.from('dossiers_techniques').upsert({ id: `charte_administrative_${idProjetSelectionneAdmin}`, projet_id: String(idProjetSelectionneAdmin), type_donnee: 'charte', contenu_json: charteData });
+ }
+ alert("🏆 Données et logos synchronisés en ligne et en local !");
  window.location.reload();
 }
 
-// RECHERCHEZ ET REMPLACEZ CETTE FONCTION DANS VOTRE CODE :
 function genererCheckboxesLotsArbreAccordéon() {
- let box = document.getElementById('boxCheckboxesLotsAssignes'); 
- if(!box) return; 
- box.innerHTML = "";
- 
+ let box = document.getElementById('boxCheckboxesLotsAssignes'); if(!box) return; box.innerHTML = "";
  listeProjetsGlobal.filter(p => p.type === 'PAPA' || p.type === 'CLASSIQUE').forEach(r => {
- let divP = document.createElement('div'); 
- divP.style.cssText = "display:flex; align-items:center; justify-content:space-between; font-weight:bold; color:var(--primary-dark); background:#f1f5f9; padding:5px 8px; border-radius:4px; width:100%; box-sizing:border-box; margin-top:2px;";
- 
- // Correction de l'accent sur la variable etatsAccordéonMatrixAssign
- let deploie = etatsAccordéonMatrixAssign[r.id] !== false;
- let flecheM = r.type === 'PAPA' ? `<span style="font-size:9px; cursor:pointer; background:#cbd5e1; padding:2px 4px; border-radius:3px;" onclick="toggleDossierMatrixAssign(${r.id}, event)">${deploie ? '▼ masquer' : '▲ déplier'}</span>` : '';
- 
- divP.innerHTML = `<label style="display:inline-flex; align-items:center; gap:5px;"><input type="checkbox" name="assignationLot" value="${r.id}"> 🏢 ${r.nom}</label> ${flecheM}`; 
- box.appendChild(divP);
- 
+ let divP = document.createElement('div'); divP.style.cssText = "display:flex; align-items:center; justify-content:space-between; font-weight:bold; color:var(--primary-dark); background:#f1f5f9; padding:5px 8px; border-radius:4px; width:100%; box-sizing:border-box; margin-top:2px;";
+ let flecheM = r.type === 'PAPA' ? `<span style="font-size:9px; cursor:pointer; background:#cbd5e1; padding:2px 4px; border-radius:3px;" onclick="toggleDossierMatrixAssign(${r.id}, event)">${etatsAccordéonMatrixAssign[r.id]?'▼ masquer':'▲ déplier'}</span>` : '';
+ divP.innerHTML = `<label style="display:inline-flex; align-items:center; gap:5px;"><input type="checkbox" name="assignationLot" value="${r.id}"> 🏢 ${r.nom}</label> ${flecheM}`; box.appendChild(divP);
  if (r.type === 'PAPA') {
  listeProjetsGlobal.filter(p => p.type === 'ENFANT' && p.parentId == r.id).forEach(e => {
- let divE = document.createElement('div'); 
- divE.style.cssText = "display:flex; align-items:center; gap:5px; margin-left:18px; font-weight:normal; padding:2px 0;";
- 
- if(!deploie) divE.style.display = "none";
- 
- divE.innerHTML = `<label style="display:inline-flex; align-items:center; gap:5px;"><input type="checkbox" name="assignationLot" value="${e.id}"> ↳ ${e.nom}</label>`; 
- box.appendChild(divE);
+ let divE = document.createElement('div'); divE.style.cssText = "display:flex; align-items:center; gap:5px; margin-left:18px; font-weight:normal; padding:2px 0;";
+ if(!etatsAccordéonMatrixAssign[r.id]) divE.style.display = "none";
+ divE.innerHTML = `<label style="display:inline-flex; align-items:center; gap:5px;"><input type="checkbox" name="assignationLot" value="${e.id}"> ↳ ${e.nom}</label>`; box.appendChild(divE);
  });
  }
  });
 }
-
 
 function toggleDossierMatrixAssign(papaId, event) { event.preventDefault(); event.stopPropagation(); etatsAccordéonMatrixAssign[papaId] = !etatsAccordéonMatrixAssign[papaId]; genererCheckboxesLotsArbreAccordéon(); }
 function basculerToutCocherLots(statut) { document.querySelectorAll('#boxCheckboxesLotsAssignes input[type="checkbox"]').forEach(cb => cb.checked = statut); }
 function filtrerArbreCheckboxesLots() { let motCle = document.getElementById('searchFilterLots').value.toLowerCase().trim(); document.querySelectorAll('#boxCheckboxesLotsAssignes input[type="checkbox"]').forEach(cb => { let label = cb.closest('div'); if(!motCle || label.innerText.toLowerCase().includes(motCle)) label.style.display = "flex"; else label.style.display = "none"; }); }
 function gererAffichageSelectParent() { let type = document.getElementById('projType').value; let row = document.getElementById('rowSelectParent'); if(type === 'ENFANT') { row.style.display = 'flex'; let select = document.getElementById('projParentId'); select.innerHTML = ""; listeProjetsGlobal.filter(p => p.type === 'PAPA').forEach(p => { select.innerHTML += `<option value="${p.id}">${p.nom}</option>`; }); } else { row.style.display = 'none'; } }
-function afficherTableauProjets() {
- let tbody = document.getElementById('tbodyProjetsAdminList'); if(!tbody) return; tbody.innerHTML = "";
- listeProjetsGlobal.forEach(p => {
- let tr = document.createElement('tr'); let txtType = p.type === 'PAPA' ? 'Père' : p.type === 'ENFANT' ? 'Enfant' : 'Classique';
- tr.innerHTML = `<td><b>${p.nom}</b></td><td>${txtType}</td><td><button class="btn btn-primary" style="padding:2px 6px; font-size:10px;" onclick="preparerModifProjet('${p.id}')">✏️</button> <button class="btn btn-danger" style="padding:2px 6px; font-size:10px;" onclick="supprimerProjetFerme('${p.id}')">🗑️</button></td>`;
- tbody.appendChild(tr);
- });
-}
-
-// ACTION SUPABASE : Création ou édition d'un lot dans 'projets'
+function afficherTableauProjets() { let tbody = document.getElementById('tbodyProjetsAdminList'); if(!tbody) return; tbody.innerHTML = ""; listeProjetsGlobal.forEach(p => { let tr = document.createElement('tr'); let txtType = p.type === 'PAPA' ? 'Père' : p.type === 'ENFANT' ? 'Enfant' : 'Classique'; tr.innerHTML = `<td><b>${p.nom}</b></td><td>${txtType}</td><td><button class="btn btn-primary" style="padding:2px 6px; font-size:10px;" onclick="preparerModifProjet('${p.id}')">✏️</button> <button class="btn btn-danger" style="padding:2px 6px; font-size:10px;" onclick="supprimerProjetFerme('${p.id}')">🗑️</button></td>`; tbody.appendChild(tr); }); }
 async function enregistrerOuModifierProjetFerme() {
  let nom = document.getElementById('projNom').value.trim(); let type = document.getElementById('projType').value; let idEdit = document.getElementById('editProjetId').value;
  let parentId = type === 'ENFANT' ? document.getElementById('projParentId').value : null; if(!nom) return alert("Désignation manquante !");
- 
- let objetProjet = {};
- if(idEdit === "") { 
-   objetProjet = { id: "p_" + Date.now(), nom, type, parentId, classification: type };
- } else { 
-   let item = listeProjetsGlobal.find(p => p.id == idEdit); if(!item) return;
-   item.nom = nom; item.type = type; item.parentId = parentId; item.classification = type;
-   objetProjet = item;
- }
- 
- const { error } = await window.supabaseClient.from('projets').upsert(objetProjet);
- if (error) return alert("Erreur d'écriture Cloud : " + error.message);
- 
- alert("🏢 Arbre des lots mis à jour en ligne !");
- window.location.reload();
+ let obj = idEdit === "" ? { id: String(Date.now()), nom, type, parentId } : listeProjetsGlobal.find(p => p.id == idEdit);
+ if(idEdit !== "") { obj.nom = nom; obj.type = type; obj.parentId = parentId; }
+ await ecrireDonneeDB("projets", obj);
+ if (window.supabaseClient) await window.supabaseClient.from('projets').upsert(obj);
+ reinitialiserFormulaireProjet(); window.location.reload();
 }
 
 function preparerModifProjet(id) { let p = listeProjetsGlobal.find(i => i.id == id); if(!p) return; document.getElementById('editProjetId').value = p.id; document.getElementById('projNom').value = p.nom; document.getElementById('projType').value = p.type; document.getElementById('btnSaveProjet').innerText = "Modifier ✏️"; document.getElementById('btnAnnulerProjet').style.display = "inline-flex"; gererAffichageSelectParent(); if(p.type === 'ENFANT') document.getElementById('projParentId').value = p.parentId; }
 function reinitialiserFormulaireProjet() { document.getElementById('editProjetId').value = ""; document.getElementById('projNom').value = ""; document.getElementById('projType').value = "PAPA"; document.getElementById('btnSaveProjet').innerText = "Valider la Structure"; document.getElementById('btnAnnulerProjet').style.display = "none"; gererAffichageSelectParent(); }
+async function supprimerProjetFerme(id) { if(confirm("Supprimer ce lot ?")) { await effacerDonneeDB("projets", id); if (window.supabaseClient) await window.supabaseClient.from('projets').delete().eq('id', id); window.location.reload(); } }
 
-// ACTION SUPABASE : Révocation d'un projet sur le Cloud
-async function supprimerProjetFerme(id) { 
- if(confirm("Supprimer ce lot définitivement sur le réseau ?")) { 
-   const { error } = await window.supabaseClient.from('projets').delete().eq('id', id);
-   if (error) return alert("Erreur de suppression : " + error.message);
-   window.location.reload();
- } 
-}
-
-// ACTION SUPABASE : Création d'un compte agent en ligne
 async function ajouterNouvelUtilisateurRbac() { 
  let login = document.getElementById('usrLogin').value.trim(); let pass = document.getElementById('usrPass').value.trim(); let role = document.getElementById('usrRole').value; 
  let checkboxes = document.querySelectorAll('input[name="assignationLot"]:checked'); let lots = []; checkboxes.forEach(cb => lots.push(cb.value)); 
- if(!login || !pass || lots.length === 0) return alert("Remplissez tous les champs chef !"); 
- 
- const { error } = await window.supabaseClient.from('utilisateurs').upsert({ id: "u_" + Date.now(), login, pass, role, lots }); 
- if (error) return alert("Erreur de déploiement de l'agent : " + error.message);
- 
- alert("👥 Nouveau compte agent créé et actif sur tout le réseau !");
+ if(!login || !pass || lots.length === 0) return alert("Champs vides !"); 
+ let usr = { id: String(Date.now()), login, pass, role, lots };
+ await ecrireDonneeDB("utilisateurs", usr);
+ if (window.supabaseClient) await window.supabaseClient.from('utilisateurs').upsert(usr);
  window.location.reload();
 }
 
@@ -445,43 +386,53 @@ function afficherTableauUtilisateurs() {
  let cb = u.role === 'admin' ? '#fee2e2;color:#dc2626' : u.role === 'cadres' ? '#eff6ff;color:#1e40af' : '#dcfce7;color:#15803d';
  let txtLots = (u.lots && Array.isArray(u.lots)) ? u.lots.map(id => { let p = listeProjetsGlobal.find(i => i.id == id); return p ? p.nom : id; }).join(", ") : "Aucun lot";
  let btn = u.login === 'admin' ? '<i>Maitre</i>' : `<button class="btn btn-danger" style="padding:2px 6px; font-size:10px;" onclick="supprimerUser('${u.id}')">🗑️</button>`;
- tbody.innerHTML += `<tr><td><b>${u.login}</b></td><td><span class="badge-role" style="background:${cb}">${u.role}</span></td><td style="font-size:10px; font-weight:600; color:#475569; max-width:320px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${txtLots}">${txtLots}</td><td style="text-align:center;">${btn}</td></tr>`;
+ tbody.innerHTML += `<tr><td><b>${u.login}</b></td><td><span class="badge-role" style="background:${cb}">${u.role}</span></td><td style="font-size:10px; font-weight:600; color:#475569; max-width:320px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${txtLots}</td><td style="text-align:center;">${btn}</td></tr>`;
  });
 }
 
-// ACTION SUPABASE : Révocation d'un compte agent en ligne
-async function supprimerUser(id) { 
- if(confirm("Supprimer ce compte sur tout le réseau ?")) { 
-   const { error } = await window.supabaseClient.from('utilisateurs').delete().eq('id', id);
-   if (error) return alert("Erreur de révocation : " + error.message);
-   window.location.reload();
- } 
-}
+async function supprimerUser(id) { if(confirm("Supprimer ce compte ?")) { await effacerDonneeDB("utilisateurs", id); if (window.supabaseClient) await window.supabaseClient.from('utilisateurs').delete().eq('id', id); window.location.reload(); } }
 
-// Passerelle d'exportation de secours Master inchangée
+// BOUTONS LOCAUX ENTIÈREMENT OPÉRATIONNELS
 async function exporterFichierClasseurJsonLocal() {
- let { data: projets } = await window.supabaseClient.from('projets').select('*');
- let { data: utilisateurs } = await window.supabaseClient.from('utilisateurs').select('*');
- let { data: tech } = await window.supabaseClient.from('dossiers_techniques').select('*');
+ let projets = await lireToutesLesDonneesDB("projets"); let utilisateurs = await lireToutesLesDonneesDB("utilisateurs");
  let chartesIsolees = {}; let bdqeIsolees = {}; let ccpmsIsolees = {}; let suiviIsolees = {}; let planningIsolees = {};
- if (tech) {
-   tech.forEach(row => {
-     if(row.type_donnee === 'charte') chartesIsolees[row.projet_id] = row.contenu_json;
-     if(row.type_donnee === 'bdqe') bdqeIsolees[row.projet_id] = row.contenu_json;
-     if(row.type_donnee === 'ccpms') ccpmsIsolees[row.projet_id] = row.contenu_json;
-     if(row.type_donnee === 'suivi') suiviIsolees[row.projet_id] = row.contenu_json;
-     if(row.type_donnee === 'planning') planningIsolees[row.projet_id] = row.contenu_json;
-   });
+ for (let p of projets) {
+ let charte = await lireDonneeDB("dossiers_techniques", `charte_administrative_${p.id}`); if(charte) chartesIsolees[p.id] = charte;
+ let bdqe = await lireDonneeDB("dossiers_techniques", `bdqe_${p.id}`); if(bdqe) bdqeIsolees[p.id] = bdqe;
+ let ccpms = await lireDonneeDB("dossiers_techniques", `ccpms_${p.id}`); if(ccpms) ccpmsIsolees[p.id] = ccpms;
+ let suivi = await lireDonneeDB("dossiers_techniques", `suivi_${p.id}`); if(suivi) suiviIsolees[p.id] = suivi;
+ let planning = await lireDonneeDB("dossiers_techniques", `planning_${p.id}`); if(planning) planningIsolees[p.id] = planning;
  }
  let blob = new Blob([JSON.stringify({ dateExport: new Date().toISOString(), projets, utilisateurs, chartesIsolees, bdqeIsolees, ccpmsIsolees, suiviIsolees, planningIsolees }, null, 2)], { type: "application/json" });
  let lien = document.createElement("a"); lien.href = URL.createObjectURL(blob); lien.download = `GENIE_CIVIL_PRO_DATABASE_MASTER.json`;
- document.body.appendChild(lien); lien.click(); document.body.removeChild(lien); alert("Fichier de sauvegarde Master généré avec succès ! 💾");
+ document.body.appendChild(lien); lien.click(); document.body.removeChild(lien); alert("Fichier JSON local exporté avec succès ! ✔");
 }
 
-function importerFichierClasseurJsonLocal(input) { alert("💡 Chef, utilisez la passerelle d'initialisation de la page d'accueil (Bouton orange) pour restaurer un fichier complet sur Supabase."); }
+function importerFichierClasseurJsonLocal(input) {
+ if (input.files && input.files) {
+ let reader = new FileReader(); reader.onload = async function(e) {
+ try {
+ let paquet = JSON.parse(e.target.result); if (!paquet.projets || !paquet.utilisateurs) return alert("Fichier invalide.");
+ if (confirm("ATTENTION : Écraser les données LOCALES de cette machine ?")) {
+ await initialiserLeMeubleDB(); let tx = dbInstance.transaction(["projets", "utilisateurs", "dossiers_techniques"], "readwrite");
+ tx.objectStore("projets").clear(); tx.objectStore("utilisateurs").clear(); tx.objectStore("dossiers_techniques").clear();
+ for(let prj of paquet.projets) { await ecrireDonneeDB("projets", prj); }
+ for(let usr of paquet.utilisateurs) { await ecrireDonneeDB("utilisateurs", usr); }
+ if (paquet.chartesIsolees) { for (let id in paquet.chartesIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.chartesIsolees[id], `charte_administrative_${id}`); }
+ if (paquet.bdqeIsolees) { for (let id in paquet.bdqeIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.bdqeIsolees[id], `bdqe_${id}`); }
+ if (paquet.ccpmsIsolees) { for (let id in paquet.ccpmsIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.ccpmsIsolees[id], `ccpms_${id}`); }
+ if (paquet.suiviIsolees) { for (let id in paquet.suiviIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.suiviIsolees[id], `suivi_${id}`); }
+ if (paquet.planningIsolees) { for (let id in paquet.planningIsolees) await ecrireDonneeDB("dossiers_techniques", paquet.planningIsolees[id], `planning_${id}`); }
+ alert("Restauration locale réussie ! 🔄"); window.location.reload();
+ }
+ } catch (err) { alert("Erreur."); }
+ }; reader.readAsText(input.files);
+ }
+}
 </script>
 </body>
 </html>
+
 
 
 
