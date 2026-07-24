@@ -226,6 +226,7 @@ window.onload = function() {
      document.getElementById('txtLabelSousTitreLot').innerText = `ID unique du lot : ${idProjetCourant} | Classification : ${projetActuel.type}`;
    }
    
+     // Un Cadre a un accès total aux bases sans restriction de lots individuels
    let role = localStorage.getItem("session_user_role") || "agents";
    let lotsAutorises = JSON.parse(localStorage.getItem("session_user_lots") || "[]");
    if (role === "agents" || (role === "controle" && !lotsAutorises.includes(String(idProjetCourant)))) {
@@ -233,8 +234,9 @@ window.onload = function() {
      document.getElementById('formSaisieManuelleLigne').style.display = 'none';
      let bandeauAlerte = document.createElement('div');
      bandeauAlerte.style.cssText = "background:#eff6ff; color:#1e40af; padding:10px; border-radius:6px; font-weight:bold; margin-bottom:5px; border:1px solid #bfdbfe; font-size:11px; text-align:center; flex-shrink:0;";
-     bandeauAlerte.innerText = "Mode Consultation Uniquement (Lecture Seule Droits Terrain Restreints)";
+     bandeauAlerte.innerText = " Mode Consultation Uniquement (Lecture Seule Droits Terrain Restreints)";
      document.body.insertBefore(bandeauAlerte, document.body.firstChild);
+     if(document.querySelector('.col-action-modification')) document.querySelector('.col-action-modification').style.display = 'none';
      window.modeLectureSeuleActive = true;
    }
    rechargerTout();
