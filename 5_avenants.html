@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+ <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
  <meta charset="UTF-8">
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
  <title>Génie Civil Pro - Avenants Isolés</title>
@@ -109,31 +111,31 @@ const DB_VERSION = 1;
 let dbInstance = null;
 
 function initialiserLeMeubleDB() {
-    return new Promise((resolve, reject) => {
-        let requete = indexedDB.open(DB_NAME, DB_VERSION);
-        requete.onsuccess = function(e) { dbInstance = e.target.result; resolve(dbInstance); };
-        requete.onerror = function() { reject("Meuble bloqué."); };
-    });
+ return new Promise((resolve, reject) => {
+ let requete = indexedDB.open(DB_NAME, DB_VERSION);
+ requete.onsuccess = function(e) { dbInstance = e.target.result; resolve(dbInstance); };
+ requete.onerror = function() { reject("Meuble bloqué."); };
+ });
 }
 
 function lireDonneeDB(tiroir, cle) {
-    return new Promise((resolve) => {
-        if(!dbInstance) return resolve(null);
-        let tx = dbInstance.transaction([tiroir], "readonly");
-        let req = tx.objectStore(tiroir).get(cle);
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => resolve(null);
-    });
+ return new Promise((resolve) => {
+ if(!dbInstance) return resolve(null);
+ let tx = dbInstance.transaction([tiroir], "readonly");
+ let req = tx.objectStore(tiroir).get(cle);
+ req.onsuccess = () => resolve(req.result);
+ req.onerror = () => resolve(null);
+ });
 }
 
 function ecrireDonneeDB(tiroir, objet, cleOptionnelle) {
-    return new Promise((resolve) => {
-        if(!dbInstance) return resolve(false);
-        let tx = dbInstance.transaction([tiroir], "readwrite");
-        let req = cleOptionnelle !== undefined ? tx.objectStore(tiroir).put(objet, cleOptionnelle) : tx.objectStore(tiroir).put(objet);
-        req.onsuccess = () => resolve(true);
-        req.onerror = () => resolve(false);
-    });
+ return new Promise((resolve) => {
+ if(!dbInstance) return resolve(false);
+ let tx = dbInstance.transaction([tiroir], "readwrite");
+ let req = cleOptionnelle !== undefined ? tx.objectStore(tiroir).put(objet, cleOptionnelle) : tx.objectStore(tiroir).put(objet);
+ req.onsuccess = () => resolve(true);
+ req.onerror = () => resolve(false);
+ });
 }
 
 let listeAvenants = [];
@@ -144,162 +146,172 @@ const CLE_AVENANTS_PROJET = `avenants_${idProjetCourant}`;
 const CLE_BDQE_PROJET = `bdqe_${idProjetCourant}`;
 
 function basculerAffichageFormulaireTiroir() {
-    let form = document.getElementById('formAvenantLigne');
-    let btn = document.querySelector('.toggle-form-btn');
-    form.classList.toggle('open');
-    if (form.classList.contains('open')) {
-        btn.innerText = "Fermer la Console de Saisie d'Avenants ❌";
-        btn.style.cssText = "background:#fee2e2; color:var(--danger-color); border-color:var(--danger-color);";
-    } else {
-        btn.innerText = "Ouvrir les Outils de Saisie d'Avenants Hors-Marché 🛠";
-        btn.style.cssText = "background:#f1f5f9; color:var(--secondary-color); border-color:var(--secondary-color);";
-    }
+ let form = document.getElementById('formAvenantLigne'); let btn = document.querySelector('.toggle-form-btn');
+ form.classList.toggle('open');
+ if (form.classList.contains('open')) {
+ btn.innerText = "Fermer la Console de Saisie d'Avenants ❌"; btn.style.cssText = "background:#fee2e2; color:var(--danger-color); border-color:var(--danger-color);";
+ } else {
+ btn.innerText = "Ouvrir les Outils de Saisie d'Avenants Hors-Marché 🛠"; btn.style.cssText = "background:#f1f5f9; color:var(--secondary-color); border-color:var(--secondary-color);";
+ }
 }
+
 window.onload = function() {
-    let userRoleActuel = localStorage.getItem("session_user_role") || "agents";
-    let userLotsAutorises = [];
-    try { userLotsAutorises = JSON.parse(localStorage.getItem("session_user_lots")) || []; } catch(e) {}
-    if (userRoleActuel === "agents") {
-        alert("Accès Refusé : Privilèges budgétaires insuffisants."); window.location.href = "3_accueil.html"; return;
-    }
-    initialiserLeMeubleDB().then(async () => {
-        if (userRoleActuel === "cadres" || (userRoleActuel === "controle" && !userLotsAutorises.includes(String(idProjetCourant)))) {
-            let formSaisie = document.getElementById('formAvenantLigne') || document.querySelector('.form-group');
-            if (formSaisie) formSaisie.style.display = 'none';
-            document.querySelector('.toggle-form-btn').style.display = 'none';
-            let alerte = document.createElement('div');
-            alerte.style.cssText = "background:#eff6ff; color:#1e40af; padding:10px; border-radius:6px; font-weight:bold; margin-bottom:15px; border:1px solid #bfdbfe; font-size:13px; text-align:center;";
-            alerte.innerText = "Mode Consultation Uniquement (Lecture Seule 🔒)";
-            if (formSaisie) formSaisie.parentNode.insertBefore(alerte, formSaisie);
-            document.querySelector('.col-action-modification').style.display = 'none';
-            window.modeLectureSeuleActive = true;
-        }
-        let avenantsSauves = await lireDonneeDB("dossiers_techniques", CLE_AVENANTS_PROJET);
-        let bdqeInitial = await lireDonneeDB("dossiers_techniques", CLE_BDQE_PROJET) || [];
-        if (avenantsSauves) {
-            listeAvenants = avenantsSauves;
-            bdqeInitial.forEach(baseItem => {
-                let existe = listeAvenants.find(avItem => avItem.code_bdqe === baseItem.code_bdqe && avItem.designation === baseItem.designation);
-                if(!existe) { listeAvenants.push({ ...baseItem, qte_av: null, pu_av: null, total_av: null, est_nouveau: false }); }
-            });
-        } else {
-            listeAvenants = bdqeInitial.map(item => { return { ...item, qte_av: null, pu_av: null, total_av: null, est_nouveau: false }; });
-        }
-        rechargerTout();
-    });
+ let userRoleActuel = localStorage.getItem("session_user_role") || "agents";
+ let userLotsAutorises = [];
+ try { userLotsAutorises = JSON.parse(localStorage.getItem("session_user_lots") || "[]"); } catch(e) {}
+ if (userRoleActuel === "agents") { alert("Accès Refusé : Privilèges budgétaires insuffisants."); window.location.href = "3_accueil.html"; return; }
+ 
+ initialiserLeMeubleDB().then(async () => {
+ if (userRoleActuel === "cadres" || (userRoleActuel === "controle" && !userLotsAutorises.includes(String(idProjetCourant)))) {
+ let formSaisie = document.getElementById('formAvenantLigne') || document.querySelector('.form-group');
+ if (formSaisie) formSaisie.style.display = 'none';
+ document.querySelector('.toggle-form-btn').style.display = 'none';
+ let alerte = document.createElement('div');
+ alerte.style.cssText = "background:#eff6ff; color:#1e40af; padding:10px; border-radius:6px; font-weight:bold; margin-bottom:15px; border:1px solid #bfdbfe; font-size:13px; text-align:center;";
+ alerte.innerText = "Mode Consultation Uniquement (Lecture Seule 🔒)";
+ if (formSaisie) formSaisie.parentNode.insertBefore(alerte, formSaisie);
+ if(document.querySelector('.col-action-modification')) document.querySelector('.col-action-modification').style.display = 'none';
+ window.modeLectureSeuleActive = true;
+ }
+
+ // 1. RENDU CHARGEMENT INSTANTANÉ : Lecture immédiate de la mémoire de la machine
+ let avenantsSauves = await lireDonneeDB("dossiers_techniques", CLE_AVENANTS_PROJET);
+ let bdqeInitial = null;
+ 
+ if (window.supabaseClient && navigator.onLine) {
+   try {
+     let { data: rB } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', CLE_BDQE_PROJET).maybeSingle();
+     if (rB) bdqeInitial = rB.contenu_json;
+   } catch(e) {}
+ }
+ if(!bdqeInitial) bdqeInitial = await lireDonneeDB("dossiers_techniques", CLE_BDQE_PROJET) || [];
+
+ if (avenantsSauves) {
+ listeAvenants = avenantsSauves;
+ bdqeInitial.forEach(baseItem => {
+ let existe = listeAvenants.find(avItem => avItem.code_bdqe === baseItem.code_bdqe && avItem.designation === baseItem.designation);
+ if(!existe) { listeAvenants.push({ ...baseItem, qte_av: null, pu_av: null, total_av: null, est_nouveau: false }); }
+ });
+ } else {
+ listeAvenants = bdqeInitial.map(item => { return { ...item, qte_av: null, pu_av: null, total_av: null, est_nouveau: false }; });
+ }
+ rechargerTout();
+
+ // 2. REQUÊTE ET MISE À JOUR SILENCIEUSE CLOUD EN ARRIÈRE-PLAN
+ if (window.supabaseClient && navigator.onLine) {
+   try {
+     let { data: resTech } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', CLE_AVENANTS_PROJET).maybeSingle();
+     if (resTech && resTech.contenu_json) {
+       listeAvenants = resTech.contenu_json;
+       await ecrireDonneeDB("dossiers_techniques", listeAvenants, CLE_AVENANTS_PROJET);
+       rechargerTout();
+       console.log("🌐 Module Avenants synchronisé avec le Cloud !");
+     }
+   } catch (err) { console.log("Réseau brousse instable."); }
+ }
+ });
 };
 
-function formatArgent(nombre) {
-    if (nombre === null || nombre === undefined || isNaN(nombre)) return "0,00";
-    let signe = nombre < 0 ? "-" : ""; return signe + Math.abs(nombre).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
+function formatArgent(nombre) { if (nombre === null || nombre === undefined || isNaN(nombre)) return "0,00"; let signe = nombre < 0 ? "-" : ""; return signe + Math.abs(nombre).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 function formatCodePoint() { let input = document.getElementById('code_bdqe'); input.value = input.value.replace(',', '.'); }
-
 function trierDonnees() {
-    listeAvenants.sort((a, b) => {
-        let compOuvrage = a.ouvrage.localeCompare(b.ouvrage, 'fr', {sensitivity: 'base'}); if (compOuvrage !== 0) return compOuvrage;
-        let partsA = a.code_bdqe.split(/[\.,]/).map(Number); let partsB = b.code_bdqe.split(/[\.,]/).map(Number);
-        for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
-            let numA = partsA[i] || 0; let numB = partsB[i] || 0; if (numA !== numB) return numA - numB;
-        }
-        return 0;
-    });
+ listeAvenants.sort((a, b) => {
+ let compOuvrage = a.ouvrage.localeCompare(b.ouvrage, 'fr', {sensitivity: 'base'}); if (compOuvrage !== 0) return compOuvrage;
+ let partsA = a.code_bdqe.split(/[\.,]/).map(Number); let partsB = b.code_bdqe.split(/[\.,]/).map(Number);
+ for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) { let numA = partsA[i] || 0; let numB = partsB[i] || 0; if (numA !== numB) return numA - numB; }
+ return 0;
+ });
 }
 
 function répercuterValeursLigne(indexModifié, code, champ, valeur) {
-    let parsedVal = valeur.trim() === "" ? null : parseFloat(valeur.replace(/\s/g, '').replace(',', '.')) || 0;
-    let itemSaisi = listeAvenants[indexModifié];
-    if(champ === 'qte') itemSaisi.qte_av = parsedVal;
-    if(champ === 'pu') itemSaisi.pu_av = parsedVal;
-    listeAvenants.forEach((item, idx) => {
-        if(item.code_bdqe === code) {
-            if(champ === 'pu' && idx !== indexModifié) { item.pu_av = parsedVal; }
-            let qEffective = item.qte_av !== null ? item.qte_av : item.quantite;
-            let pEffectif = item.pu_av !== null ? item.pu_av : item.prix_unitaire;
-            if (item.qte_av === null && item.pu_av === null) { item.total_av = null; } 
-            else { item.total_av = (qEffective * pEffectif) - (item.total || 0); }
-        }
-    });
-    rechargerTout();
-}
-function ajouterNouveauCodeAvenant() {
-    let ouvrage = document.getElementById('ouvrage').value.trim();
-    let code_bdqe = document.getElementById('code_bdqe').value.trim();
-    let structure = document.getElementById('structure').value.trim();
-    let designation = document.getElementById('designation').value.trim();
-    let unite = document.getElementById('unite').value.trim();
-    if(!ouvrage || !code_bdqe || !designation) { alert("Champs manquants !"); return; }
-    listeAvenants.push({ ouvrage, code_bdqe, structure, designation, unite, quantite: 0, prix_unitaire: 0, total: 0, qte_av: null, pu_av: null, total_av: null, est_nouveau: true });
-    document.getElementById('code_bdqe').value = ""; document.getElementById('structure').value = ""; document.getElementById('designation').value = ""; document.getElementById('unite').value = "";
-    rechargerTout();
+ let parsedVal = valeur.trim() === "" ? null : parseFloat(valeur.replace(/\s/g, '').replace(',', '.')) || 0;
+ let itemSaisi = listeAvenants[indexModifié];
+ if(champ === 'qte') itemSaisi.qte_av = parsedVal;
+ if(champ === 'pu') itemSaisi.pu_av = parsedVal;
+ listeAvenants.forEach((item, idx) => {
+ if(item.code_bdqe === code) {
+ if(champ === 'pu' && idx !== indexModifié) { item.pu_av = parsedVal; }
+ let qEffective = item.qte_av !== null ? item.qte_av : item.quantite;
+ let pEffectif = item.pu_av !== null ? item.pu_av : item.prix_unitaire;
+ if (item.qte_av === null && item.pu_av === null) { item.total_av = null; } 
+ else { item.total_av = (qEffective * pEffectif) - (item.total || 0); }
+ }
+ });
+ rechargerTout();
 }
 
+function ajouterNouveauCodeAvenant() {
+ let ouvrage = document.getElementById('ouvrage').value.trim(); let code_bdqe = document.getElementById('code_bdqe').value.trim(); let structure = document.getElementById('structure').value.trim(); let designation = document.getElementById('designation').value.trim(); let unite = document.getElementById('unite').value.trim();
+ if(!ouvrage || !code_bdqe || !designation) { alert("Champs manquants !"); return; }
+ listeAvenants.push({ ouvrage, code_bdqe, structure, designation, unite, quantite: 0, prix_unitaire: 0, total: 0, qte_av: null, pu_av: null, total_av: null, est_nouveau: true });
+ document.getElementById('code_bdqe').value = ""; document.getElementById('structure').value = ""; document.getElementById('designation').value = ""; document.getElementById('unite').value = "";
+ rechargerTout();
+}
+
+// LE MOTEUR DOUBLE DE SAUVEGARDE : Écrit simultanément en local et sur le Cloud
 async function rechargerTout() {
-    trierDonnees(); genererSegments(); afficherTableauAvenants(); calculerBilansFinanciers(); actualiserSuggestionsOuvrages();
-    await ecrireDonneeDB("dossiers_techniques", listeAvenants, CLE_AVENANTS_PROJET);
+ trierDonnees(); genererSegments(); afficherTableauAvenants(); calculerBilansFinanciers(); actualiserSuggestionsOuvrages();
+ 
+ // 1. Rangement local immédiat de brousse
+ await ecrireDonneeDB("dossiers_techniques", listeAvenants, CLE_AVENANTS_PROJET);
+ 
+ // 2. Envoi automatique instantané en arrière-plan vers Supabase
+ if (window.supabaseClient && navigator.onLine) {
+   await window.supabaseClient.from('dossiers_techniques').upsert({ id: CLE_AVENANTS_PROJET, projet_id: String(idProjetCourant), type_donnee: 'avenants', contenu_json: listeAvenants });
+ }
 }
 
 function actualiserSuggestionsOuvrages() {
-    let uniqueOuvrages = [...new Set(listeAvenants.map(item => item.ouvrage).filter(Boolean))];
-    let datalist = document.getElementById('listeSuggestionsOuvrages'); datalist.innerHTML = "";
-    uniqueOuvrages.forEach(ouv => { let option = document.createElement('option'); option.value = ouv; datalist.appendChild(option); });
+ let uniqueOuvrages = [...new Set(listeAvenants.map(item => item.ouvrage).filter(Boolean))]; let datalist = document.getElementById('listeSuggestionsOuvrages'); if(!datalist) return; datalist.innerHTML = "";
+ uniqueOuvrages.forEach(ouv => { let option = document.createElement('option'); option.value = ouv; datalist.appendChild(option); });
 }
 
 function genererSegments() {
-    let containerOuvrage = document.getElementById('boxSegmentsOuvragesAvenants'); containerOuvrage.innerHTML = "";
-    let ouvs = ["TOUS", ...new Set(listeAvenants.map(item => item.ouvrage).filter(Boolean))];
-    ouvs.forEach(ouv => {
-        let btn = document.createElement('button'); btn.className = `segment-btn ${filtreOuvrageActif === ouv ? 'active' : ''}`; btn.innerText = ouv.toUpperCase();
-        btn.onclick = () => { filtreOuvrageActif = ouv; filtreStructureActif = "TOUS"; rechargerTout(); }; containerOuvrage.appendChild(btn);
-    });
-    let containerStructure = document.getElementById('boxSegmentsStructuresAvenants'); containerStructure.innerHTML = "";
-    let sub = filtreOuvrageActif === "TOUS" ? listeAvenants : listeAvenants.filter(item => item.ouvrage === filtreOuvrageActif);
-    let structs = ["TOUS", ...new Set(sub.map(item => item.structure).filter(Boolean))];
-    structs.forEach(str => {
-        let btn = document.createElement('button'); btn.className = `segment-btn ${filtreStructureActif === str ? 'active' : ''}`; btn.innerText = str.toUpperCase();
-        btn.onclick = () => { filtreStructureActif = str; rechargerTout(); }; containerStructure.appendChild(btn);
-    });
+ let containerOuvrage = document.getElementById('boxSegmentsOuvragesAvenants'); if(!containerOuvrage) return; containerOuvrage.innerHTML = "";
+ let ouvs = ["TOUS", ...new Set(listeAvenants.map(item => item.ouvrage).filter(Boolean))];
+ ouvs.forEach(ouv => { let btn = document.createElement('button'); btn.className = `segment-btn ${filtreOuvrageActif === ouv ? 'active' : ''}`; btn.innerText = ouv.toUpperCase(); btn.onclick = () => { filtreOuvrageActif = ouv; filtreStructureActif = "TOUS"; rechargerTout(); }; containerOuvrage.appendChild(btn); });
+ let containerStructure = document.getElementById('boxSegmentsStructuresAvenants'); if(!containerStructure) return; containerStructure.innerHTML = "";
+ let sub = filtreOuvrageActif === "TOUS" ? listeAvenants : listeAvenants.filter(item => item.ouvrage === filtreOuvrageActif);
+ let structs = ["TOUS", ...new Set(sub.map(item => item.structure).filter(Boolean))];
+ structs.forEach(str => { let btn = document.createElement('button'); btn.className = `segment-btn ${filtreStructureActif === str ? 'active' : ''}`; btn.innerText = str.toUpperCase(); btn.onclick = () => { filtreStructureActif = str; rechargerTout(); }; containerStructure.appendChild(btn); });
 }
 
 function afficherTableauAvenants() {
-    let tbody = document.getElementById('tbodyAvenants'); tbody.innerHTML = "";
-    listeAvenants.forEach((item, index) => {
-        if (filtreOuvrageActif !== "TOUS" && item.ouvrage !== filtreOuvrageActif) return;
-        if (filtreStructureActif !== "TOUS" && item.structure !== filtreStructureActif) return;
-        let txtQteInit = item.quantite !== null ? item.quantite.toLocaleString('fr-FR', { minimumFractionDigits: 2 }) : "0,00";
-        let txtPUInit = item.prix_unitaire !== null ? item.prix_unitaire.toLocaleString('fr-FR', { minimumFractionDigits: 2 }) + " Ar" : "0,00 Ar";
-        let txtTotInit = item.total !== null ? item.total.toLocaleString('fr-FR', { minimumFractionDigits: 2 }) + " Ar" : "0,00 Ar";
-        let valQteAv = item.qte_av !== null ? item.qte_av : ""; let valPUAv = item.pu_av !== null ? item.pu_av : "";
-        let txtTotalAv = ""; let couleurTotalAv = "inherit";
-        if (item.total_av !== null) { txtTotalAv = formatArgent(item.total_av) + " Ar"; couleurTotalAv = item.total_av < 0 ? "red" : item.total_av > 0 ? "green" : "inherit"; }
-        let btnActions = item.est_nouveau ? `<button class="btn btn-danger" style="padding:4px 8px; font-size:12px;" onclick="supprimerNouveauCode(${index})">🗑</button>` : `<span style="font-size:11px;color:grey;">Marché</span>`;
-        if(window.modeLectureSeuleActive) btnActions = "";
-        let tr = document.createElement('tr');
-        tr.innerHTML = `<td><b>${item.ouvrage}</b></td><td>${item.code_bdqe}</td><td>${item.structure}</td><td>${item.designation}</td><td>${item.unite}</td><td>${txtQteInit}</td><td>${txtPUInit}</td><td><b>${txtTotInit}</b></td><td><input type="text" class="input-inline" value="${valQteAv}" onchange="répercuterValeursLigne(${index}, '${item.code_bdqe}', 'qte', this.value)"></td><td><input type="text" class="input-inline" value="${valPUAv}" onchange="répercuterValeursLigne(${index}, '${item.code_bdqe}', 'pu', this.value)"></td><td style="color:${couleurTotalAv}; font-weight:bold;">${txtTotalAv}</td><td class="col-action-modification">${btnActions}</td>`;
-        tbody.appendChild(tr);
-    });
+ let tbody = document.getElementById('tbodyAvenants'); if(!tbody) return; tbody.innerHTML = "";
+ listeAvenants.forEach((item, index) => {
+ if (filtreOuvrageActif !== "TOUS" && item.ouvrage !== filtreOuvrageActif) return; if (filtreStructureActif !== "TOUS" && item.structure !== filtreStructureActif) return;
+ let txtQteInit = item.quantite !== null ? item.quantite.toLocaleString('fr-FR', { minimumFractionDigits: 2 }) : "0,00";
+ let txtPUInit = item.prix_unitaire !== null ? item.prix_unitaire.toLocaleString('fr-FR', { minimumFractionDigits: 2 }) + " Ar" : "0,00 Ar";
+ let txtTotInit = item.total !== null ? item.total.toLocaleString('fr-FR', { minimumFractionDigits: 2 }) + " Ar" : "0,00 Ar";
+ let valQteAv = item.qte_av !== null ? item.qte_av : ""; let valPUAv = item.pu_av !== null ? item.pu_av : "";
+ let txtTotalAv = ""; let couleurTotalAv = "inherit";
+ if (item.total_av !== null) { txtTotalAv = formatArgent(item.total_av) + " Ar"; couleurTotalAv = item.total_av < 0 ? "red" : item.total_av > 0 ? "green" : "inherit"; }
+ let btnActions = item.est_nouveau ? `<button class="btn btn-danger" style="padding:4px 8px; font-size:12px;" onclick="supprimerNouveauCode(${index})">🗑️</button>` : `<span style="font-size:11px;color:grey;">Marché</span>`;
+ if(window.modeLectureSeuleActive) btnActions = "";
+ let tr = document.createElement('tr');
+ tr.innerHTML = `<td><b>${item.ouvrage}</b></td><td>${item.code_bdqe}</td><td>${item.structure}</td><td>${item.designation}</td><td>${item.unite}</td><td>${txtQteInit}</td><td>${txtPUInit}</td><td><b>${txtTotInit}</b></td><td><input type="text" class="input-inline" value="${valQteAv}" onchange="répercuterValeursLigne(${index}, '${item.code_bdqe}', 'qte', this.value)"></td><td><input type="text" class="input-inline" value="${valPUAv}" onchange="répercuterValeursLigne(${index}, '${item.code_bdqe}', 'pu', this.value)"></td><td style="color:${couleurTotalAv}; font-weight:bold;">${txtTotalAv}</td><td class="col-action-modification">${btnActions}</td>`;
+ tbody.appendChild(tr);
+ });
 }
 
 function supprimerNouveauCode(index) { if(confirm("Supprimer ?")) { listeAvenants.splice(index, 1); rechargerTout(); } }
 function reinitialiserAvenantsOnly() { if(confirm("Tout effacer pour CE projet ?")) { listeAvenants.forEach(item => { item.qte_av = null; item.pu_av = null; item.total_av = null; }); listeAvenants = listeAvenants.filter(item => !item.est_nouveau); rechargerTout(); } }
 
 function calculerBilansFinanciers() {
-    let sumInit = 0; let sumAv = 0; let dictOuvrage = {};
-    listeAvenants.forEach(item => {
-        let init = item.total || 0; let av = item.total_av || 0;
-        sumInit += init; sumAv += av;
-        if (!dictOuvrage[item.ouvrage]) dictOuvrage[item.ouvrage] = { init: 0, av: 0 };
-        dictOuvrage[item.ouvrage].init += init; dictOuvrage[item.ouvrage].av += av;
-    });
-    document.getElementById('bilanInitial').innerText = "Total Initial : " + formatArgent(sumInit) + " Ar";
-    document.getElementById('bilanAvenants').innerText = "Bilan Total Avenants : " + (sumAv >= 0 ? "+":"") + formatArgent(sumAv) + " Ar";
-    document.getElementById('bilanFinal').innerText = "Nouveau Budget Projet : " + formatArgent(sumInit + sumAv) + " Ar";
-    let tbody = document.getElementById('tbodyRecapOuvrage'); tbody.innerHTML = "";
-    Object.keys(dictOuvrage).forEach(nom => {
-        let o = dictOuvrage[nom]; let tr = document.createElement('tr');
-        tr.innerHTML = `<td><b>${nom}</b></td><td>${formatArgent(o.init)}</td><td>${formatArgent(o.av)}</td><td><b>${formatArgent(o.init + o.av)}</b></td>`; tbody.appendChild(tr);
-    });
+ let sumInit = 0; let sumAv = 0; let dictOuvrage = {};
+ listeAvenants.forEach(item => {
+ let init = item.total || 0; let av = item.total_av || 0; sumInit += init; sumAv += av;
+ if (!dictOuvrage[item.ouvrage]) dictOuvrage[item.ouvrage] = { init: 0, av: 0 };
+ dictOuvrage[item.ouvrage].init += init; dictOuvrage[item.ouvrage].av += av;
+ });
+ document.getElementById('bilanInitial').innerText = "Total Initial : " + formatArgent(sumInit) + " Ar";
+ document.getElementById('bilanAvenants').innerText = "Bilan Total Avenants : " + (sumAv >= 0 ? "+":"") + formatArgent(sumAv) + " Ar";
+ document.getElementById('bilanFinal').innerText = "Nouveau Budget Projet : " + formatArgent(sumInit + sumAv) + " Ar";
+ let tbody = document.getElementById('tbodyRecapOuvrage'); if(!tbody) return; tbody.innerHTML = "";
+ Object.keys(dictOuvrage).forEach(nom => { let o = dictOuvrage[nom]; let tr = document.createElement('tr'); tr.innerHTML = `<td><b>${nom}</b></td><td>${formatArgent(o.init)}</td><td>${formatArgent(o.av)}</td><td><b>${formatArgent(o.init + o.av)}</b></td>`; tbody.appendChild(tr); });
 }
 </script>
 </body>
+</html>
+
 </html>
