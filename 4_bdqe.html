@@ -217,7 +217,6 @@ function basculerAffichageFormulaireTiroir() {
 window.onload = function() {
  if (localStorage.getItem("session_securisee_active_gc") !== "VALIDE") { window.location.href = "1_login.html"; return; }
  initialiserLeMeubleDB().then(async () => {
-   // 1. CHARGEMENT INSTANTANÉ LOCAL : Affichage immédiat à l'écran (0.1s d'attente)
    listeProjetsGlobal = await lireToutesLesDonneesDB("projets");
    let donneesChargees = await lireDonneeDB("dossiers_techniques", CLE_BDQE_PROJET);
    listeBDQE = donneesChargees ? donneesChargees : [];
@@ -237,22 +236,19 @@ window.onload = function() {
      bandeauAlerte.style.cssText = "background:#eff6ff; color:#1e40af; padding:10px; border-radius:6px; font-weight:bold; margin-bottom:5px; border:1px solid #bfdbfe; font-size:11px; text-align:center; flex-shrink:0;";
      bandeauAlerte.innerText = "Mode Consultation Uniquement (Lecture Seule Droits Terrain Restreints)";
      document.body.insertBefore(bandeauAlerte, document.body.firstChild);
-     if(document.querySelector('.col-action-modification')) document.querySelector('.col-action-modification').style.display = 'none';
      window.modeLectureSeuleActive = true;
    }
    rechargerTout();
 
-   // 2. SYNCHRONISATION CLOUD EN ARRIÈRE-PLAN : Téléchargement silencieux depuis Supabase
    if (window.supabaseClient && navigator.onLine) {
      try {
        let { data: resTech } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', CLE_BDQE_PROJET).maybeSingle();
        if (resTech && resTech.contenu_json) {
          listeBDQE = resTech.contenu_json;
-         await ecrireDonneeDB("dossiers_techniques", listeBDQE, CLE_BDQE_PROJET); // On met à jour la machine locale
-         rechargerTout(); // Rafraîchissement discret de la grille
-         console.log("🌐 BDQE synchronisé en temps réel depuis le Cloud !");
+         await ecrireDonneeDB("dossiers_techniques", listeBDQE, CLE_BDQE_PROJET);
+         rechargerTout();
        }
-     } catch (err) { console.log("Lenteur réseau : maintien du cache local de brousse."); }
+     } catch (err) { console.log("Lenteur réseau de brousse active."); }
    }
  });
 };
@@ -347,16 +343,14 @@ function actualiserSelectOuvrages() {
  ouvragesUniques.forEach(ouv => { let opt = document.createElement('option'); opt.value = ouv; datalistOuvrage.appendChild(opt); });
 }
 
-// LE MOTEUR DOUBLE : Écrit instantanément sur l'appareil ET sur Supabase en arrière-plan
+// ACTION HYBRIDE : Écrit en local en 0.1s puis pousse vers Supabase en arrière-plan
 async function rechargerTout() {
  trierDonneesAlphanumerique(); genererBoutonsSegmentsOuvrages(); genererBoutonsSegmentsStructures(); afficherGrilleDonneesBDQE(); afficherCartesRecapOuvrages(); actualiserSelectOuvrages();
  let mnt = 0; listeBDQE.forEach(i => mnt += (i.total || 0));
  document.getElementById('txtCalculSommeFinanciereBDQE').innerText = formatArgent(mnt) + " Ar";
  
- // 1. Sauvegarde instantanée de brousse en local (Mémoire machine)
  await ecrireDonneeDB("dossiers_techniques", listeBDQE, CLE_BDQE_PROJET);
  
- // 2. Push automatique invisible en tâche de fond vers Supabase
  if (window.supabaseClient && navigator.onLine) {
    await window.supabaseClient.from('dossiers_techniques').upsert({ id: CLE_BDQE_PROJET, projet_id: String(idProjetCourant), type_donnee: 'bdqe', contenu_json: listeBDQE });
  }
@@ -397,6 +391,7 @@ function afficherCartesRecapOuvrages() {
  });
 }
 
+function abrirModalStructures(nomOuvrage) { ouvrirModalStructures(nomOuvrage); }
 function ouvrirModalStructures(nomOuvrage) {
  document.getElementById('modalTitreOuvrage').innerText = `Ventilation : ${nomOuvrage.toUpperCase()}`;
  let containerBody = document.getElementById('modalListeStructuresBody'); containerBody.innerHTML = "";
