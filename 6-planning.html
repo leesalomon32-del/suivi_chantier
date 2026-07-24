@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+ <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
  <meta charset="UTF-8">
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
  <title>Génie Civil Pro - Planning & Diagramme de Gantt</title>
@@ -116,31 +118,41 @@ const DB_VERSION = 1;
 let dbInstance = null;
 
 function initialiserLeMeubleDB() {
-    return new Promise((resolve, reject) => {
-        let requete = indexedDB.open(DB_NAME, DB_VERSION);
-        requete.onsuccess = function(e) { dbInstance = e.target.result; resolve(dbInstance); };
-        requete.onerror = function() { reject("Meuble bloqué."); };
-    });
+ return new Promise((resolve, reject) => {
+ let requete = indexedDB.open(DB_NAME, DB_VERSION);
+ requete.onsuccess = function(e) { dbInstance = e.target.result; resolve(dbInstance); };
+ requete.onerror = function() { reject("Meuble bloqué."); };
+ });
 }
 
 function lireDonneeDB(tiroir, cle) {
-    return new Promise((resolve) => {
-        if(!dbInstance) return resolve(null);
-        let tx = dbInstance.transaction([tiroir], "readonly");
-        let req = tx.objectStore(tiroir).get(cle);
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => resolve(null);
-    });
+ return new Promise((resolve) => {
+ if(!dbInstance) return resolve(null);
+ let tx = dbInstance.transaction([tiroir], "readonly");
+ let req = tx.objectStore(tiroir).get(cle);
+ req.onsuccess = () => resolve(req.result);
+ req.onerror = () => resolve(null);
+ });
 }
 
 function ecrireDonneeDB(tiroir, objet, cleOptionnelle) {
-    return new Promise((resolve) => {
-        if(!dbInstance) return resolve(false);
-        let tx = dbInstance.transaction([tiroir], "readwrite");
-        let req = cleOptionnelle !== undefined ? tx.objectStore(tiroir).put(objet, cleOptionnelle) : tx.objectStore(tiroir).put(objet);
-        req.onsuccess = () => resolve(true);
-        req.onerror = () => resolve(false);
-    });
+ return new Promise((resolve) => {
+ if(!dbInstance) return resolve(false);
+ let tx = dbInstance.transaction([tiroir], "readwrite");
+ let req = cleOptionnelle !== undefined ? tx.objectStore(tiroir).put(objet, cleOptionnelle) : tx.objectStore(tiroir).put(objet);
+ req.onsuccess = () => resolve(true);
+ req.onerror = () => resolve(false);
+ });
+}
+
+function lireToutesLesDonneesDB(tiroir) {
+ return new Promise((resolve) => {
+ if(!dbInstance) return resolve([]);
+ let tx = dbInstance.transaction([tiroir], "readonly");
+ let req = tx.objectStore(tiroir).getAll();
+ req.onsuccess = () => resolve(req.result || []);
+ req.onerror = () => resolve([]);
+ });
 }
 
 let listePlanningComplet = []; 
@@ -152,186 +164,161 @@ const CLE_BDQE_PROJET = `bdqe_${idProjetCourant}`;
 const CLE_AVENANTS_PROJET = `avenants_${idProjetCourant}`;
 
 function basculerAffichageFormulaireTiroir() {
-    let form = document.getElementById('formSaisiePlanningLigne');
-    let btn = document.querySelector('.toggle-form-btn');
-    form.classList.toggle('open');
-    if (form.classList.contains('open')) {
-        btn.innerText = "Fermer la Console de Planification de Masse ❌";
-        btn.style.cssText = "background:#fee2e2; color:var(--danger-red); border-color:var(--danger-red);";
-    } else {
-        btn.innerText = "Ouvrir les Outils de Planification de Masse & Cascade 📅";
-        btn.style.cssText = "background:#f1f5f9; color:#64748b; border-color:#64748b;";
-    }
+ let form = document.getElementById('formSaisiePlanningLigne'); let btn = document.querySelector('.toggle-form-btn');
+ form.classList.toggle('open');
+ if (form.classList.contains('open')) {
+ btn.innerText = "Fermer la Console de Planification de Masse ❌"; btn.style.cssText = "background:#fee2e2; color:var(--danger-red); border-color:var(--danger-red);";
+ } else {
+ btn.innerText = "Ouvrir les Outils de Planification de Masse & Cascade 📅"; btn.style.cssText = "background:#f1f5f9; color:#64748b; border-color:#64748b;";
+ }
 }
 
 function gererChangementCibleScopePlanning() {
-    let scope = document.getElementById('cfgScopePlanning').value;
-    document.getElementById('rowScopeOuvrage').style.display = (scope === "PAR_OUVRAGE") ? "flex" : "none";
-    document.getElementById('rowScopeStructure').style.display = (scope === "PAR_STRUCTURE") ? "flex" : "none";
+ let scope = document.getElementById('cfgScopePlanning').value;
+ document.getElementById('rowScopeOuvrage').style.display = (scope === "PAR_OUVRAGE") ? "flex" : "none";
+ document.getElementById('rowScopeStructure').style.display = (scope === "PAR_STRUCTURE") ? "flex" : "none";
 }
-window.onload = function() {
-    if (localStorage.getItem("session_securisee_active_gc") !== "VALIDE") {
-        window.location.href = "1_login.html"; return;
-    }
-    initialiserLeMeubleDB().then(async () => {
-        let listeProjetsGlobal = await lireToutesLesDonneesDB("projets");
-        let lotActuel = listeProjetsGlobal.find(p => p.id == idProjetCourant);
-        if (lotActuel) {
-            document.getElementById('txtTitreLotPlanning').innerText = "Planning d'Exécution & Gantt — " + lotActuel.nom.toUpperCase();
-            document.getElementById('txtLabelSousTitreLot').innerText = `ID unique : ${idProjetCourant} | Type : ${lotActuel.type}`;
-        }
-        let role = localStorage.getItem("session_user_role") || "agents";
-        let lotsAutorises = JSON.parse(localStorage.getItem("session_user_lots") || "[]");
-        if (role === "agents" || (role === "controle" && !lotsAutorises.includes(String(idProjetCourant)))) {
-            document.querySelector('.toggle-form-btn').style.display = 'none';
-            document.getElementById('formSaisiePlanningLigne').style.display = 'none';
-            let bandeauAlerte = document.createElement('div');
-            bandeauAlerte.style.cssText = "background:#eff6ff; color:#1e40af; padding:10px; border-radius:6px; font-weight:bold; margin-bottom:5px; border:1px solid #bfdbfe; font-size:11px; text-align:center; flex-shrink:0;";
-            bandeauAlerte.innerText = " Mode Consultation Uniquement (Lecture Seule 🔒 Accès Terrain Restreints)";
-            document.body.insertBefore(bandeauAlerte, document.body.firstChild);
-            window.modeLectureSeulePlanning = true;
-        }
-        let listeBDQEOrigine = await lireDonneeDB("dossiers_techniques", CLE_BDQE_PROJET) || [];
-        let listeAvenantsOrigine = await lireDonneeDB("dossiers_techniques", CLE_AVENANTS_PROJET) || [];
-        let planningsEnregistres = await lireDonneeDB("dossiers_techniques", CLE_PLANNING_PROJET) || [];
-        
-        listePlanningComplet = [];
-        let toutesLesTachesMarché = [...listeBDQEOrigine];
-        listeAvenantsOrigine.forEach(av => { if (av.est_nouveau) toutesLesTachesMarché.push(av); });
-        
-        toutesLesTachesMarché.forEach(tache => {
-            let calendrierSauve = planningsEnregistres.find(p => p.code_bdqe === tache.code_bdqe && p.ouvrage === tache.ouvrage);
-            listePlanningComplet.push({
-                ouvrage: tache.ouvrage,
-                code_bdqe: tache.code_bdqe,
-                structure: tache.structure || "-",
-                designation: tache.designation,
-                date_debut: calendrierSauve ? calendrierSauve.date_debut : "",
-                date_fin: calendrierSauve ? calendrierSauve.date_fin : ""
-            });
-        });
-        
-        let selectOuv = document.getElementById('selectScopeOuvrageNom');
-        let selectStr = document.getElementById('selectScopeStructureNom');
-        if (selectOuv && selectStr) {
-            selectOuv.innerHTML = [...new Set(listePlanningComplet.map(i => i.ouvrage).filter(Boolean))].map(o => `<option value="${o}">${o.toUpperCase()}</option>`).join("");
-            selectStr.innerHTML = [...new Set(listePlanningComplet.map(i => i.structure).filter(Boolean))].map(s => `<option value="${s}">${s.toUpperCase()}</option>`).join("");
-        }
-        rechargerToutPlanning();
-    });
-};
 
-function lireToutesLesDonneesDB(tiroir) {
-    return new Promise((resolve) => {
-        if(!dbInstance) return resolve([]);
-        let tx = dbInstance.transaction([tiroir], "readonly");
-        let req = tx.objectStore(tiroir).getAll();
-        req.onsuccess = () => resolve(req.result || []);
-        req.onerror = () => resolve([]);
-    });
-}
-function capturerSaisieDirectePlanning(index, champ, valeur) {
-    if(window.modeLectureSeulePlanning) return;
-    listePlanningComplet[index][champ] = valeur;
-    rechargerToutPlanning();
-}
+window.onload = function() {
+ if (localStorage.getItem("session_securisee_active_gc") !== "VALIDE") { window.location.href = "1_login.html"; return; }
+ 
+ initialiserLeMeubleDB().then(async () => {
+ let listeProjetsGlobal = await lireToutesLesDonneesDB("projets");
+ let lotActuel = listeProjetsGlobal.find(p => p.id == idProjetCourant);
+ if (lotActuel) {
+ document.getElementById('txtTitreLotPlanning').innerText = "Planning d'Exécution & Gantt — " + lotActuel.nom.toUpperCase();
+ document.getElementById('txtLabelSousTitreLot').innerText = `ID unique : ${idProjetCourant} | Type : ${lotActuel.type}`;
+ }
+ let role = localStorage.getItem("session_user_role") || "agents";
+ let lotsAutorises = JSON.parse(localStorage.getItem("session_user_lots") || "[]");
+ if (role === "agents" || (role === "controle" && !lotsAutorises.includes(String(idProjetCourant)))) {
+ document.querySelector('.toggle-form-btn').style.display = 'none'; document.getElementById('formSaisiePlanningLigne').style.display = 'none';
+ let bandeauAlerte = document.createElement('div'); bandeauAlerte.style.cssText = "background:#eff6ff; color:#1e40af; padding:10px; border-radius:6px; font-weight:bold; margin-bottom:5px; border:1px solid #bfdbfe; font-size:11px; text-align:center; flex-shrink:0;";
+ bandeauAlerte.innerText = "Mode Consultation Uniquement (Lecture Seule Accès Terrain Restreints) 🔒";
+ document.body.insertBefore(bandeauAlerte, document.body.firstChild); window.modeLectureSeulePlanning = true;
+ }
+
+ // 1. AFFICHAGE ULTRA-RAPIDE EN LOCAL (0.1 seconde d'attente)
+ let listeBDQEOrigine = null; let listeAvenantsOrigine = null; let planningsEnregistres = null;
+ 
+ if (window.supabaseClient && navigator.onLine) {
+   try {
+     let { data: rB } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', CLE_BDQE_PROJET).maybeSingle();
+     if(rB) listeBDQEOrigine = rB.contenu_json;
+     let { data: rA } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', CLE_AVENANTS_PROJET).maybeSingle();
+     if(rA) listeAvenantsOrigine = rA.contenu_json;
+     let { data: rP } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', CLE_PLANNING_PROJET).maybeSingle();
+     if(rP) planningsEnregistres = rP.contenu_json;
+   } catch(e) {}
+ }
+ if(!listeBDQEOrigine) listeBDQEOrigine = await lireDonneeDB("dossiers_techniques", CLE_BDQE_PROJET) || [];
+ if(!listeAvenantsOrigine) listeAvenantsOrigine = await lireDonneeDB("dossiers_techniques", CLE_AVENANTS_PROJET) || [];
+ if(!planningsEnregistres) planningsEnregistres = await lireDonneeDB("dossiers_techniques", CLE_PLANNING_PROJET) || [];
+ 
+ listePlanningComplet = [];
+ let toutesLesTachesMarché = [...listeBDQEOrigine];
+ listeAvenantsOrigine.forEach(av => { if (av.est_nouveau) toutesLesTachesMarché.push(av); });
+ 
+ toutesLesTachesMarché.forEach(tache => {
+ let calendrierSauve = planningsEnregistres.find(p => p.code_bdqe === tache.code_bdqe && p.ouvrage === tache.ouvrage);
+ listePlanningComplet.push({ ouvrage: tache.ouvrage, code_bdqe: tache.code_bdqe, structure: tache.structure || "-", designation: tache.designation, date_debut: calendrierSauve ? calendrierSauve.date_debut : "", date_fin: calendrierSauve ? calendrierSauve.date_fin : "" });
+ });
+ 
+ let selectOuv = document.getElementById('selectScopeOuvrageNom'); let selectStr = document.getElementById('selectScopeStructureNom');
+ if (selectOuv && selectStr) {
+ selectOuv.innerHTML = [...new Set(listePlanningComplet.map(i => i.ouvrage).filter(Boolean))].map(o => `<option value="${o}">${o.toUpperCase()}</option>`).join("");
+ selectStr.innerHTML = [...new Set(listePlanningComplet.map(i => i.structure).filter(Boolean))].map(s => `<option value="${s}">${s.toUpperCase()}</option>`).join("");
+ }
+ rechargerToutPlanning();
+ });
+};
+function capturerSaisieDirectePlanning(index, champ, valeur) { if(window.modeLectureSeulePlanning) return; listePlanningComplet[index][champ] = valeur; rechargerToutPlanning(); }
 
 function appliquerPlanificationDeMasseCascade() {
-    if(window.modeLectureSeulePlanning) return;
-    let scope = document.getElementById('cfgScopePlanning').value;
-    let dateDebut = document.getElementById('cfgDateDebutMasse').value;
-    let dateFin = document.getElementById('cfgDateFinMasse').value;
-    if (!dateDebut || !dateFin) return alert("Veuillez sélectionner les dates !");
-    if (new Date(dateDebut) > new Date(dateFin)) return alert("La date de début doit être antérieure à la date de fin.");
-    
-    let compteurImpact = 0;
-    let cibleOuvrage = document.getElementById('selectScopeOuvrageNom').value;
-    let cibleStructure = document.getElementById('selectScopeStructureNom').value;
-    
-    listePlanningComplet.forEach(tache => {
-        let ok = false;
-        if (scope === "LOT_ENTIER") ok = true;
-        else if (scope === "PAR_OUVRAGE" && tache.ouvrage === cibleOuvrage) ok = true;
-        else if (scope === "PAR_STRUCTURE" && tache.structure === cibleStructure) ok = true;
-        if (ok) { tache.date_debut = dateDebut; tache.date_fin = dateFin; compteurImpact++; }
-    });
-    alert(`Calendrier propagé sur ${compteurImpact} tâches.`);
-    basculerAffichageFormulaireTiroir(); rechargerToutPlanning();
+ if(window.modeLectureSeulePlanning) return;
+ let scope = document.getElementById('cfgScopePlanning').value; let dateDebut = document.getElementById('cfgDateDebutMasse').value; let dateFin = document.getElementById('cfgDateFinMasse').value;
+ if (!dateDebut || !dateFin) return alert("Veuillez sélectionner les dates !");
+ if (new Date(dateDebut) > new Date(dateFin)) return alert("La date de début doit être antérieure à la date de fin.");
+ let compteurImpact = 0; let cibleOuvrage = document.getElementById('selectScopeOuvrageNom').value; let cibleStructure = document.getElementById('selectScopeStructureNom').value;
+ 
+ listePlanningComplet.forEach(tache => {
+ let ok = false;
+ if (scope === "LOT_ENTIER") ok = true;
+ else if (scope === "PAR_OUVRAGE" && tache.ouvrage === cibleOuvrage) ok = true;
+ else if (scope === "PAR_STRUCTURE" && tache.structure === cibleStructure) ok = true;
+ if (ok) { tache.date_debut = dateDebut; tache.date_fin = dateFin; compteurImpact++; }
+ });
+ alert(`Calendrier propagé sur ${compteurImpact} tâches.`);
+ basculerAffichageFormulaireTiroir(); rechargerToutPlanning();
 }
 
 function trierPlanningAlphanumerique() {
-    listePlanningComplet.sort((a, b) => {
-        let comp = a.ouvrage.localeCompare(b.ouvrage, 'fr', { sensitivity: 'base' }); if (comp !== 0) return comp;
-        let partsA = String(a.code_bdqe).split(/[\.,]/).map(Number); let partsB = String(b.code_bdqe).split(/[\.,]/).map(Number);
-        for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
-            let numA = partsA[i] || 0; let numB = partsB[i] || 0; if (numA !== numB) return numA - numB;
-        }
-        return 0;
-    });
+ listePlanningComplet.sort((a, b) => {
+ let comp = a.ouvrage.localeCompare(b.ouvrage, 'fr', { sensitivity: 'base' }); if (comp !== 0) return comp;
+ let partsA = String(a.code_bdqe).split(/[\.,]/).map(Number); let partsB = String(b.code_bdqe).split(/[\.,]/).map(Number);
+ for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) { let numA = partsA[i] || 0; let numB = partsB[i] || 0; if (numA !== numB) return numA - numB; }
+ return 0;
+ });
 }
+
+// LE MOTEUR DE DOUBLE SAUVEGARDE : Écrit simultanément en local et sur Supabase en arrière-plan
 async function rechargerToutPlanning() {
-    trierPlanningAlphanumerique(); genererBoutonsSegmentsOuvrages(); genererBoutonsSegmentsStructures(); afficherGrillePlanningGanttHTML();
-    let dateMinLot = null; let dateMaxLot = null;
-    listePlanningComplet.forEach(t => {
-        if (t.date_debut && t.date_fin) {
-            let d1 = new Date(t.date_debut); let d2 = new Date(t.date_fin);
-            if (!dateMinLot || d1 < dateMinLot) dateMinLot = d1; if (!dateMaxLot || d2 > dateMaxLot) dateMaxLot = d2;
-        }
-    });
-    if (dateMinLot && dateMaxLot) {
-        let cumul = Math.ceil(Math.abs(dateMaxLot - dateMinLot) / (1000 * 60 * 60 * 24)) + 1;
-        document.getElementById('txtCalculDateDebutLot').innerText = dateMinLot.toLocaleDateString('fr-FR');
-        document.getElementById('txtCalculDateFinLot').innerText = dateMaxLot.toLocaleDateString('fr-FR');
-        document.getElementById('txtCalculDureeGlobaleLot').innerText = cumul + " jours";
-    } else {
-        document.getElementById('txtCalculDateDebutLot').innerText = "-"; document.getElementById('txtCalculDateFinLot').innerText = "-"; document.getElementById('txtCalculDureeGlobaleLot').innerText = "0 jours";
-    }
-    try { await ecrireDonneeDB("dossiers_techniques", listePlanningComplet, CLE_PLANNING_PROJET); } catch (err) {}
+ trierPlanningAlphanumerique(); genererBoutonsSegmentsOuvrages(); genererBoutonsSegmentsStructures(); afficherGrillePlanningGanttHTML();
+ let dateMinLot = null; let dateMaxLot = null;
+ listePlanningComplet.forEach(t => { if (t.date_debut && t.date_fin) { let d1 = new Date(t.date_debut); let d2 = new Date(t.date_fin); if (!dateMinLot || d1 < dateMinLot) dateMinLot = d1; if (!dateMaxLot || d2 > dateMaxLot) dateMaxLot = d2; } });
+ if (dateMinLot && dateMaxLot) {
+ let cumul = Math.ceil(Math.abs(dateMaxLot - dateMinLot) / (1000 * 60 * 60 * 24)) + 1;
+ document.getElementById('txtCalculDateDebutLot').innerText = dateMinLot.toLocaleDateString('fr-FR');
+ document.getElementById('txtCalculDateFinLot').innerText = dateMaxLot.toLocaleDateString('fr-FR');
+ document.getElementById('txtCalculDureeGlobaleLot').innerText = cumul + " jours";
+ } else {
+ document.getElementById('txtCalculDateDebutLot').innerText = "-"; document.getElementById('txtCalculDateFinLot').innerText = "-"; document.getElementById('txtCalculDureeGlobaleLot').innerText = "0 jours";
+ }
+ 
+ // 1. Rangement local immédiat (Évite toute attente utilisateur)
+ try { await ecrireDonneeDB("dossiers_techniques", listePlanningComplet, CLE_PLANNING_PROJET); } catch (err) {}
+ 
+ // 2. Envoi automatique invisible en arrière-plan vers Supabase Cloud
+ if (window.supabaseClient && navigator.onLine) {
+   await window.supabaseClient.from('dossiers_techniques').upsert({ id: CLE_PLANNING_PROJET, projet_id: String(idProjetCourant), type_donnee: 'planning', contenu_json: listePlanningComplet });
+ }
 }
 
 function genererBoutonsSegmentsOuvrages() {
-    let container = document.getElementById('boxSegmentsOuvragesPlanning'); if (!container) return; container.innerHTML = "";
-    let ouvs = ["TOUS", ...new Set(listePlanningComplet.map(item => item.ouvrage).filter(Boolean))];
-    ouvs.forEach(ouv => {
-        let btn = document.createElement('button'); btn.className = `segment-btn ${filtreOuvrageActif === ouv ? 'active' : ''}`; btn.innerText = ouv.toUpperCase();
-        btn.onclick = function() { filtreOuvrageActif = ouv; filtreStructureActif = "TOUS"; rechargerToutPlanning(); }; container.appendChild(btn);
-    });
+ let container = document.getElementById('boxSegmentsOuvragesPlanning'); if (!container) return; container.innerHTML = "";
+ let ouvs = ["TOUS", ...new Set(listePlanningComplet.map(item => item.ouvrage).filter(Boolean))];
+ ouvs.forEach(ouv => { let btn = document.createElement('button'); btn.className = `segment-btn ${filtreOuvrageActif === ouv ? 'active' : ''}`; btn.innerText = ouv.toUpperCase(); btn.onclick = function() { filtreOuvrageActif = ouv; filtreStructureActif = "TOUS"; rechargerToutPlanning(); }; container.appendChild(btn); });
 }
 
 function genererBoutonsSegmentsStructures() {
-    let container = document.getElementById('boxSegmentsStructuresPlanning'); if (!container) return; container.innerHTML = "";
-    let sub = filtreOuvrageActif === "TOUS" ? listePlanningComplet : listePlanningComplet.filter(item => item.ouvrage === filtreOuvrageActif);
-    let structs = ["TOUS", ...new Set(sub.map(item => item.structure).filter(Boolean))];
-    structs.forEach(str => {
-        let btn = document.createElement('button'); btn.className = `segment-btn ${filtreStructureActif === str ? 'active' : ''}`; btn.innerText = str.toUpperCase();
-        btn.onclick = function() { filtreStructureActif = str; rechargerToutPlanning(); }; container.appendChild(btn);
-    });
+ let container = document.getElementById('boxSegmentsStructuresPlanning'); if (!container) return; container.innerHTML = "";
+ let sub = filtreOuvrageActif === "TOUS" ? listePlanningComplet : listePlanningComplet.filter(item => item.ouvrage === filtreOuvrageActif);
+ let structs = ["TOUS", ...new Set(sub.map(item => item.structure).filter(Boolean))];
+ structs.forEach(str => { let btn = document.createElement('button'); btn.className = `segment-btn ${filtreStructureActif === str ? 'active' : ''}`; btn.innerText = str.toUpperCase(); btn.onclick = function() { filtreStructureActif = str; rechargerToutPlanning(); }; container.appendChild(btn); });
 }
 
 function afficherGrillePlanningGanttHTML() {
-    let tbody = document.getElementById('tbodyLignesPlanningGrid'); if (!tbody) return; tbody.innerHTML = "";
-    listePlanningComplet.forEach((item, index) => {
-        if (filtreOuvrageActif !== "TOUS" && item.ouvrage !== filtreOuvrageActif) return;
-        if (filtreStructureActif !== "TOUS" && item.structure !== filtreStructureActif) return;
-        
-        let dureeTache = "-";
-        let ganttBarHTML = `<div style="font-size:10px; color:#cbd5e1; text-align:center; font-style:italic;">Calendrier non défini</div>`;
-        if (item.date_debut && item.date_fin) {
-            let debut = new Date(item.date_debut); let fin = new Date(item.date_fin);
-            dureeTache = Math.ceil(Math.abs(fin - debut) / (1000 * 60 * 60 * 24)) + 1;
-            let aujourdhui = new Date(); let progressionPct = 0; let couleurJauge = "task-blue";
-            if (aujourdhui > fin) { progressionPct = 100; couleurJauge = "task-green"; } 
-            else if (aujourdhui >= debut && aujourdhui <= fin) {
-                progressionPct = Math.min(Math.round((Math.ceil((aujourdhui - debut) / (1000 * 60 * 60 * 24)) / dureeTache) * 100), 100);
-                if (progressionPct > 80) couleurJauge = "task-amber";
-            }
-            ganttBarHTML = `<div style="display:flex; flex-direction:column; gap:2px; width:100%;"><div class="gantt-track-bg"><div class="gantt-bar-fill ${couleurJauge}" style="width: ${progressionPct}%;"></div></div><div style="display:flex; justify-content:space-between; font-size:9px; font-weight:bold; color:#64748b;"><span>${progressionPct}% temps</span><span>${dureeTache} jrs</span></div></div>`;
-        }
-        let desactive = window.modeLectureSeulePlanning ? "disabled" : "";
-        let tr = document.createElement('tr');
-        tr.innerHTML = `<td><b>${item.ouvrage}</b></td><td style="font-family:monospace; font-weight:bold; color:var(--accent-blue);">${item.code_bdqe}</td><td><span style="font-size:11px; font-weight:500;">${item.designation}</span><br><span style="font-size:9px; color:#94a3b8; font-weight:bold;"> ${item.structure}</span></td><td><input type="date" class="input-inline-table" style="background:#f0fdf4;" value="${item.date_debut}" ${desactive} onchange="capturerSaisieDirectePlanning(${index}, 'date_debut', this.value)"></td><td><input type="date" class="input-inline-table" style="background:#fdf2f8;" value="${item.date_fin}" ${desactive} onchange="capturerSaisieDirectePlanning(${index}, 'date_fin', this.value)"></td><td style="text-align:center;font-weight:bold;">${dureeTache > 0 ? dureeTache + ' j':'-'}</td><td class="gantt-wrapper-cell">${ganttBarHTML}</td>`;
-        tbody.appendChild(tr);
-    });
+ let tbody = document.getElementById('tbodyLignesPlanningGrid'); if (!tbody) return; tbody.innerHTML = "";
+ listePlanningComplet.forEach((item, index) => {
+ if (filtreOuvrageActif !== "TOUS" && item.ouvrage !== filtreOuvrageActif) return; if (filtreStructureActif !== "TOUS" && item.structure !== filtreStructureActif) return;
+ let dureeTache = "-";
+ let ganttBarHTML = `<div style="font-size:10px; color:#cbd5e1; text-align:center; font-style:italic;">Calendrier non défini</div>`;
+ if (item.date_debut && item.date_fin) {
+ let debut = new Date(item.date_debut); let fin = new Date(item.date_fin);
+ dureeTache = Math.ceil(Math.abs(fin - debut) / (1000 * 60 * 60 * 24)) + 1;
+ let aujourdhui = new Date(); let progressionPct = 0; let couleurJauge = "task-blue";
+ if (aujourdhui > fin) { progressionPct = 100; couleurJauge = "task-green"; } 
+ else if (aujourdhui >= debut && aujourdhui <= fin) {
+ progressionPct = Math.min(Math.round((Math.ceil((aujourdhui - debut) / (1000 * 60 * 60 * 24)) / dureeTache) * 100), 100);
+ if (progressionPct > 80) couleurJauge = "task-amber";
+ }
+ ganttBarHTML = `<div style="display:flex; flex-direction:column; gap:2px; width:100%;"><div class="gantt-track-bg"><div class="gantt-bar-fill ${couleurJauge}" style="width: ${progressionPct}%;"></div></div><div style="display:flex; justify-content:space-between; font-size:9px; font-weight:bold; color:#64748b;"><span>${progressionPct}% temps</span><span>${dureeTache} jrs</span></div></div>`;
+ }
+ let desactive = window.modeLectureSeulePlanning ? "disabled" : "";
+ let tr = document.createElement('tr');
+ tr.innerHTML = `<td><b>${item.ouvrage}</b></td><td style="font-family:monospace; font-weight:bold; color:var(--accent-blue);">${item.code_bdqe}</td><td><span style="font-size:11px; font-weight:500;">${item.designation}</span><br><span style="font-size:9px; color:#94a3b8; font-weight:bold;">↳ ${item.structure}</span></td><td><input type="date" class="input-inline-table" style="background:#f0fdf4;" value="${item.date_debut}" ${desactive} onchange="capturerSaisieDirectePlanning(${index}, 'date_debut', this.value)"></td><td><input type="date" class="input-inline-table" style="background:#fdf2f8;" value="${item.date_fin}" ${desactive} onchange="capturerSaisieDirectePlanning(${index}, 'date_fin', this.value)"></td><td style="text-align:center;font-weight:bold;">${dureeTache > 0 ? dureeTache + ' j':'-'}</td><td class="gantt-wrapper-cell">${ganttBarHTML}</td>`;
+ tbody.appendChild(tr);
+ });
 }
 </script>
 </body>
