@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
- <script src="https://jsdelivr.net"></script>
- <script src="config.js"></script>
+ <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
  <meta charset="UTF-8">
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
  <title>Génie Civil Pro - Rapport Exécutif Bailleurs</title>
@@ -231,7 +231,7 @@ async function chargerRenseignementsEtLogosHerites(listeProjets) {
  if(sourceLogos.logoFin_html && document.getElementById('logoFin_box')) document.getElementById('logoFin_box').innerHTML = sourceLogos.logoFin_html.replace('<img', `<img ${styleStyle}`);
  if(sourceLogos.logoMO_html && document.getElementById('logoMO_box')) document.getElementById('logoMO_box').innerHTML = sourceLogos.logoMO_html.replace('<img', `<img ${styleStyle}`);
  if(sourceLogos.logoMOE_html && document.getElementById('logoMOE_box')) document.getElementById('logoMOE_box').innerHTML = sourceLogos.logoMOE_html.replace('<img', `<img ${styleStyle}`);
- if(sourceLogos.logoEnterprise_html && document.getElementById('logoEntreprise_box')) document.getElementById('logoEntreprise_box').innerHTML = sourceLogos.logoEnterprise_html.replace('<img', `<img ${styleStyle}`);
+ if(sourceLogos.logoEnterprise_html && document.getElementById('logoEntreprise_box')) document.getElementById('logoEnterprise_box').innerHTML = sourceLogos.logoEnterprise_html.replace('<img', `<img ${styleStyle}`);
  document.getElementById('txtRemarquesExécutives').value = localStorage.getItem(`remarques_rapport_${idProjetActif}`) || "";
  await calculerEtTracerCourbeSMathématiqueSVG(listeProjets);
 }
@@ -271,13 +271,12 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
  if(listS.length===0) listS = await lireDonneeDB("dossiers_techniques", `suivi_${idProjetActif}`) || [];
  if(listAv.length===0) listAv = await lireDonneeDB("dossiers_techniques", `avenants_${idProjetActif}`) || [];
  
- if(Array.isArray(listB)) listB.forEach(item => item.id_projet = String(idProjetActif));
- if(Array.isArray(listPl)) listPl.forEach(item => item.id_projet = String(idProjetActif));
- if(Array.isArray(listS)) listS.forEach(item => item.id_projet = String(idProjetActif));
+ if(Array.isArray(listB)) listB.forEach(item => { item.id_projet = String(idProjetActif); item.projet_id = String(idProjetActif); });
+ if(Array.isArray(listPl)) listPl.forEach(item => { item.id_projet = String(idProjetActif); item.projet_id = String(idProjetActif); });
+ if(Array.isArray(listS)) listS.forEach(item => { item.id_projet = String(idProjetActif); item.projet_id = String(idProjetActif); });
  
  let enfants = [];
  if (typeProjetActuel === "PAPA") {
- // Correction : Conversion textuelle stricte pour garantir l'extraction des lots enfants
  enfants = listeProjets.filter(item => item.type === "ENFANT" && String(item.parentId) === String(idProjetActif));
  for(let enf of enfants) {
  let bE = null; let pE = null; let sE = null; let aE = null;
@@ -294,10 +293,9 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
  if(!sE) sE = await lireDonneeDB("dossiers_techniques", `suivi_${enf.id}`) || [];
  if(!aE) aE = await lireDonneeDB("dossiers_techniques", `avenants_${enf.id}`) || [];
  
- // Correction : Typage en String forcé pour agréger les tâches sans pertes
- if(Array.isArray(bE)) bE.forEach(item => item.id_projet = String(enf.id));
- if(Array.isArray(pE)) pE.forEach(item => item.id_projet = String(enf.id));
- if(Array.isArray(sE)) sE.forEach(item => item.id_projet = String(enf.id));
+ if(Array.isArray(bE)) bE.forEach(item => { item.id_projet = String(enf.id); item.projet_id = String(enf.id); });
+ if(Array.isArray(pE)) pE.forEach(item => { item.id_projet = String(enf.id); item.projet_id = String(enf.id); });
+ if(Array.isArray(sE)) sE.forEach(item => { item.id_projet = String(enf.id); item.projet_id = String(enf.id); });
  
  listB = listB.concat(bE || []); 
  listPl = listPl.concat(pE || []); 
@@ -334,12 +332,6 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
  
  function calculerPrevuALaDate(dateCible) {
  if (!dMin || !dMax) return 0;
- if (typeProjetActuel === "PAPA") {
- let ratioDeTemps = totalJrs > 0 ? (dateCible - dMin) / (1000*60*60*24) / totalJrs : 0;
- if (ratioDeTemps <= 0) return 0;
- if (ratioDeTemps >= 1) return 100;
- return Math.min(Math.pow(ratioDeTemps, 1.8) * 100, 100);
- }
  let totalCumulePrevuAr = 0;
  listPl.forEach(tache => {
  if (!tache.date_debut || !tache.date_fin) return;
@@ -383,8 +375,7 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
  if (typeProjetActuel === "PAPA") {
  document.getElementById('titleBlocVI').innerText = "VI. Avancement Physique Consolidé par Sous-Projet / Lot Enfant";
  enfants.forEach(enf => {
- // Correction : Comparaison des id_projet des lignes enfants convertis en String
- let lignesEnf = listS.filter(item => String(item.id_projet) === String(enf.id)); let totL = 0, sP = 0;
+ let lignesEnf = listS.filter(item => String(item.id_projet) === String(enf.id) || String(item.projet_id) === String(enf.id)); let totL = 0, sP = 0;
  lignesEnf.forEach(i => { if (i.quantite_contrat > 0) { totL++; sP += Math.min((i.qte_realisee / i.quantite_contrat)*100, 100); } });
  let rReel = totL > 0 ? (sP / totL) : 0; let rPrevu = rReel > 0 ? Math.min(rReel + (tPhyPrevu - tPhyReel), 100) : tPhyPrevu * 0.9;
  injecterLigneDoubleJauge(ventilBox, enf.nom, rPrevu, rReel);
