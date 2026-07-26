@@ -225,14 +225,26 @@ async function chargerRenseignementsEtLogosHerites(listeProjets) {
  document.getElementById('lblMOE').innerText = d.moe || m.moe || "-";
  document.getElementById('lblEntreprise').innerText = d.entreprise || m.entreprise || "-";
  document.getElementById('lblNumContrat').innerText = d.numContrat || m.numContrat || "-";
- 
+  // --- REMPLACEZ LA FIN DE LA FONCTION CHARGERRENSEIGNEMENTSETLOGOSHERITES PAR CECI ---
  let sourceLogos = pActuel && pActuel.type === 'ENFANT' ? m : d;
  let styleStyle = 'style="max-height:28px; max-width:100%; object-fit:contain; vertical-align:middle;"';
- if(sourceLogos.logoFin_html && document.getElementById('logoFin_box')) document.getElementById('logoFin_box').innerHTML = sourceLogos.logoFin_html.replace('<img', `<img ${styleStyle}`);
- if(sourceLogos.logoMO_html && document.getElementById('logoMO_box')) document.getElementById('logoMO_box').innerHTML = sourceLogos.logoMO_html.replace('<img', `<img ${styleStyle}`);
- if(sourceLogos.logoMOE_html && document.getElementById('logoMOE_box')) document.getElementById('logoMOE_box').innerHTML = sourceLogos.logoMOE_html.replace('<img', `<img ${styleStyle}`);
- if(sourceLogos.logoEnterprise_html && document.getElementById('logoEntreprise_box')) document.getElementById('logoEnterprise_box').innerHTML = sourceLogos.logoEnterprise_html.replace('<img', `<img ${styleStyle}`);
- document.getElementById('txtRemarquesExécutives').value = localStorage.getItem(`remarques_rapport_${idProjetActif}`) || "";
+ 
+ if(sourceLogos.logoFin_html && document.getElementById('logoFin_box')) {
+   document.getElementById('logoFin_box').innerHTML = sourceLogos.logoFin_html.replace('<img', `<img ${styleStyle}`);
+ }
+ if(sourceLogos.logoMO_html && document.getElementById('logoMO_box')) {
+   document.getElementById('logoMO_box').innerHTML = sourceLogos.logoMO_html.replace('<img', `<img ${styleStyle}`);
+ }
+ if(sourceLogos.logoMOE_html && document.getElementById('logoMOE_box')) {
+   document.getElementById('logoMOE_box').innerHTML = sourceLogos.logoMOE_html.replace('<img', `<img ${styleStyle}`);
+ }
+ if(sourceLogos.logoEnterprise_html && document.getElementById('logoEntreprise_box')) {
+   document.getElementById('logoEntreprise_box').innerHTML = sourceLogos.logoEnterprise_html.replace('<img', `<img ${styleStyle}`);
+ }
+ 
+ if(document.getElementById('txtRemarquesExécutives')) {
+   document.getElementById('txtRemarquesExécutives').value = localStorage.getItem(`remarques_rapport_${idProjetActif}`) || "";
+ }
  await calculerEtTracerCourbeSMathématiqueSVG(listeProjets);
 }
 
