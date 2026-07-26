@@ -281,24 +281,35 @@ function afficherTableauSuivi() {
  tbody.appendChild(tr);
  });
 }
-
 function calculerTauxGlobauxDashboard() {
- let totalLignesPlanifiees = 0; let sommePourcentagesPhysiques = 0; let enveloppeFinanciereTotaleMarché = 0; let enveloppeFinanciereConsommeeTerrain = 0;
+ let totalLignesPlanifiees = 0; 
+ let sommePourcentagesPhysiques = 0; 
+ let enveloppeFinanciereTotaleMarche = 0; 
+ let enveloppeFinanciereConsommeeTerrain = 0;
+ 
  listeAvancement.forEach(item => {
  if (item.quantite_contrat !== null && item.quantite_contrat > 0) {
  totalLignesPlanifiees++;
- let pourcentLigneBrut = (item.qte_realisee / item.quantite_contrat) * 100; let pourcentLigneBride = Math.min(pourcentLigneBrut, 100);
+ let pourcentLigneBrut = (item.qte_realisee / item.quantite_contrat) * 100; 
+ let pourcentLigneBride = Math.min(pourcentLigneBrut, 100);
  sommePourcentagesPhysiques += pourcentLigneBride;
- let ligneMarchatTotal = item.total_contrat || 0; enveloppeFinanciereTotaleMarché += ligneMarchatTotal; enveloppeFinanciereConsommeeTerrain += (ligneMarchatTotal * (pourcentLigneBride / 100));
+ 
+ let ligneMarcheTotal = item.total_contrat || 0; 
+enveloppeFinanciereTotaleMarche += ligneMarcheTotal; 
+enveloppeFinanciereConsommeeTerrain += (ligneMarcheTotal * (pourcentLigneBride / 100));
  }
  });
+ 
  let tauxPhysiqueGlobal = totalLignesPlanifiees > 0 ? (sommePourcentagesPhysiques / totalLignesPlanifiees) : 0;
  if(document.getElementById('valPhysique')) document.getElementById('valPhysique').innerText = tauxPhysiqueGlobal.toFixed(2) + " %";
  if(document.getElementById('barPhysique')) document.getElementById('barPhysique').style.width = tauxPhysiqueGlobal + "%";
- let pourcentFinancier = enveloppeFinanciereTotaleMarché > 0 ? (enveloppeFinanciereConsommeeTerrain / enveloppeFinanciereTotaleMarché) * 100 : 0;
+ 
+ let pourcentFinancier = enveloppeFinanciereTotaleMarche > 0 ? (enveloppeFinanciereConsommeeTerrain / enveloppeFinanciereTotaleMarche) * 100 : 0;
  if(document.getElementById('valFinancier')) document.getElementById('valFinancier').innerText = pourcentFinancier.toFixed(2) + " %";
  if(document.getElementById('barFinancier')) document.getElementById('barFinancier').style.width = pourcentFinancier + "%";
 }
+
+
 </script>
 </body>
 </html>
