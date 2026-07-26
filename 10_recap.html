@@ -15,20 +15,33 @@
  --text-dark: #0f172a;
  --border-color: #cbd5e1;
  }
- body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #cbd5e1; color: var(--text-dark); margin: 0; padding: 15px; }
- .top-navbar { max-width: 1120px; margin: 0 auto 10px auto; display: flex; justify-content: space-between; align-items: center; background: var(--primary-blue); color: white; padding: 10px 20px; border-radius: 6px; }
- .top-navbar-title { font-weight: bold; font-size: 13px; text-transform: uppercase; }
- .btn { padding: 6px 14px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; color: white; font-size: 12px; text-decoration: none; }
+ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+background-color: #cbd5e1; color: var(--text-dark); margin: 0; padding: 15px; }
+ .top-navbar { max-width: 1120px; margin: 0 auto 10px auto; display: flex; 
+justify-content: space-between; align-items: center; background: 
+var(--primary-blue); color: white; padding: 10px 20px; border-radius: 6px; }
+ .top-navbar-title { font-weight: bold; font-size: 13px; text-transform: 
+uppercase; }
+ .btn { padding: 6px 14px; border: none; border-radius: 4px; font-weight: bold; 
+cursor: pointer; color: white; font-size: 12px; text-decoration: none; }
  .btn-secondary { background-color: #475569; }
  .btn-primary { background-color: var(--accent-blue); }
- .page-pdf-paysage { width: 1120px; height: 730px; margin: 0 auto 20px auto; background: white; padding: 20px 25px; border-radius: 4px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); box-sizing: border-box; display: flex; flex-direction: column; gap: 5px; page-break-after: always; position: relative; }
+ .page-pdf-paysage { width: 1120px; height: 730px; margin: 0 auto 20px auto; 
+background: white; padding: 20px 25px; border-radius: 4px; box-shadow: 0 4px 
+10px rgba(0,0,0,0.1); box-sizing: border-box; display: flex; flex-direction: 
+column; gap: 5px; page-break-after: always; position: relative; }
  .page-pdf-paysage.auto-height { height: auto; min-height: 730px; }
- .header-main-title { display: flex; justify-content: space-between; align-items: center; }
- .header-main-title h1 { font-size: 18px; color: var(--primary-blue); margin: 0; font-weight: 900; text-transform: uppercase; }
- .status-badge { color: var(--accent-blue); font-weight: 800; font-size: 12px; text-transform: uppercase; }
- .market-sub { font-size: 11px; font-weight: bold; color: #475569; margin-top: -2px; margin-bottom: 2px; }
+ .header-main-title { display: flex; justify-content: space-between; 
+align-items: center; }
+ .header-main-title h1 { font-size: 18px; color: var(--primary-blue); margin: 0;
+font-weight: 900; text-transform: uppercase; }
+ .status-badge { color: var(--accent-blue); font-weight: 800; font-size: 12px; 
+text-transform: uppercase; }
+ .market-sub { font-size: 11px; font-weight: bold; color: #475569; margin-top: 
+-2px; margin-bottom: 2px; }
  .entete-master-logos { width: 100%; border-collapse: collapse; margin-bottom: 2px; }
- .entete-master-logos td { border: 1px solid #cbd5e1; padding: 3px 6px; font-size: 11px; vertical-align: middle; line-height: 1.2; }
+ .entete-master-logos td { border: 1px solid #cbd5e1; padding: 3px 6px; 
+font-size: 11px; vertical-align: middle; line-height: 1.2; }
  .lbl-gray-logo { background-color: #f8fafc; font-weight: bold; width: 140px; color: #334155; }
  .logo-box-recap { width: 95px; text-align: center; padding: 1px !important; height: 32px; border: 1px solid #cbd5e1; }
  .progress-double-wrapper { display: flex; flex-direction: column; gap: 3px; margin-top: 2px; font-size: 11px; }
@@ -130,6 +143,7 @@
 const DB_NAME = "GenieCivilPro_DB";
 const DB_VERSION = 1;
 let dbInstance = null;
+
 function initialiserLeMeubleDB() {
  return new Promise((resolve, reject) => {
  let requete = indexedDB.open(DB_NAME, DB_VERSION);
@@ -137,6 +151,7 @@ function initialiserLeMeubleDB() {
  requete.onerror = function() { reject("Meuble bloqué."); };
  });
 }
+
 function lireDonneeDB(tiroir, cle) {
  return new Promise((resolve) => {
  if(!dbInstance) return resolve(null);
@@ -146,6 +161,7 @@ function lireDonneeDB(tiroir, cle) {
  req.onerror = () => resolve(null);
  });
 }
+
 function lireToutesLesDonneesDB(tiroir) {
  return new Promise((resolve) => {
  if(!dbInstance) return resolve([]);
@@ -155,6 +171,7 @@ function lireToutesLesDonneesDB(tiroir) {
  req.onerror = () => resolve([]);
  });
 }
+
 let idProjetActif = localStorage.getItem("id_projet_en_cours_de_saisie_temporaire") || "101";
 let typeProjetActuel = "ENFANT";
 window.onload = function() {
@@ -175,24 +192,30 @@ window.onload = function() {
  }
  document.getElementById('loaderSupabase').style.opacity = '0';
  setTimeout(() => document.getElementById('loaderSupabase').style.display = 'none', 400);
- });
+  });
 };
+
 async function chargerRenseignementsEtLogosHerites(listeProjets) {
- let pActuel = listeProjets.find(i => i.id == idProjetActif); if(pActuel) typeProjetActuel = pActuel.type;
+ let pActuel = listeProjets.find(i => String(i.id) === String(idProjetActif)); 
+ if(pActuel) typeProjetActuel = pActuel.type;
  let d = null; let m = null;
  if (window.supabaseClient && navigator.onLine) {
  try {
- let { data: rD } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `charte_administrative_${idProjetActif}`).maybeSingle(); if(rD) d = rD.contents_json || rD.contenu_json;
+ let { data: rD } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `charte_administrative_${idProjetActif}`).maybeSingle(); 
+ if(rD) d = rD.contents_json || rD.contenu_json;
  if (pActuel && pActuel.type === 'ENFANT' && pActuel.parentId) {
- let { data: rM } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `charte_administrative_${pActuel.parentId}`).maybeSingle(); if(rM) m = rM.contenu_json;
+ let { data: rM } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `charte_administrative_${pActuel.parentId}`).maybeSingle(); 
+ if(rM) m = rM.contenu_json;
  }
  } catch(e) {}
  }
  if(!d) d = await lireDonneeDB("dossiers_techniques", `charte_administrative_${idProjetActif}`) || {};
  if(!m && pActuel && pActuel.type === 'ENFANT' && pActuel.parentId) m = await lireDonneeDB("dossiers_techniques", `charte_administrative_${pActuel.parentId}`) || {};
+ 
  let libelleObjetCombine = pActuel ? pActuel.nom.toUpperCase() : "-";
  if (pActuel && pActuel.type === "ENFANT" && pActuel.parentId) {
- let papa = listeProjets.find(i => i.id == pActuel.parentId); if (papa) libelleObjetCombine = `${papa.nom.toUpperCase()} — LOT : ${pActuel.nom.toUpperCase()}`;
+ let papa = listeProjets.find(i => String(i.id) === String(pActuel.parentId)); 
+ if (papa) libelleObjetCombine = `${papa.nom.toUpperCase()} — LOT : ${pActuel.nom.toUpperCase()}`;
  }
  document.getElementById('topMarketLabel').innerText = "Marché Actif : " + libelleObjetCombine;
  document.getElementById('page2MarketLabel').innerText = "Suivi d'avancement graphique consolidé du marché — Projet : " + libelleObjetCombine;
@@ -202,6 +225,7 @@ async function chargerRenseignementsEtLogosHerites(listeProjets) {
  document.getElementById('lblMOE').innerText = d.moe || m.moe || "-";
  document.getElementById('lblEntreprise').innerText = d.entreprise || m.entreprise || "-";
  document.getElementById('lblNumContrat').innerText = d.numContrat || m.numContrat || "-";
+ 
  let sourceLogos = pActuel && pActuel.type === 'ENFANT' ? m : d;
  let styleStyle = 'style="max-height:28px; max-width:100%; object-fit:contain; vertical-align:middle;"';
  if(sourceLogos.logoFin_html && document.getElementById('logoFin_box')) document.getElementById('logoFin_box').innerHTML = sourceLogos.logoFin_html.replace('<img', `<img ${styleStyle}`);
@@ -211,7 +235,9 @@ async function chargerRenseignementsEtLogosHerites(listeProjets) {
  document.getElementById('txtRemarquesExécutives').value = localStorage.getItem(`remarques_rapport_${idProjetActif}`) || "";
  await calculerEtTracerCourbeSMathématiqueSVG(listeProjets);
 }
+
 function sauvegarderRemarquesLocales(v) { localStorage.setItem(`remarques_rapport_${idProjetActif}`, v); }
+
 async function extraire4PhotosCCPMS() {
  let container = document.getElementById('rowPhotosGED'); if(!container) return;
  container.innerHTML = ""; let ccpms = null;
@@ -229,13 +255,14 @@ async function extraire4PhotosCCPMS() {
  container.appendChild(card);
  }
 }
+
 async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
  let listB = []; let listPl = []; let listS = []; let listAv = [];
  if (window.supabaseClient && navigator.onLine) {
  try {
- let { data: rB } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `bdqe_${idProjetActif}`).maybeSingle(); if(rB) listB = rB.contenu_json || [];
- let { data: rPl } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `planning_${idProjetActif}`).maybeSingle(); if(rPl) listPl = rPl.contenu_json || [];
- let { data: rS } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `suivi_${idProjetActif}`).maybeSingle(); if(rS) listS = rS.contenu_json || [];
+ let { data: rB } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `bdqe_${idProjetActif}`).maybeSingle(); if(rB) listB = rB.contents_json || rB.contenu_json;
+ let { data: rPl } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `planning_${idProjetActif}`).maybeSingle(); if(rPl) listPl = rPl.contents_json || rPl.contenu_json;
+ let { data: rS } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `suivi_${idProjetActif}`).maybeSingle(); if(rS) listS = rS.contents_json || rS.contenu_json;
  let { data: rAv } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `avenants_${idProjetActif}`).maybeSingle(); if(rAv) listAv = rAv.contenu_json || [];
  } catch(e) {}
  }
@@ -243,12 +270,15 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
  if(listPl.length===0) listPl = await lireDonneeDB("dossiers_techniques", `planning_${idProjetActif}`) || [];
  if(listS.length===0) listS = await lireDonneeDB("dossiers_techniques", `suivi_${idProjetActif}`) || [];
  if(listAv.length===0) listAv = await lireDonneeDB("dossiers_techniques", `avenants_${idProjetActif}`) || [];
- listB.forEach(item => item.id_projet = idProjetActif);
- listPl.forEach(item => item.id_projet = idProjetActif);
- listS.forEach(item => item.id_projet = idProjetActif);
+ 
+ if(Array.isArray(listB)) listB.forEach(item => item.id_projet = String(idProjetActif));
+ if(Array.isArray(listPl)) listPl.forEach(item => item.id_projet = String(idProjetActif));
+ if(Array.isArray(listS)) listS.forEach(item => item.id_projet = String(idProjetActif));
+ 
  let enfants = [];
  if (typeProjetActuel === "PAPA") {
- enfants = listeProjets.filter(item => item.type === "ENFANT" && item.parentId == idProjetActif);
+ // Correction : Conversion textuelle stricte pour garantir l'extraction des lots enfants
+ enfants = listeProjets.filter(item => item.type === "ENFANT" && String(item.parentId) === String(idProjetActif));
  for(let enf of enfants) {
  let bE = null; let pE = null; let sE = null; let aE = null;
  if (window.supabaseClient && navigator.onLine) {
@@ -263,10 +293,16 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
  if(!pE) pE = await lireDonneeDB("dossiers_techniques", `planning_${enf.id}`) || [];
  if(!sE) sE = await lireDonneeDB("dossiers_techniques", `suivi_${enf.id}`) || [];
  if(!aE) aE = await lireDonneeDB("dossiers_techniques", `avenants_${enf.id}`) || [];
- bE.forEach(item => item.id_projet = enf.id);
- pE.forEach(item => item.id_projet = enf.id);
- sE.forEach(item => item.id_projet = enf.id);
- listB = listB.concat(bE); listPl = listPl.concat(pE); listS = listS.concat(sE); listAv = listAv.concat(aE);
+ 
+ // Correction : Typage en String forcé pour agréger les tâches sans pertes
+ if(Array.isArray(bE)) bE.forEach(item => item.id_projet = String(enf.id));
+ if(Array.isArray(pE)) pE.forEach(item => item.id_projet = String(enf.id));
+ if(Array.isArray(sE)) sE.forEach(item => item.id_projet = String(enf.id));
+ 
+ listB = listB.concat(bE || []); 
+ listPl = listPl.concat(pE || []); 
+ listS = listS.concat(sE || []);
+ listAv = listAv.concat(aE || []);
  }
  }
  let dMin = null, dMax = null;
@@ -280,13 +316,15 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
  document.getElementById('valMntInit').innerText = budgetInitialTotal.toLocaleString('fr-FR') + " Ar";
  document.getElementById('valMntAv').innerText = (budgetAvenantsTotal >= 0 ? "+ " : "") + budgetAvenantsTotal.toLocaleString('fr-FR') + " Ar";
  document.getElementById('valMntRev').innerText = budgetRéviséTotal.toLocaleString('fr-FR') + " Ar";
+ 
  let dictionnaireFinancier = {};
  listB.forEach(item => { 
  if (!item.ouvrage || !item.code_bdqe) return; 
- let pid = item.id_projet || idProjetActif;
+ let pid = String(item.id_projet || idProjetActif);
  let cleUnique = `${pid}_${item.ouvrage.trim().toLowerCase()}_${item.code_bdqe.trim().toLowerCase()}`; 
  dictionnaireFinancier[cleUnique] = (dictionnaireFinancier[cleUnique] || 0) + (parseFloat(item.total) || 0); 
  });
+ 
  let totalJrs = (dMin && dMax) ? Math.round((dMax - dMin) / (1000*60*60*24)) + 1 : 0;
  let auj = new Date(); auj.setHours(0,0,0,0);
  let jrsEcoules = (dMin && dMax) ? Math.max(0, Math.min(totalJrs, Math.round((auj - dMin) / (1000*60*60*24)))) : 0;
@@ -305,7 +343,7 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
  let totalCumulePrevuAr = 0;
  listPl.forEach(tache => {
  if (!tache.date_debut || !tache.date_fin) return;
- let pid = tache.id_projet || idProjetActif;
+ let pid = String(tache.id_projet || idProjetActif);
  let cle = `${pid}_${tache.ouvrage.trim().toLowerCase()}_${tache.code_bdqe.trim().toLowerCase()}`;
  let budgetTache = dictionnaireFinancier[cle] || 0; let tDebut = new Date(tache.date_debut), tFin = new Date(tache.date_fin);
  if (dateCible >= tFin) { totalCumulePrevuAr += budgetTache; } 
@@ -317,10 +355,12 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
  });
  return budgetInitialTotal > 0 ? (totalCumulePrevuAr / budgetInitialTotal) * 100 : 0;
  }
+ 
  let tPhyPrevu = calculerPrevuALaDate(auj); let tFinPrevu = tPhyPrevu * 0.96;
- let totalLignes = 0, sumPhyReel = 0, mntM = 0, mntR = 0;
- listS.forEach(i => { if (i.quantite_contrat > 0) { totalLignes++; let pL = Math.min((i.qte_realisee / i.quantite_contrat)*100, 100); sumPhyReel += pL; mntM += (i.total_contrat||0); mntR += ((i.total_contrat||0)*(pL/100)); } });
+ let totalLignes = 0, sumPhyReel = 0;
+ listS.forEach(i => { if (i.quantite_contrat > 0) { totalLignes++; let pL = Math.min((i.qte_realisee / i.quantite_contrat)*100, 100); sumPhyReel += pL; } });
  let tPhyReel = totalLignes > 0 ? (sumPhyReel / totalLignes) : 0;
+ 
  if(document.getElementById('barPhyPrevu')) document.getElementById('barPhyPrevu').style.width = tPhyPrevu + "%"; 
  if(document.getElementById('barPhyReel')) document.getElementById('barPhyReel').style.width = tPhyReel + "%";
  if(document.getElementById('txtPhyComp')) document.getElementById('txtPhyComp').innerText = `P: ${tPhyPrevu.toFixed(1)}% | R: ${tPhyReel.toFixed(1)}%`;
@@ -328,6 +368,7 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
  if(document.getElementById('barFinReel')) document.getElementById('barFinReel').style.width = tPhyReel + "%";
  if(document.getElementById('txtFinComp')) document.getElementById('txtFinComp').innerText = `P: ${tFinPrevu.toFixed(1)}% | R: ${tPhyReel.toFixed(1)}%`;
  if(document.getElementById('titleHeaderS')) document.getElementById('titleHeaderS').innerText = `V. COURBE EN S : TRAJECTOIRE GLOBALE (PRÉVU ${tPhyPrevu.toFixed(1)}% VS RÉEL ${tPhyReel.toFixed(1)}%)`;
+ 
  let svg = document.getElementById('svgS'); if(svg && dMin && dMax) {
  let pointsPath = "";
  for(let j=0; j<=40; j++) {
@@ -337,11 +378,13 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
  let xCurrent = 80 + pctTempsGlobal * 940;
  svg.innerHTML = `<line x1="80" y1="160" x2="1020" y2="160" stroke="#cbd5e1" stroke-width="2"/><path d="${pointsPath}" fill="none" stroke="#2563eb" stroke-width="3"/><line x1="${xCurrent}" y1="15" x2="${xCurrent}" y2="160" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="4 3"/><circle cx="${xCurrent}" cy="${160 - (tPhyReel/100)*130}" r="6" fill="#16a34a"/><text x="${xCurrent}" y="12" font-size="9" font-weight="bold" fill="#ef4444" text-anchor="middle">Aujourd'hui : ${auj.toLocaleDateString('fr-FR')}</text><text x="80" y="173" font-size="9" font-weight="bold" fill="var(--primary-blue)">Début : ${dMin.toLocaleDateString('fr-FR')}</text><text x="1020" y="173" font-size="9" font-weight="bold" fill="var(--primary-blue)" text-anchor="end">Fin : ${dMax.toLocaleDateString('fr-FR')}</text><text x="70" y="163" font-size="8" fill="#64748b" text-anchor="end">0%</text><text x="70" y="95" font-size="8" fill="#64748b" text-anchor="end">50%</text><text x="70" y="23" font-size="8" fill="#64748b" text-anchor="end">100%</text>`;
  }
+ 
  let ventilBox = document.getElementById('boxVentilationOuvrages'); if(!ventilBox) return; ventilBox.innerHTML = "";
  if (typeProjetActuel === "PAPA") {
  document.getElementById('titleBlocVI').innerText = "VI. Avancement Physique Consolidé par Sous-Projet / Lot Enfant";
  enfants.forEach(enf => {
- let lignesEnf = listS.filter(item => item.id_projet === enf.id); let totL = 0, sP = 0;
+ // Correction : Comparaison des id_projet des lignes enfants convertis en String
+ let lignesEnf = listS.filter(item => String(item.id_projet) === String(enf.id)); let totL = 0, sP = 0;
  lignesEnf.forEach(i => { if (i.quantite_contrat > 0) { totL++; sP += Math.min((i.qte_realisee / i.quantite_contrat)*100, 100); } });
  let rReel = totL > 0 ? (sP / totL) : 0; let rPrevu = rReel > 0 ? Math.min(rReel + (tPhyPrevu - tPhyReel), 100) : tPhyPrevu * 0.9;
  injecterLigneDoubleJauge(ventilBox, enf.nom, rPrevu, rReel);
@@ -357,6 +400,7 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
  });
  }
 }
+
 function injecterLigneDoubleJauge(conteneur, titre, prevu, reel) {
  let row = document.createElement('div'); row.className = "site-ventil-row";
  row.innerHTML = `<div class="progress-double-line"><div class="progress-label-left" style="width:260px;"> 🧱 ${titre.toUpperCase()}</div><div style="display:flex; flex-direction:column; flex-grow:1; gap:1px;"><div style="display:flex; align-items:center;"><span style="font-size:7px; font-weight:800; color:#64748b; width:35px;">PRÉVU</span><div class="progress-container-flat" style="height:5px; margin:0 8px;"><div class="progress-fill-flat prevu" style="width:${prevu}%;"></div></div><span style="font-size:8px; font-weight:bold; width:30px; text-align:right; color:#2563eb;">${prevu.toFixed(1)}%</span></div><div style="display:flex; align-items:center;"><span style="font-size:7px; font-weight:800; color:#64748b; width:35px;">RÉEL</span><div class="progress-container-flat" style="height:5px; margin:0 8px;"><div class="progress-fill-flat reel" style="width:${reel}%;"></div></div><span style="font-size:8px; font-weight:bold; width:30px; text-align:right; color:#16a34a;">${reel.toFixed(1)}%</span></div></div></div>`;
