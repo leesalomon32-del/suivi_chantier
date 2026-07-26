@@ -360,19 +360,29 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
  return budgetInitialTotal > 0 ? (totalCumulePrevuAr / budgetInitialTotal) * 100 : 0;
  }
  
- let tPhyPrevu = calculerPrevuALaDate(auj); let tFinPrevu = tPhyPrevu * 0.96;
- let totalLignes = 0, sumPhyReel = 0;
- listS.forEach(i => { if (i.quantite_contrat > 0) { totalLignes++; let pL = Math.min((i.qte_realisee / i.quantite_contrat)*100, 100); sumPhyReel += pL; } });
+ let tPhyPrevu = calculerPrevuALaDate(auj); 
+ let tFinPrevu = tPhyPrevu * 0.96;
+ let totalLignes = 0, sumPhyReel = 0, mntMarchatTotal = 0, mntRealiseTotal = 0;
+ listS.forEach(i => { 
+   if (i.quantite_contrat > 0) { 
+     totalLignes++; 
+     let pL = Math.min((i.qte_realisee / i.quantite_contrat)*100, 100); 
+     sumPhyReel += pL; 
+     mntMarchatTotal += (i.total_contrat || 0); 
+     mntRealiseTotal += ((i.total_contrat || 0) * (pL / 100)); 
+   } 
+ });
  let tPhyReel = totalLignes > 0 ? (sumPhyReel / totalLignes) : 0;
- 
+ let tFinReel = mntMarchatTotal > 0 ? (mntRealiseTotal / mntMarchatTotal) * 100 : 0;
+
  if(document.getElementById('barPhyPrevu')) document.getElementById('barPhyPrevu').style.width = tPhyPrevu + "%"; 
  if(document.getElementById('barPhyReel')) document.getElementById('barPhyReel').style.width = tPhyReel + "%";
  if(document.getElementById('txtPhyComp')) document.getElementById('txtPhyComp').innerText = `P: ${tPhyPrevu.toFixed(1)}% | R: ${tPhyReel.toFixed(1)}%`;
  if(document.getElementById('barFinPrevu')) document.getElementById('barFinPrevu').style.width = tFinPrevu + "%"; 
- if(document.getElementById('barFinReel')) document.getElementById('barFinReel').style.width = tPhyReel + "%";
- if(document.getElementById('txtFinComp')) document.getElementById('txtFinComp').innerText = `P: ${tFinPrevu.toFixed(1)}% | R: ${tPhyReel.toFixed(1)}%`;
+ if(document.getElementById('barFinReel')) document.getElementById('barFinReel').style.width = tFinReel + "%";
+ if(document.getElementById('txtFinComp')) document.getElementById('txtFinComp').innerText = `P: ${tFinPrevu.toFixed(1)}% | R: ${tFinReel.toFixed(1)}%`;
  if(document.getElementById('titleHeaderS')) document.getElementById('titleHeaderS').innerText = `V. COURBE EN S : TRAJECTOIRE GLOBALE (PRÉVU ${tPhyPrevu.toFixed(1)}% VS RÉEL ${tPhyReel.toFixed(1)}%)`;
- 
+
  let svg = document.getElementById('svgS'); if(svg && dMin && dMax) {
  let pointsPath = "";
  for(let j=0; j<=40; j++) {
