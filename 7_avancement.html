@@ -218,7 +218,6 @@ async function modifierQuantiteRealisee(index, valeur, inputElement) {
  let item = listeAvancement[index];
  let valNettoyee = valeur.trim() === "" ? 0 : parseFloat(valeur.replace(/\s/g, '').replace(',', '.')) || 0;
  if(valNettoyee < 0) valNettoyee = 0;
- 
  item.qte_realisee = valNettoyee;
  
  let mntConsomme = valNettoyee * (item.prix_unitaire || 0);
@@ -227,19 +226,27 @@ async function modifierQuantiteRealisee(index, valeur, inputElement) {
  
  let tdBadge = inputElement.closest('tr').querySelector('.cell-badge');
  if(tdBadge && item.quantite_contrat > 0) {
-   let pct = (valNettoyee / item.quantite_contrat) * 100;
-   let clr = pct > 100 ? "bg-purple-light" : pct === 100 ? "bg-green-light" : pct > 0 ? "bg-orange-light" : "bg-red-light";
-   tdBadge.innerHTML = `<span class="badge-percent ${clr}">${pct.toFixed(2)} %</span>`;
+ let pct = (valNettoyee / item.quantite_contrat) * 100;
+ let clr = pct > 100 ? "bg-purple-light" : pct === 100 ? "bg-green-light" : pct > 0 ? "bg-orange-light" : "bg-red-light";
+ tdBadge.innerHTML = `<span class="badge-percent ${clr}">${pct.toFixed(2)} %</span>`;
  }
  
  calculerTauxGlobauxDashboard();
  
- // 1. Enregistrement local instantané de sécurité
+ // 1. SAUVEGARDE LOCALE PERSISTANTE IMMÉDIATE (Pour figer la valeur sur votre navigateur)
+ localStorage.setItem(cleStockageSuivi, JSON.stringify(listeAvancement));
  await ecrireDonneeDB("dossiers_techniques", listeAvancement, cleStockageSuivi);
  
- // 2. Push asynchrone en arrière-plan vers Supabase
+ // 2. ENVOI CLOUD ASYNCHRONE SANS BLOQUER
  if (window.supabaseClient && navigator.onLine) {
-   await window.supabaseClient.from('dossiers_techniques').upsert({ id: cleStockageSuivi, projet_id: String(idProjetCourant), type_donnee: 'suivi', contenu_json: listeAvancement });
+ try {
+ await window.supabaseClient.from('dossiers_techniques').upsert({ 
+ id: cleStockageSuivi, 
+ projet_id: String(idProjetCourant), 
+ type_donnee: 'suivi', 
+ contenu_json: listeAvancement 
+ });
+ } catch(err) { console.error("Erreur de synchronisation Supabase :", err); }
  }
 }
 
