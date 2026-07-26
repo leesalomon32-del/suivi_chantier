@@ -186,7 +186,7 @@ window.onload = function() {
  if (role === "controle" && !lotsAutorises.includes(String(idProjetCourant))) {
  let bandeauAlerte = document.createElement('div');
  bandeauAlerte.style.cssText = "background:#eff6ff; color:#1e40af; padding:10px; border-radius:6px; font-weight:bold; margin-bottom:5px; border:1px solid #bfdbfe; font-size:11px; text-align:center; flex-shrink:0;";
- bandeauAlerte.innerText = "Mode Consultation Uniquement (Lecture Seule Accès Terrain Restreints) "; 🔒
+ bandeauAlerte.innerText = "Mode Consultation Uniquement (Lecture Seule Accès Terrain Restreints)🔒 "; 
  document.body.insertBefore(bandeauAlerte, document.body.firstChild);
  window.modeLectureSeulePlanning = true; 
  }
