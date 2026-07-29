@@ -353,15 +353,15 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
  
  let tFinPrevu = calculerPrevuALaDate(auj);
  // REDRESSEMENT DU RÉEL GLOBAL : Calcul des moyennes consolidées pondérées en Ariary par Lot
- let mntRealiseTotalMarche = 0;
- let sumPhyPondereeGlobal = 0;
- 
- // Ouvrages Généraux PAPA
- let suiviProprePapaGlobal = listS.filter(item => String(item.id_projet) === String(idProjetActif) || String(item.projet_id) === String(idProjetActif) || (!item.id_projet && !item.projet_id));
- let budgetProprePapaGlobal = 0; let mntRealiseProprePapaGlobal = 0; let totLignesPapa = 0; let sumPhyPapa = 0;
- suiviProprePapaGlobal.forEach(i => { if (i.quantite_contrat > 0) { totLignesPapa++; let pL = Math.min((i.qte_realisee / i.quantite_contrat)*100, 100); sumPhyPapa += pL; budgetProprePapaGlobal += (i.total_contrat || 0); mntRealiseProprePapaGlobal += ((i.total_contrat || 0) * (pL / 100)); } });
- mntRealiseTotalMarche += mntRealiseProprePapaGlobal;
- if (budgetProprePapaGlobal > 0) sumPhyPondereeGlobal += (sumPhyPapa / totLignesPapa) * budgetProprePapaGlobal;
+  let mntRealiseTotalMarche = 0;
+  let sumPhyPondereeGlobal = 0;
+  
+  // Ouvrages Généraux PAPA
+  let suiviProprePapaGlobal = listS.filter(item => String(item.id_projet) === String(idProjetActif) || String(item.projet_id) === String(idProjetActif) || (!item.id_projet && !item.projet_id));
+  let budgetProprePapaGlobal = 0; let mntRealiseProprePapaGlobal = 0; let totLignesPapa = 0; let sumPhyPapa = 0;
+  suiviProprePapaGlobal.forEach(i => { if (i.quantite_contrat > 0) { totLignesPapa++; let pL = Math.min((i.qte_realisee / i.quantite_contrat)*100, 100); sumPhyPapa += pL; budgetProprePapaGlobal += (i.total_contrat || 0); mntRealiseProprePapaGlobal += ((i.total_contrat || 0) * (pL / 100)); } });
+  mntRealiseTotalMarche += mntRealiseProprePapaGlobal;
+  if (budgetProprePapaGlobal > 0) sumPhyPondereeGlobal += (sumPhyPapa / totLignesPapa) * budgetProprePapaGlobal;
 
  // Lots Enfants
  enfants.forEach(enf => {
