@@ -367,17 +367,39 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
  let ventilBox = document.getElementById('boxVentilationOuvrages'); if(!ventilBox) return; ventilBox.innerHTML = "";
  if (typeProjetActuel === "PAPA") {
  document.getElementById('titleBlocVI').innerText = "VII. Ventilation des Ouvrages Principaux & Contribution des Lots (Proratisée)";
+ 
+ // 1. Traitement et injection des ouvrages propres au projet PAPA (Proratisés)
  if (typeof ouvragesSpecifiquesPapa !== "undefined" && ouvragesSpecifiquesPapa.length > 0) {
   ouvragesSpecifiquesPapa.forEach(ouv => {
    let lignes = listS.filter(item => item.ouvrage === ouv && String(item.id_projet) === String(idProjetActif));
    if (lignes.length > 0) {
-	let totL = 0, sP = 0;
-	lignes.forEach(i => { if (i.quantite_contrat > 0) { totL++; sP += Math.min((i.qte_realisee / i.quantite_contrat)*100, 100); } });
-	let rReel = totL > 0 ? (sP / totL) : 0; let rPrevu = rReel > 0 ? Math.min(rReel + (tPhyPrevu - tPhyReel), 100) : tPhyPrevu * 0.9;
-	injecterLigneDoubleJauge(ventilBox, `[PROPRE] ${ouv}`, rPrevu, rReel);
+	let totL = 0, sP = 0, mntMarchatOuv = 0, mntRealiseOuv = 0;
+	lignes.forEach(i => { 
+	 if (i.quantite_contrat > 0) { 
+	  totL++; 
+	  let pL = Math.min((i.qte_realisee / i.quantite_contrat)*100, 100); 
+	  sP += pL; 
+	  mntMarchatOuv += (i.total_contrat || 0); 
+	  mntRealiseOuv += ((i.total_contrat || 0) * (pL / 100)); 
+	 } 
+	});
+	
+	// Calcul du poids financier de cet ouvrage spécifique par rapport au budget global
+	let poidsOuvrageGlobal = budgetInitialTotal > 0 ? (mntMarchatOuv / budgetInitialTotal) : 0;
+	
+	let rReelInterne = mntMarchatOuv > 0 ? (mntRealiseOuv / mntMarchatOuv) * 100 : (totL > 0 ? (sP / totL) : 0);
+	let rPrevuInterne = rReelInterne > 0 ? Math.min(rReelInterne + (tPhyPrevu - tPhyReel), 100) : tPhyPrevu * 0.9;
+	
+	// Application du prorata global
+	let rPrevuGlobal = rPrevuInterne * poidsOuvrageGlobal;
+	let rReelGlobal = rReelInterne * poidsOuvrageGlobal;
+	
+	injecterLigneDoubleJauge(ventilBox, `[PROPRE] ${ouv} (Poids: ${(poidsOuvrageGlobal * 100).toFixed(1)}%)`, rPrevuGlobal, rReelGlobal);
    }
   });
  }
+
+ // 2. Traitement et injection des sous-projets enfants re-pondérés
  enfants.forEach(enf => {
   let lignesEnfBDQE = dictionnaireParEnfantBDQE[String(enf.id)] || []; let budgetInitialEnfant = 0;
   lignesEnfBDQE.forEach(bItem => { budgetInitialEnfant += parseFloat(bItem.total) || 0; });
@@ -426,3 +448,4 @@ function injecterLigneDoubleJauge(conteneur, titre, prevu, reel) {
 </script>
 </body>
 </html>
+
