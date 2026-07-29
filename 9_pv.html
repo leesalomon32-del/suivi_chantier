@@ -264,20 +264,37 @@ function executerImpressionDynamiqueDéroulée() {
  window.print();
 }
 
-// DOUBLE ENREGISTREMENT SYNC : Archive en local, alimente la GED locale et pousse le tout sur Supabase Cloud
+// CORRECTION : Ajout de "async" pour permettre l'utilisation de await
 async function sauvegarderPVChantier() {
  let site = document.getElementById('siteSaisie') ? document.getElementById('siteSaisie').value.trim() : "";
  let datePV = document.getElementById('dateSaisie') ? document.getElementById('dateSaisie').value : new Date().toLocaleDateString('fr-FR');
+ 
  if(!site) return alert("Veuillez renseigner le nom du site avant d'enregistrer !");
+ 
  let photosEnvoyeesCCPMS = 0;
  let armoireSauvee = await lireDonneeDB("dossiers_techniques", `ccpms_${idProjetUnique}`) || [];
  let toutesLesLignes = document.querySelectorAll('[id^="ligneConstat_"]');
  
  toutesLesLignes.forEach((conteneurLigne) => {
- let i = conteneurLigne.id.split('_')[1]; let imgElement = document.getElementById(`prevImg_${i}`);
- let zoneTexte = conteneurLigne.querySelector('textarea'); let textConstat = zoneTexte ? zoneTexte.value.trim() : "";
+ let i = conteneurLigne.id.split('_')[1]; 
+ let imgElement = document.getElementById(`prevImg_${i}`);
+ 
+ // CORRECTION : Ciblage précis des deux textareas pour ne rien perdre
+ let textareas = conteneurLigne.querySelectorAll('textarea');
+ let textConstat = textareas[0] ? textareas[0].value.trim() : "";
+ let textObs = textareas[1] ? textareas[1].value.trim() : "";
+ 
  if (imgElement && imgElement.src && imgElement.src.startsWith("data:image")) {
- armoireSauvee.unshift({ id: Date.now() + parseInt(i), categorie: "Photos", dateDoc: new Date().toISOString().substring(0,10), titre: `[PV] - Constat Terrain N°${i}`, description: `Site : ${site}\nObservations : ${textConstat}`, fichierBrut: imgElement.src, nomFichier: `Photo_PV_Constat_${i}_${idProjetUnique}.jpg`, typeMime: "image/jpeg" });
+ armoireSauvee.unshift({ 
+ id: Date.now() + parseInt(i), 
+ categorie: "Photos", 
+ dateDoc: new Date().toISOString().substring(0,10), 
+ titre: `[PV] - Constat Terrain N°${i}`, 
+ description: `Site : ${site}\nConstat : ${textConstat}\nObservations : ${textObs}`, // Correction de la description complète
+ fichierBrut: imgElement.src, 
+ nomFichier: `Photo_PV_Constat_${i}_${idProjetUnique}.jpg`, 
+ typeMime: "image/jpeg" 
+ });
  photosEnvoyeesCCPMS++;
  }
  });
@@ -287,10 +304,23 @@ async function sauvegarderPVChantier() {
  
  // 2. Push asynchrone automatique en arrière-plan vers Supabase Cloud
  if (window.supabaseClient && navigator.onLine) {
-   await window.supabaseClient.from('dossiers_techniques').upsert({ id: `ccpms_${idProjetUnique}`, projet_id: String(idProjetUnique), type_donnee: 'ccpms', contenu_json: armoireSauvee });
+ try {
+ const { error } = await window.supabaseClient.from('dossiers_techniques').upsert({ 
+ id: `ccpms_${idProjetUnique}`, 
+ projet_id: String(idProjetUnique), 
+ type_donnee: 'ccpms', 
+ contenu_json: armoireSauvee 
+ });
+ if (error) throw error;
+ alert(`PV et ${photosEnvoyeesCCPMS} photo(s) synchronisés en ligne sur le Cloud et raccordés au CCPMS ! 🏆`);
+ } catch (err) {
+ alert(`Sauvegardé localement, mais échec de l'envoi Cloud : ${err.message}`);
  }
- alert(`🏆 PV et photos synchronisés en ligne et raccordés à l'armoire GED CCPMS !`);
+ } else {
+ alert(`Sauvegardé localement sur le téléphone. L'appareil est hors-ligne, la synchronisation se fera ultérieurement.`);
+ }
 }
+
 </script>
 </body>
 </html>
