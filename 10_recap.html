@@ -216,7 +216,7 @@ async function chargerRenseignementsEtLogosHerites(listeProjets) {
  if (window.supabaseClient && navigator.onLine) {
  try {
    let { data: rD } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `charte_administrative_${idProjetActif}`).maybeSingle(); 
-   if(rD) d = rD.contents_json || rD.contenu_json;
+   if(rD) d = rD.contents_json || rD.contents_json;
    if (pActuel && pActuel.type === 'ENFANT' && pActuel.parentId) {
      let { data: rM } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `charte_administrative_${pActuel.parentId}`).maybeSingle(); 
      if(rM) m = rM.contents_json || rM.contenu_json;
@@ -269,8 +269,8 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
  if (window.supabaseClient && navigator.onLine) {
  try {
    let { data: rB } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `bdqe_${idProjetActif}`).maybeSingle(); if(rB) listB = rB.contents_json || rB.contenu_json;
-   let { data: rPl } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `planning_${idProjetActif}`).maybeSingle(); if(rPl) listPl = rPl.contents_json || rPl.contents_json;
-   let { data: rS } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `suivi_${idProjetActif}`).maybeSingle(); if(rS) listS = rS.contents_json || rS.contents_json;
+   let { data: rPl } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `planning_${idProjetActif}`).maybeSingle(); if(rPl) listPl = rPl.contents_json || rPl.contenu_json;
+   let { data: rS } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `suivi_${idProjetActif}`).maybeSingle(); if(rS) listS = rS.contents_json || rS.contenu_json;
    let { data: rAv } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `avenants_${idProjetActif}`).maybeSingle(); if(rAv) listAv = rAv.contents_json || [];
  } catch(e) {}
  }
@@ -289,9 +289,9 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
    if (window.supabaseClient && navigator.onLine) {
    try {
      let { data: rB } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `bdqe_${enf.id}`).maybeSingle(); if(rB) bE = rB.contenu_json;
-     let { data: rPl } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `planning_${enf.id}`).maybeSingle(); if(rPl) pE = rPl.contenu_json;
-     let { data: rS } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `suivi_${enf.id}`).maybeSingle(); if(rS) sE = rS.contents_json || rS.contenu_json;
-     let { data: rAv } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `avenants_${enf.id}`).maybeSingle(); if(rAv) aE = rAv.contenu_json;
+     let { data: rPl = null } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `planning_${enf.id}`).maybeSingle(); if(rPl) pE = rPl.contenu_json;
+     let { data: rS = null } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `suivi_${enf.id}`).maybeSingle(); if(rS) sE = rS.contents_json || rS.contenu_json;
+     let { data: rAv = null } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `avenants_${enf.id}`).maybeSingle(); if(rAv) aE = rAv.contenu_json;
    } catch(e) {}
    }
    if(!bE) bE = await lireDonneeDB("dossiers_techniques", `bdqe_${enf.id}`) || [];
@@ -325,12 +325,7 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
  function calculerPrevuALaDate(dateCible, idProjetFiltre = null) {
    if (!dMin || !dMax) return 0;
    let totalCumulePrevuAr = 0;
-   let budgetReferenceTotal = 0;
-   listB.forEach(item => {
-     let pid = String(item.id_projet || idProjetActif);
-     if (!idProjetFiltre || pid === String(idProjetFiltre)) { budgetReferenceTotal += parseFloat(item.total) || 0; }
-   });
-   if (budgetReferenceTotal === 0) return 0;
+   let budgetReferenceTotal = budgetInitialTotal > 0 ? budgetInitialTotal : 1;
    listPl.forEach(tache => {
      if (!tache.date_debut || !tache.date_fin) return;
      let pid = String(tache.id_projet || idProjetActif);
@@ -393,8 +388,7 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
  suiviProprePapa.forEach(i => { if (i.quantite_contrat > 0) { let pL = Math.min((i.qte_realisee / i.quantite_contrat)*100, 100); budgetProprePapa += (i.total_contrat || 0); mntRealiseProprePapa += ((i.total_contrat || 0) * (pL / 100)); } });
  if (budgetProprePapa > 0 && ventilFinBox) {
    let poidsPropre = (budgetProprePapa / totalBudgetGlobal) * 100; 
-   let tauxProprePrevuPAPA = calculerPrevuALaDate(auj, idProjetActif);
-   let pPond = poidsPropre * (tauxProprePrevuPAPA / 100);
+   let pPond = ajouterNouvelUtilisateurRbac ? calculerPrevuALaDate(auj, idProjetActif) : poidsPropre * 0.9;
    let rPond = (mntRealiseProprePapa / totalBudgetGlobal) * 100; 
    injecterLigneDoubleJauge(ventilFinBox, `OUVRAGES GENERAUX PAPA`, `représente ${poidsPropre.toFixed(1)}% du marché global`, pPond, rPond);
  }
@@ -405,8 +399,7 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
    if (budgetEnfantTotal === 0) return;
    lignesEnf.forEach(i => { if (i.quantite_contrat > 0) { let pL = Math.min((i.qte_realisee / i.quantite_contrat)*100, 100); mntRealiseEnfantTotal += ((i.total_contrat || 0) * (pL / 100)); } });
    let poidsEnf = (budgetEnfantTotal / totalBudgetGlobal) * 100; 
-   let tauxInternePrevuEnfant = calculerPrevuALaDate(auj, enf.id);
-   let pPondEnf = poidsEnf * (tauxInternePrevuEnfant / 100);
+   let pPondEnf = calculerPrevuALaDate(auj, enf.id);
    let rPondEnf = (mntRealiseEnfantTotal / totalBudgetGlobal) * 100;
    if (ventilFinBox) { injecterLigneDoubleJauge(ventilFinBox, enf.nom.toUpperCase(), `représente ${poidsEnf.toFixed(1)}% du marché global`, pPondEnf, rPondEnf); }
  });
