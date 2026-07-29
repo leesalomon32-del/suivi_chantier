@@ -279,14 +279,25 @@ async function extraire4PhotosCCPMS() {
 }
 async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
  let listB = []; let listPl = []; let listS = []; let listAv = [];
- if (window.supabaseClient && navigator.onLine) {
- try {
-   let { data: rB } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `bdqe_${idProjetActif}`).maybeSingle(); if(rB) listB = rB.contents_json || rB.contenu_json;
-   let { data: rPl } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `planning_${idProjetActif}`).maybeSingle(); if(rPl) listPl = rPl.contents_json || rPl.contents_json;
-   let { data: rS } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `suivi_${idProjetActif}`).maybeSingle(); if(rS) listS = rS.contents_json || rS.contents_json;
-   let { data: rAv } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `avenants_${idProjetActif}`).maybeSingle(); if(rAv) listAv = rAv.contents_json || [];
- } catch(e) {}
- }
+   if (window.supabaseClient && navigator.onLine) {
+    try {
+      // Éradication du "= null" parasite qui bloquait les requêtes cloud
+      let { data: rB } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `bdqe_${idProjetActif}`).maybeSingle(); 
+      if(rB) listB = rB.contents_json || rB.contenu_json;
+      
+      let { data: rPl } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `planning_${idProjetActif}`).maybeSingle(); 
+      if(rPl) listPl = rPl.contents_json || rPl.contenu_json;
+      
+      let { data: rS } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `suivi_${idProjetActif}`).maybeSingle(); 
+      if(rS) listS = rS.contents_json || rS.contenu_json;
+      
+      let { data: rAv } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `avenants_${idProjetActif}`).maybeSingle(); 
+      if(rAv) listAv = rAv.contents_json || [];
+    } catch(e) {
+      console.log("Erreur de requête cloud, basculement sur IndexedDB.");
+    }
+  }
+
  if(listB.length===0) listB = await lireDonneeDB("dossiers_techniques", `bdqe_${idProjetActif}`) || [];
  if(listPl.length===0) listPl = await lireDonneeDB("dossiers_techniques", `planning_${idProjetActif}`) || [];
  if(listS.length===0) listS = await lireDonneeDB("dossiers_techniques", `suivi_${idProjetActif}`) || [];
