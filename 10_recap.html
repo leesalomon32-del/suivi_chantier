@@ -439,13 +439,25 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
  });
  }
 }
-
 function injecterLigneDoubleJauge(conteneur, titre, prevu, reel) {
  let row = document.createElement('div'); row.className = "site-ventil-row";
- row.innerHTML = `<div class="progress-double-line"><div class="progress-label-left" style="width:260px;"> 🧱 ${titre.toUpperCase()}</div><div style="display:flex; flex-direction:column; flex-grow:1; gap:1px;"><div style="display:flex; align-items:center;"><span style="font-size:7px; font-weight:800; color:#64748b; width:35px;">PRÉVU</span><div class="progress-container-flat" style="height:5px; margin:0 8px;"><div class="progress-fill-flat prevu" style="width:${prevu}%;"></div></div><span style="font-size:8px; font-weight:bold; width:30px; text-align:right; color:#2563eb;">${prevu.toFixed(1)}%</span></div><div style="display:flex; align-items:center;"><span style="font-size:7px; font-weight:800; color:#64748b; width:35px;">RÉEL</span><div class="progress-container-flat" style="height:5px; margin:0 8px;"><div class="progress-fill-flat reel" style="width:${reel}%;"></div></div><span style="font-size:8px; font-weight:bold; width:30px; text-align:right; color:#16a34a;">${reel.toFixed(1)}%</span></div></div></div>`;
+ 
+ // Découpage propre du titre pour extraire le poids s'il existe
+ let titrePrincipal = titre;
+ let sousTextePoids = "";
+ 
+ if (titre.includes("(Poids:")) {
+  let parties = titre.split(" (Poids:");
+  titrePrincipal = parties[0];
+  sousTextePoids = `<div style="font-size: 8px; color: #64748b; font-weight: normal; margin-top: 1px; text-transform: none;">Poids : ${parties[1].replace(')', '')}</div>`;
+ }
+
+ row.innerHTML = `<div class="progress-double-line"><div class="progress-label-left" style="width:260px; white-space: normal; line-height: 1.1;"> 🧱 ${titrePrincipal.toUpperCase()}${sousTextePoids}</div><div style="display:flex; flex-direction:column; flex-grow:1; gap:1px;"><div style="display:flex; align-items:center;"><span style="font-size:7px; font-weight:800; color:#64748b; width:35px;">PRÉVU</span><div class="progress-container-flat" style="height:5px; margin:0 8px;"><div class="progress-fill-flat prevu" style="width:${prevu}%;"></div></div><span style="font-size:8px; font-weight:bold; width:30px; text-align:right; color:#2563eb;">${prevu.toFixed(1)}%</span></div><div style="display:flex; align-items:center;"><span style="font-size:7px; font-weight:800; color:#64748b; width:35px;">RÉEL</span><div class="progress-container-flat" style="height:5px; margin:0 8px;"><div class="progress-fill-flat reel" style="width:${reel}%;"></div></div><span style="font-size:8px; font-weight:bold; width:30px; text-align:right; color:#16a34a;">${reel.toFixed(1)}%</span></div></div></div>`;
  conteneur.appendChild(row);
 }
 </script>
 </body>
 </html>
+
+
 
