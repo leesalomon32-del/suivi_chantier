@@ -144,17 +144,32 @@ window.onload = function() {
    listeDocumentsGed = donneesChargees ? donneesChargees : [];
    rechargerToutGed();
 
-   // 2. SYNCHRONISATION CLOUD EN ARRIÈRE-PLAN
-   if (window.supabaseClient && navigator.onLine) {
-     try {
-       let { data: resTech } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', CLE_GED_PROJET).maybeSingle();
-       if (resTech && resTech.contents_json || resTech.contenu_json) {
-         listeDocumentsGed = resTech.contents_json || resTech.contenu_json;
-         await ecrireDonneeDB("dossiers_techniques", listeDocumentsGed, CLE_GED_PROJET);
-         rechargerToutGed();
-       }
-     } catch (err) { console.log("Lenteur réseau."); }
-   }
+ // 2. SYNCHRONISATION CLOUD EN ARRIÈRE-PLAN AVEC FUSION INTELLIGENTE
+if (window.supabaseClient && navigator.onLine) {
+ try {
+ let { data: resTech } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', CLE_GED_PROJET).maybeSingle();
+ let donneesCloud = (resTech && (resTech.contents_json || resTech.contenu_json)) ? (resTech.contents_json || resTech.contenu_json) : [];
+ 
+ if (donneesCloud.length > 0) {
+ // FUSION : On combine le local et le cloud en filtrant les doublons par ID
+ let mapFichiers = new Map();
+ // On insère d'abord les fichiers du Cloud
+ donneesCloud.forEach(doc => mapFichiers.set(doc.id, doc));
+ // On ajoute/écrase avec les fichiers locaux (qui peuvent contenir les nouveaux PV)
+ listeDocumentsGed.forEach(doc => mapFichiers.set(doc.id, doc));
+ 
+ // On transforme la Map en tableau trié du plus récent au plus ancien
+ listeDocumentsGed = Array.from(mapFichiers.values()).sort((a, b) => b.id - a.id);
+ 
+ // On sauvegarde la liste fusionnée en local et on la pousse immédiatement sur le Cloud
+ await ecrireDonneeDB("dossiers_techniques", listeDocumentsGed, CLE_GED_PROJET);
+ await window.supabaseClient.from('dossiers_techniques').upsert({ id: CLE_GED_PROJET, projet_id: String(idProjetCourant), type_donnee: 'ccpms', contenu_json: listeDocumentsGed });
+ 
+ rechargerToutGed();
+ }
+ } catch (err) { console.log("Lenteur ou erreur réseau lors de la fusion."); }
+}
+  
  });
 };
 function archiverNouveauDocumentManuel() {
