@@ -270,7 +270,6 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
  if(listS.length===0) listS = await lireDonneeDB("dossiers_techniques", `suivi_${idProjetActif}`) || [];
  if(listAv.length===0) listAv = await lireDonneeDB("dossiers_techniques", `avenants_${idProjetActif}`) || [];
  
- // On mémorise les ouvrages stricts du projet PAPA avant de fusionner avec les enfants
  let ouvragesSpecifiquesPapa = [...new Set(listB.map(item => item.ouvrage).filter(Boolean))];
  
  if(Array.isArray(listB)) listB.forEach(item => { item.id_projet = String(idProjetActif); item.projet_id = String(idProjetActif); });
@@ -299,8 +298,6 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
   dictionnaireParEnfantBDQE[String(enf.id)] = bE;
   listB = listB.concat(bE || []); listPl = listPl.concat(pE || []); listS = listS.concat(sE || []); listAv = listAv.concat(aE || []);
  }
- }
-
  }
  let dMin = null, dMax = null;
  listPl.forEach(i => { if(!i.date_debut || !i.date_fin) return; let d1 = new Date(i.date_debut), d2 = new Date(i.date_fin); if(!dMin || d1 < dMin) dMin = d1; if(!dMax || d2 > dMax) dMax = d2; });
@@ -367,11 +364,9 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
  let xCurrent = 80 + pctTempsGlobal * 940;
  svg.innerHTML = `<line x1="80" y1="160" x2="1020" y2="160" stroke="#cbd5e1" stroke-width="2"/><path d="${pointsPath}" fill="none" stroke="#2563eb" stroke-width="3"/><line x1="${xCurrent}" y1="15" x2="${xCurrent}" y2="160" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="4 3"/><circle cx="${xCurrent}" cy="${160 - (tPhyReel/100)*130}" r="6" fill="#16a34a"/><text x="${xCurrent}" y="12" font-size="9" font-weight="bold" fill="#ef4444" text-anchor="middle">Aujourd'hui : ${auj.toLocaleDateString('fr-FR')}</text><text x="80" y="173" font-size="9" font-weight="bold" fill="var(--primary-blue)">Début : ${dMin.toLocaleDateString('fr-FR')}</text><text x="1020" y="173" font-size="9" font-weight="bold" fill="var(--primary-blue)" text-anchor="end">Fin : ${dMax.toLocaleDateString('fr-FR')}</text><text x="70" y="163" font-size="8" fill="#64748b" text-anchor="end">0%</text><text x="70" y="95" font-size="8" fill="#64748b" text-anchor="end">50%</text><text x="70" y="23" font-size="8" fill="#64748b" text-anchor="end">100%</text>`;
  }
-let ventilBox = document.getElementById('boxVentilationOuvrages'); if(ventilBox) { ventilBox.innerHTML = ""; }
+ let ventilBox = document.getElementById('boxVentilationOuvrages'); if(!ventilBox) return; ventilBox.innerHTML = "";
  if (typeProjetActuel === "PAPA") {
  document.getElementById('titleBlocVI').innerText = "VII. Ventilation des Ouvrages Principaux & Contribution des Lots (Proratisée)";
- 
- // 1. Traitement et injection des ouvrages propres au projet PAPA
  if (typeof ouvragesSpecifiquesPapa !== "undefined" && ouvragesSpecifiquesPapa.length > 0) {
   ouvragesSpecifiquesPapa.forEach(ouv => {
    let lignes = listS.filter(item => item.ouvrage === ouv && String(item.id_projet) === String(idProjetActif));
@@ -383,8 +378,6 @@ let ventilBox = document.getElementById('boxVentilationOuvrages'); if(ventilBox)
    }
   });
  }
-
- // 2. Traitement et injection des sous-projets enfants re-pondérés
  enfants.forEach(enf => {
   let lignesEnfBDQE = dictionnaireParEnfantBDQE[String(enf.id)] || []; let budgetInitialEnfant = 0;
   lignesEnfBDQE.forEach(bItem => { budgetInitialEnfant += parseFloat(bItem.total) || 0; });
@@ -423,6 +416,8 @@ let ventilBox = document.getElementById('boxVentilationOuvrages'); if(ventilBox)
   injecterLigneDoubleJauge(ventilBox, ouv, rPrevu, rReel);
  });
  }
+}
+
 function injecterLigneDoubleJauge(conteneur, titre, prevu, reel) {
  let row = document.createElement('div'); row.className = "site-ventil-row";
  row.innerHTML = `<div class="progress-double-line"><div class="progress-label-left" style="width:260px;"> 🧱 ${titre.toUpperCase()}</div><div style="display:flex; flex-direction:column; flex-grow:1; gap:1px;"><div style="display:flex; align-items:center;"><span style="font-size:7px; font-weight:800; color:#64748b; width:35px;">PRÉVU</span><div class="progress-container-flat" style="height:5px; margin:0 8px;"><div class="progress-fill-flat prevu" style="width:${prevu}%;"></div></div><span style="font-size:8px; font-weight:bold; width:30px; text-align:right; color:#2563eb;">${prevu.toFixed(1)}%</span></div><div style="display:flex; align-items:center;"><span style="font-size:7px; font-weight:800; color:#64748b; width:35px;">RÉEL</span><div class="progress-container-flat" style="height:5px; margin:0 8px;"><div class="progress-fill-flat reel" style="width:${reel}%;"></div></div><span style="font-size:8px; font-weight:bold; width:30px; text-align:right; color:#16a34a;">${reel.toFixed(1)}%</span></div></div></div>`;
@@ -431,4 +426,3 @@ function injecterLigneDoubleJauge(conteneur, titre, prevu, reel) {
 </script>
 </body>
 </html>
- 
