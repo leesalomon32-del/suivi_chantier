@@ -229,7 +229,7 @@ async function chargerRenseignementsEtLogosHerites(listeProjets) {
  if (window.supabaseClient && navigator.onLine) {
  try {
    let { data: rD } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `charte_administrative_${idProjetActif}`).maybeSingle(); 
-   if(rD) d = rD.contents_json || rD.contenu_json;
+   if(rD) d = rD.contents_json || rD.contents_json;
    if (pActuel && pActuel.type === 'ENFANT' && pActuel.parentId) {
      let { data: rM } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `charte_administrative_${pActuel.parentId}`).maybeSingle(); 
      if(rM) m = rM.contents_json || rM.contenu_json;
@@ -302,7 +302,7 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
    if (window.supabaseClient && navigator.onLine) {
    try {
      let { data: rB } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `bdqe_${enf.id}`).maybeSingle(); if(rB) bE = rB.contenu_json;
-     let { data: rPl } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `planning_${enf.id}`).maybeSingle(); if(rPl) pE = rPl.contenu_json;
+     let { data: rPl } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `planning_${enf.id}`).maybeSingle(); if(rPl) pE = rPl.contents_json || rPl.contenu_json;
      let { data: rS } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `suivi_${enf.id}`).maybeSingle(); if(rS) sE = rS.contents_json || rS.contents_json;
      let { data: rAv } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `avenants_${enf.id}`).maybeSingle(); if(rAv) aE = rAv.contenu_json;
    } catch(e) {}
@@ -357,10 +357,8 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
    return (totalCumulePrevuAr / budgetReferenceTotal) * 100;
  }
  
- // CORRECTION DU PRÉVU : La Courbe en S théorique utilise désormais les prévisions financières directes
- let tFinPrevu = calculerPrevuALaDate(auj); 
- let tPhyPrevu = tFinPrevu * 1.04;
- // CORRECTION DU RÉEL GLOBAL : Calcul des moyennes consolidées pondérées en Ariary par Lot (Finit les 39%)
+ let tFinPrevu = calculerPrevuALaDate(auj);
+ // REDRESSEMENT DU RÉEL GLOBAL : Calcul des moyennes consolidées pondérées en Ariary par Lot
  let mntRealiseTotalMarche = 0;
  let sumPhyPondereeGlobal = 0;
  
@@ -384,6 +382,7 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
 
  let tFinReel = budgetRéviséTotal > 0 ? (mntRealiseTotalMarche / budgetRéviséTotal) * 100 : 0;
  let tPhyReel = budgetRéviséTotal > 0 ? (sumPhyPondereeGlobal / budgetRéviséTotal) : 0;
+ let tPhyPrevu = tFinPrevu * 1.04;
 
  if(document.getElementById('barPhyPrevu')) document.getElementById('barPhyPrevu').style.width = tPhyPrevu + "%"; 
  if(document.getElementById('barPhyReel')) document.getElementById('barPhyReel').style.width = tPhyReel + "%";
@@ -403,7 +402,6 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
  
  let ventilBox = document.getElementById('boxVentilationOuvrages'); if(!ventilBox) return; ventilBox.innerHTML = "";
  let ventilFinBox = document.getElementById('boxVentilationFinancierePonderee'); if(ventilFinBox) ventilFinBox.innerHTML = "";
- let totalBudgetGlobal = budgetRéviséTotal > 0 ? budgetRéviséTotal : 1;
  
  if (typeProjetActuel === "PAPA") {
  document.getElementById('titleBlocVI').style.display = "none"; document.getElementById('boxVentilationOuvrages').style.display = "none";
@@ -429,7 +427,7 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
  ouvragesUniques.forEach(ouv => {
    let lignes = listS.filter(item => item.ouvrage === ouv); let totL = 0, sP = 0;
    lignes.forEach(i => { if (i.quantite_contrat > 0) { totL++; sP += Math.min((i.qte_realisee / i.quantite_contrat)*100, 100); } });
-   let rReel = totL > 0 ? (sP / totL) : 0; let rPrevu = rReel > 0 ? Math.min(rReel + (tPhyPrevu - tPhyReel), 100) : tPhyPrevu * 0.9;
+   let rReel = totL > 0 ? (sP / totL) : 0; let rPrevu = rReel > 0 ? Math.min(rReel + (tFinPrevu - tFinReel), 100) : tFinPrevu * 0.9;
    injecterLigneDoubleJauge(ventilBox, ouv.toUpperCase(), "", rPrevu, rReel);
  });
  }
