@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+ <script src="https://jsdelivr.net"></script>
 <script src="config.js"></script>
  <meta charset="UTF-8">
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -132,7 +132,7 @@
 const DB_NAME = "GenieCivilPro_DB";
 const DB_VERSION = 1;
 let dbInstance = null;
-let dGlobalCharteCache = null; // Mémoire tampon pour l'historique
+let dGlobalCharteCache = null; 
 function initialiserLeMeubleDB() {
  return new Promise((resolve, reject) => {
  let requete = indexedDB.open(DB_NAME, DB_VERSION);
@@ -215,12 +215,12 @@ async function chargerRenseignementsEtLogosHerites(listeProjets) {
  let d = null; let m = null;
  if (window.supabaseClient && navigator.onLine) {
  try {
- let { data: rD } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `charte_administrative_${idProjetActif}`).maybeSingle(); 
- if(rD) d = rD.contents_json || rD.contenu_json;
- if (pActuel && pActuel.type === 'ENFANT' && pActuel.parentId) {
- let { data: rM } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `charte_administrative_${pActuel.parentId}`).maybeSingle(); 
- if(rM) m = rM.contents_json || rM.contenu_json;
- }
+   let { data: rD } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `charte_administrative_${idProjetActif}`).maybeSingle(); 
+   if(rD) d = rD.contents_json || rD.contenu_json;
+   if (pActuel && pActuel.type === 'ENFANT' && pActuel.parentId) {
+     let { data: rM } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `charte_administrative_${pActuel.parentId}`).maybeSingle(); 
+     if(rM) m = rM.contents_json || rM.contenu_json;
+   }
  } catch(e) {}
  }
  if(!d) d = await lireDonneeDB("dossiers_techniques", `charte_administrative_${idProjetActif}`) || {};
@@ -258,20 +258,20 @@ async function extraire4PhotosCCPMS() {
  if(!ccpms) ccpms = await lireDonneeDB("dossiers_techniques", `ccpms_${idProjetActif}`) || [];
  let photosOnly = ccpms.filter(i => i.categorie === "Photos").slice(0, 4);
  for (let i = 0; i < 4; i++) {
- let card = document.createElement('div'); card.className = "ccpms-photo-card";
- if(photosOnly[i]) card.innerHTML = `<img src="${photosOnly[i].fichierBrut}" class="ccpms-img"><div class="ccpms-meta">${photosOnly[i].titre}</div>`;
- else card.innerHTML = `<div style="margin:auto;font-size:11px;color:#94a3b8;font-style:italic;text-align:center;padding:10px;">Emplacement Photo</div>`;
- container.appendChild(card);
+   let card = document.createElement('div'); card.className = "ccpms-photo-card";
+   if(photosOnly[i]) card.innerHTML = `<img src="${photosOnly[i].fichierBrut}" class="ccpms-img"><div class="ccpms-meta">${photosOnly[i].titre}</div>`;
+   else card.innerHTML = `<div style="margin:auto;font-size:11px;color:#94a3b8;font-style:italic;text-align:center;padding:10px;">Emplacement Photo</div>`;
+   container.appendChild(card);
  }
 }
 async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
  let listB = []; let listPl = []; let listS = []; let listAv = [];
  if (window.supabaseClient && navigator.onLine) {
  try {
- let { data: rB } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `bdqe_${idProjetActif}`).maybeSingle(); if(rB) listB = rB.contents_json || rB.contenu_json;
- let { data: rPl = null } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `planning_${idProjetActif}`).maybeSingle(); if(rPl) listPl = rPl.contents_json || rPl.contenu_json;
- let { data: rS = null } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `suivi_${idProjetActif}`).maybeSingle(); if(rS) listS = rS.contents_json || rS.contenu_json;
- let { data: rAv = null } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `avenants_${idProjetActif}`).maybeSingle(); if(rAv) listAv = rAv.contents_json || [];
+   let { data: rB } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `bdqe_${idProjetActif}`).maybeSingle(); if(rB) listB = rB.contents_json || rB.contenu_json;
+   let { data: rPl } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `planning_${idProjetActif}`).maybeSingle(); if(rPl) listPl = rPl.contents_json || rPl.contents_json;
+   let { data: rS } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `suivi_${idProjetActif}`).maybeSingle(); if(rS) listS = rS.contents_json || rS.contents_json;
+   let { data: rAv } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `avenants_${idProjetActif}`).maybeSingle(); if(rAv) listAv = rAv.contents_json || [];
  } catch(e) {}
  }
  if(listB.length===0) listB = await lireDonneeDB("dossiers_techniques", `bdqe_${idProjetActif}`) || [];
@@ -285,23 +285,23 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
  if (typeProjetActuel === "PAPA") {
  enfants = listeProjets.filter(item => item.type === "ENFANT" && String(item.parentId) === String(idProjetActif));
  for(let enf of enfants) {
- let bE = null; let pE = null; let sE = null; let aE = null;
- if (window.supabaseClient && navigator.onLine) {
- try {
- let { data: rB } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `bdqe_${enf.id}`).maybeSingle(); if(rB) bE = rB.contenu_json;
- let { data: rPl } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `planning_${enf.id}`).maybeSingle(); if(rPl) pE = rPl.contenu_json;
- let { data: rS } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `suivi_${enf.id}`).maybeSingle(); if(rS) sE = rS.contents_json || rS.contenu_json;
- let { data: rAv } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `avenants_${enf.id}`).maybeSingle(); if(rAv) aE = rAv.contenu_json;
- } catch(e) {}
- }
- if(!bE) bE = await lireDonneeDB("dossiers_techniques", `bdqe_${enf.id}`) || [];
- if(!pE) pE = await lireDonneeDB("dossiers_techniques", `planning_${enf.id}`) || [];
- if(!sE) sE = await lireDonneeDB("dossiers_techniques", `suivi_${enf.id}`) || [];
- if(!aE) aE = await lireDonneeDB("dossiers_techniques", `avenants_${enf.id}`) || [];
- if(Array.isArray(bE)) bE.forEach(item => { item.id_projet = String(enf.id); item.projet_id = String(enf.id); });
- if(Array.isArray(pE)) pE.forEach(item => { item.id_projet = String(enf.id); item.projet_id = String(enf.id); });
- if(Array.isArray(sE)) sE.forEach(item => { item.id_projet = String(enf.id); item.projet_id = String(enf.id); });
- listB = listB.concat(bE || []); listPl = listPl.concat(pE || []); listS = listS.concat(sE || []); listAv = listAv.concat(aE || []);
+   let bE = null; let pE = null; let sE = null; let aE = null;
+   if (window.supabaseClient && navigator.onLine) {
+   try {
+     let { data: rB } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `bdqe_${enf.id}`).maybeSingle(); if(rB) bE = rB.contenu_json;
+     let { data: rPl } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `planning_${enf.id}`).maybeSingle(); if(rPl) pE = rPl.contenu_json;
+     let { data: rS } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `suivi_${enf.id}`).maybeSingle(); if(rS) sE = rS.contents_json || rS.contenu_json;
+     let { data: rAv } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `avenants_${enf.id}`).maybeSingle(); if(rAv) aE = rAv.contenu_json;
+   } catch(e) {}
+   }
+   if(!bE) bE = await lireDonneeDB("dossiers_techniques", `bdqe_${enf.id}`) || [];
+   if(!pE) pE = await lireDonneeDB("dossiers_techniques", `planning_${enf.id}`) || [];
+   if(!sE) sE = await lireDonneeDB("dossiers_techniques", `suivi_${enf.id}`) || [];
+   if(!aE) aE = await lireDonneeDB("dossiers_techniques", `avenants_${enf.id}`) || [];
+   if(Array.isArray(bE)) bE.forEach(item => { item.id_projet = String(enf.id); item.projet_id = String(enf.id); });
+   if(Array.isArray(pE)) pE.forEach(item => { item.id_projet = String(enf.id); item.projet_id = String(enf.id); });
+   if(Array.isArray(sE)) sE.forEach(item => { item.id_projet = String(enf.id); item.projet_id = String(enf.id); });
+   listB = listB.concat(bE || []); listPl = listPl.concat(pE || []); listS = listS.concat(sE || []); listAv = listAv.concat(aE || []);
  }
  }
  let dMin = null, dMax = null;
@@ -321,16 +321,40 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
  let pctTempsGlobal = totalJrs > 0 ? (jrsEcoules / totalJrs) : 0;
  document.getElementById('valTempsPct').innerText = Math.round(pctTempsGlobal * 100) + " %";
  document.getElementById('valJrsRestants').innerText = Math.max(0, totalJrs - jrsEcoules) + " J";
- function calculerPrevuALaDate(dateCible) {
- if (!dMin || !dMax) return 0;
- let totalCumulePrevuAr = 0;
- listPl.forEach(tache => { if (!tache.date_debut || !tache.date_fin) return; let pid = String(tache.id_projet || idProjetActif); let cle = `${pid}_${tache.ouvrage.trim().toLowerCase()}_${tache.code_bdqe.trim().toLowerCase()}`; let budgetTache = dictionnaireFinancier[cle] || 0; let tDebut = new Date(tache.date_debut), tFin = new Date(tache.date_fin); if (dateCible >= tFin) { totalCumulePrevuAr += budgetTache; } else if (dateCible >= tDebut) { let dur = Math.round((tFin - tDebut) / (1000*60*60*24)) + 1; let eco = Math.round((dateCible - tDebut) / (1000*60*60*24)) + 1; let x = (eco / dur) * 6 - 3; let sigmoide = 1 / (1 + Math.exp(-x)); totalCumulePrevuAr += budgetTache * sigmoide; } });
- return budgetInitialTotal > 0 ? (totalCumulePrevuAr / budgetInitialTotal) * 100 : 0;
+ 
+ function calculerPrevuALaDate(dateCible, idProjetFiltre = null) {
+   if (!dMin || !dMax) return 0;
+   let totalCumulePrevuAr = 0;
+   let budgetReferenceTotal = 0;
+   listB.forEach(item => {
+     let pid = String(item.id_projet || idProjetActif);
+     if (!idProjetFiltre || pid === String(idProjetFiltre)) { budgetReferenceTotal += parseFloat(item.total) || 0; }
+   });
+   if (budgetReferenceTotal === 0) return 0;
+   listPl.forEach(tache => {
+     if (!tache.date_debut || !tache.date_fin) return;
+     let pid = String(tache.id_projet || idProjetActif);
+     if (idProjetFiltre && pid !== String(idProjetFiltre)) return;
+     let cle = `${pid}_${tache.ouvrage.trim().toLowerCase()}_${tache.code_bdqe.trim().toLowerCase()}`;
+     let budgetTache = dictionnaireFinancier[cle] || 0; 
+     let tDebut = new Date(tache.date_debut), tFin = new Date(tache.date_fin);
+     if (dateCible >= tFin) { totalCumulePrevuAr += budgetTache; } 
+     else if (dateCible >= tDebut) {
+       let dur = Math.round((tFin - tDebut) / (1000*60*60*24)) + 1; 
+       let eco = Math.round((dateCible - tDebut) / (1000*60*60*24)) + 1;
+       let x = (eco / dur) * 6 - 3; let sigmoide = 1 / (1 + Math.exp(-x)); 
+       totalCumulePrevuAr += budgetTache * sigmoide;
+     }
+   });
+   return (totalCumulePrevuAr / budgetReferenceTotal) * 100;
  }
- let tPhyPrevu = calculerPrevuALaDate(auj); let tFinPrevu = tPhyPrevu * 0.96;
+ 
+ let tPhyPrevu = calculerPrevuALaDate(auj); 
+ let tFinPrevu = tPhyPrevu * 0.96;
  let totalLignes = 0, sumPhyReel = 0, mntMarchatTotal = 0, mntRealiseTotal = 0;
  listS.forEach(i => { if (i.quantite_contrat > 0) { totalLignes++; let pL = Math.min((i.qte_realisee / i.quantite_contrat)*100, 100); sumPhyReel += pL; mntMarchatTotal += (i.total_contrat || 0); mntRealiseTotal += ((i.total_contrat || 0) * (pL / 100)); } });
- let tPhyReel = totalLignes > 0 ? (sumPhyReel / totalLignes) : 0; let tFinReel = mntMarchatTotal > 0 ? (mntRealiseTotal / mntMarchatTotal) * 100 : 0;
+ let tPhyReel = totalLignes > 0 ? (sumPhyReel / totalLignes) : 0; 
+ let tFinReel = mntMarchatTotal > 0 ? (mntRealiseTotal / mntMarchatTotal) * 100 : 0;
  if(document.getElementById('barPhyPrevu')) document.getElementById('barPhyPrevu').style.width = tPhyPrevu + "%"; 
  if(document.getElementById('barPhyReel')) document.getElementById('barPhyReel').style.width = tPhyReel + "%";
  if(document.getElementById('txtPhyComp')) document.getElementById('txtPhyComp').innerText = `P: ${tPhyPrevu.toFixed(1)}% | R: ${tPhyReel.toFixed(1)}%`;
@@ -368,17 +392,23 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
  let suiviProprePapa = listS.filter(item => String(item.id_projet) === String(idProjetActif) || String(item.projet_id) === String(idProjetActif));
  suiviProprePapa.forEach(i => { if (i.quantite_contrat > 0) { let pL = Math.min((i.qte_realisee / i.quantite_contrat)*100, 100); budgetProprePapa += (i.total_contrat || 0); mntRealiseProprePapa += ((i.total_contrat || 0) * (pL / 100)); } });
  if (budgetProprePapa > 0 && ventilFinBox) {
- let poidsPropre = (budgetProprePapa / totalBudgetGlobal) * 100; let rPond = (mntRealiseProprePapa / totalBudgetGlobal) * 100; let pPond = Math.min(rPond + (tPhyPrevu - tPhyReel), poidsPropre);
- injecterLigneDoubleJauge(ventilFinBox, `OUVRAGES GENERAUX PAPA`, `représente ${poidsPropre.toFixed(1)}% du marché global`, pPond, rPond);
+   let poidsPropre = (budgetProprePapa / totalBudgetGlobal) * 100; 
+   let tauxProprePrevuPAPA = calculerPrevuALaDate(auj, idProjetActif);
+   let pPond = poidsPropre * (tauxProprePrevuPAPA / 100);
+   let rPond = (mntRealiseProprePapa / totalBudgetGlobal) * 100; 
+   injecterLigneDoubleJauge(ventilFinBox, `OUVRAGES GENERAUX PAPA`, `représente ${poidsPropre.toFixed(1)}% du marché global`, pPond, rPond);
  }
  enfants.forEach(enf => {
- let lignesEnf = listS.filter(item => String(item.id_projet) === String(enf.id) || String(item.projet_id) === String(enf.id)); let totL = 0, sP = 0, budgetEnfant = 0, mntRealiseEnfant = 0;
- lignesEnf.forEach(i => { if (i.quantite_contrat > 0) { totL++; let pL = Math.min((i.qte_realisee / i.quantite_contrat)*100, 100); sP += pL; budgetEnfant += (i.total_contrat || 0); mntRealiseEnfant += ((i.total_contrat || 0) * (pL / 100)); } });
- let rReel = totL > 0 ? (sP / totL) : 0; let rPrevu = rReel > 0 ? Math.min(rReel + (tPhyPrevu - tPhyReel), 100) : tPhyPrevu * 0.9;
- if (ventilFinBox && budgetEnfant > 0) {
- let poidsEnf = (budgetEnfant / totalBudgetGlobal) * 100; let rPondEnf = (mntRealiseEnfant / totalBudgetGlobal) * 100; let pPondEnf = Math.min(rPondEnf + (tPhyPrevu - tPhyReel), poidsEnf);
- injecterLigneDoubleJauge(ventilFinBox, enf.nom.toUpperCase(), `représente ${poidsEnf.toFixed(1)}% du marché global`, pPondEnf, rPondEnf);
- }
+   let lignesEnf = listS.filter(item => String(item.id_projet) === String(enf.id) || String(item.projet_id) === String(enf.id)); 
+   let budgetEnfantTotal = 0; let mntRealiseEnfantTotal = 0;
+   listB.forEach(item => { if (String(item.id_projet) === String(enf.id)) budgetEnfantTotal += parseFloat(item.total) || 0; });
+   if (budgetEnfantTotal === 0) return;
+   lignesEnf.forEach(i => { if (i.quantite_contrat > 0) { let pL = Math.min((i.qte_realisee / i.quantite_contrat)*100, 100); mntRealiseEnfantTotal += ((i.total_contrat || 0) * (pL / 100)); } });
+   let poidsEnf = (budgetEnfantTotal / totalBudgetGlobal) * 100; 
+   let tauxInternePrevuEnfant = calculerPrevuALaDate(auj, enf.id);
+   let pPondEnf = poidsEnf * (tauxInternePrevuEnfant / 100);
+   let rPondEnf = (mntRealiseEnfantTotal / totalBudgetGlobal) * 100;
+   if (ventilFinBox) { injecterLigneDoubleJauge(ventilFinBox, enf.nom.toUpperCase(), `représente ${poidsEnf.toFixed(1)}% du marché global`, pPondEnf, rPondEnf); }
  });
  } else {
  if (document.getElementById('titleBlocVI')) document.getElementById('titleBlocVI').style.display = "block";
@@ -386,10 +416,10 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
  if (document.getElementById('titleBlocVII')) document.getElementById('titleBlocVII').style.display = "none";
  let ouvragesUniques = [...new Set(listS.map(item => item.ouvrage).filter(Boolean))];
  ouvragesUniques.forEach(ouv => {
- let lignes = listS.filter(item => item.ouvrage === ouv); let totL = 0, sP = 0;
- lignes.forEach(i => { if (i.quantite_contrat > 0) { totL++; sP += Math.min((i.qte_realisee / i.quantite_contrat)*100, 100); } });
- let rReel = totL > 0 ? (sP / totL) : 0; let rPrevu = rReel > 0 ? Math.min(rReel + (tPhyPrevu - tPhyReel), 100) : tPhyPrevu * 0.9;
- injecterLigneDoubleJauge(ventilBox, ouv.toUpperCase(), "", rPrevu, rReel);
+   let lignes = listS.filter(item => item.ouvrage === ouv); let totL = 0, sP = 0;
+   lignes.forEach(i => { if (i.quantite_contrat > 0) { totL++; sP += Math.min((i.qte_realisee / i.quantite_contrat)*100, 100); } });
+   let rReel = totL > 0 ? (sP / totL) : 0; let rPrevu = rReel > 0 ? Math.min(rReel + (tPhyPrevu - tPhyReel), 100) : tPhyPrevu * 0.9;
+   injecterLigneDoubleJauge(ventilBox, ouv.toUpperCase(), "", rPrevu, rReel);
  });
  }
 }
