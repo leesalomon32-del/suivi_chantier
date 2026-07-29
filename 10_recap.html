@@ -269,6 +269,10 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
  if(listPl.length===0) listPl = await lireDonneeDB("dossiers_techniques", `planning_${idProjetActif}`) || [];
  if(listS.length===0) listS = await lireDonneeDB("dossiers_techniques", `suivi_${idProjetActif}`) || [];
  if(listAv.length===0) listAv = await lireDonneeDB("dossiers_techniques", `avenants_${idProjetActif}`) || [];
+ 
+ // On mémorise les ouvrages stricts du projet PAPA avant de fusionner avec les enfants
+ let ouvragesSpecifiquesPapa = [...new Set(listB.map(item => item.ouvrage).filter(Boolean))];
+ 
  if(Array.isArray(listB)) listB.forEach(item => { item.id_projet = String(idProjetActif); item.projet_id = String(idProjetActif); });
  if(Array.isArray(listPl)) listPl.forEach(item => { item.id_projet = String(idProjetActif); item.projet_id = String(idProjetActif); });
  if(Array.isArray(listS)) listS.forEach(item => { item.id_projet = String(idProjetActif); item.projet_id = String(idProjetActif); });
@@ -295,6 +299,8 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
   dictionnaireParEnfantBDQE[String(enf.id)] = bE;
   listB = listB.concat(bE || []); listPl = listPl.concat(pE || []); listS = listS.concat(sE || []); listAv = listAv.concat(aE || []);
  }
+ }
+
  }
  let dMin = null, dMax = null;
  listPl.forEach(i => { if(!i.date_debut || !i.date_fin) return; let d1 = new Date(i.date_debut), d2 = new Date(i.date_fin); if(!dMin || d1 < dMin) dMin = d1; if(!dMax || d2 > dMax) dMax = d2; });
@@ -363,7 +369,22 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
  }
  let ventilBox = document.getElementById('boxVentilationOuvrages'); if(!ventilBox) return; ventilBox.innerHTML = "";
  if (typeProjetActuel === "PAPA") {
- document.getElementById('titleBlocVI').innerText = "VII. Ventilation et Contribution Financière Globale (Proratisée)";
+ document.getElementById('titleBlocVI').innerText = "VII. Ventilation des Ouvrages Principaux & Contribution des Lots (Proratisée)";
+ 
+ // 1. Traitement et injection des ouvrages propres au projet PAPA
+ if (typeof ouvragesSpecifiquesPapa !== "undefined" && ouvragesSpecifiquesPapa.length > 0) {
+  ouvragesSpecifiquesPapa.forEach(ouv => {
+   let lignes = listS.filter(item => item.ouvrage === ouv && String(item.id_projet) === String(idProjetActif));
+   if (lignes.length > 0) {
+	let totL = 0, sP = 0;
+	lignes.forEach(i => { if (i.quantite_contrat > 0) { totL++; sP += Math.min((i.qte_realisee / i.quantite_contrat)*100, 100); } });
+	let rReel = totL > 0 ? (sP / totL) : 0; let rPrevu = rReel > 0 ? Math.min(rReel + (tPhyPrevu - tPhyReel), 100) : tPhyPrevu * 0.9;
+	injecterLigneDoubleJauge(ventilBox, `[PROPRE] ${ouv}`, rPrevu, rReel);
+   }
+  });
+ }
+
+ // 2. Traitement et injection des sous-projets enfants re-pondérés
  enfants.forEach(enf => {
   let lignesEnfBDQE = dictionnaireParEnfantBDQE[String(enf.id)] || []; let budgetInitialEnfant = 0;
   lignesEnfBDQE.forEach(bItem => { budgetInitialEnfant += parseFloat(bItem.total) || 0; });
@@ -412,3 +433,4 @@ function injecterLigneDoubleJauge(conteneur, titre, prevu, reel) {
 </script>
 </body>
 </html>
+ 
