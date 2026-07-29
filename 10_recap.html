@@ -31,7 +31,7 @@
  .entete-master-logos td { border: 1px solid #cbd5e1; padding: 3px 6px; font-size: 11px; vertical-align: middle; line-height: 1.2; }
  .lbl-gray-logo { background-color: #f8fafc; font-weight: bold; width: 140px; color: #334155; }
  .logo-box-recap { width: 95px; text-align: center; padding: 1px !important; height: 32px; border: 1px solid #cbd5e1; }
- progress-double-wrapper { display: flex; flex-direction: column; gap: 3px; margin-top: 2px; font-size: 11px; }
+ .progress-double-wrapper { display: flex; flex-direction: column; gap: 3px; margin-top: 2px; font-size: 11px; }
  .progress-double-line { display: flex; align-items: center; justify-content: space-between; }
  .progress-label-left { font-weight: bold; color: #334155; width: 140px; text-transform: uppercase; font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
  .progress-container-flat { background: #f1f5f9; border-radius: 4px; height: 9px; flex-grow: 1; margin: 0 10px; overflow: hidden; border: 1px solid #e2e8f0; position: relative; }
@@ -117,8 +117,8 @@
 </div>
 <div class="page-pdf-paysage auto-height">
  <div class="header-main-title">
- <h1 style="font-size:18px;">Analyses Géoplanning & Trajectoires Contraignantes</h1>
- <div class="status-badge" style="font-size:11px;">Graphiques</div>
+  <h1 style="font-size:18px;">Analyses Géoplanning & Trajectoires Contraignantes</h1>
+  <div class="status-badge" style="font-size:11px;">Graphiques</div>
  </div>
  <div class="market-sub" id="page2MarketLabel">Suivi d'avancement graphique consolidé du marché — Projet : -</div>
  <div class="section-title" id="titleHeaderS">V. Courbe en S : Trajectoire Financière Globale</div>
@@ -132,11 +132,17 @@
 const DB_NAME = "GenieCivilPro_DB";
 const DB_VERSION = 1;
 let dbInstance = null;
-let dGlobalCharteCache = null;
+let dGlobalCharteCache = null; 
 
 function initialiserLeMeubleDB() {
  return new Promise((resolve, reject) => {
  let requete = indexedDB.open(DB_NAME, DB_VERSION);
+ requete.onupgradeneeded = function(e) {
+   let db = e.target.result;
+   if (!db.objectStoreNames.contains("projets")) { db.createObjectStore("projets", { keyPath: "id" }); }
+   if (!db.objectStoreNames.contains("utilisateurs")) { db.createObjectStore("utilisateurs", { keyPath: "id" }); }
+   if (!db.objectStoreNames.contains("dossiers_techniques")) { db.createObjectStore("dossiers_techniques"); }
+ };
  requete.onsuccess = function(e) { dbInstance = e.target.result; resolve(dbInstance); };
  requete.onerror = function() { reject("Meuble bloqué."); };
  });
@@ -202,7 +208,7 @@ async function executerImpressionEtSauvegardeHistorique() {
  let tFinReelCourant = 0;
  if (txtFinElement) {
    let match = txtFinElement.innerText.match(/R:\s*([\d.]+)/);
-   if (match) tFinReelCourant = parseFloat(match);
+   if (match) tFinReelCourant = parseFloat(match[1]);
  }
  let idCleCharte = `charte_administrative_${idProjetActif}`;
  let charteDoc = dGlobalCharteCache || await lireDonneeDB("dossiers_techniques", idCleCharte) || {};
@@ -222,12 +228,12 @@ async function chargerRenseignementsEtLogosHerites(listeProjets) {
  let d = null; let m = null;
  if (window.supabaseClient && navigator.onLine) {
  try {
-   let { data: rD } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `charte_administrative_${idProjetActif}`).maybeSingle(); 
-   if(rD) d = rD.contents_json || rD.contenu_json;
-   if (pActuel && pActuel.type === 'ENFANT' && pActuel.parentId) {
-     let { data: rM } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `charte_administrative_${pActuel.parentId}`).maybeSingle(); 
-     if(rM) m = rM.contents_json;
-   }
+ let { data: rD } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `charte_administrative_${idProjetActif}`).maybeSingle(); 
+ if(rD) d = rD.contents_json || rD.contenu_json;
+ if (pActuel && pActuel.type === 'ENFANT' && pActuel.parentId) {
+ let { data: rM } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `charte_administrative_${pActuel.parentId}`).maybeSingle(); 
+ if(rM) m = rM.contents_json || rM.contenu_json;
+ }
  } catch(e) {}
  }
  if(!d) d = await lireDonneeDB("dossiers_techniques", `charte_administrative_${idProjetActif}`) || {};
@@ -260,7 +266,7 @@ async function extraire4PhotosCCPMS() {
  let container = document.getElementById('rowPhotosGED'); if(!container) return;
  container.innerHTML = ""; let ccpms = null;
  if (window.supabaseClient && navigator.onLine) {
- try { let { data: rC } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `ccpms_${idProjetActif}`).maybeSingle(); if(rC) ccpms = rC.contents_json || rC.contenu_json; } catch(e) {}
+ try { let { data: rC } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `ccpms_${idProjetActif}`).maybeSingle(); if(rC) ccpms = rC.contenu_json; } catch(e) {}
  }
  if(!ccpms) ccpms = await lireDonneeDB("dossiers_techniques", `ccpms_${idProjetActif}`) || [];
  let photosOnly = ccpms.filter(i => i.categorie === "Photos").slice(0, 4);
@@ -273,14 +279,25 @@ async function extraire4PhotosCCPMS() {
 }
 async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
  let listB = []; let listPl = []; let listS = []; let listAv = [];
- if (window.supabaseClient && navigator.onLine) {
- try {
-   let { data: rB } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `bdqe_${idProjetActif}`).maybeSingle(); if(rB) listB = rB.contents_json || rB.contenu_json;
-   let { data: rPl } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `planning_${idProjetActif}`).maybeSingle(); if(rPl) listPl = rPl.contents_json || rPl.contenu_json;
-   let { data: rS } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `suivi_${idProjetActif}`).maybeSingle(); if(rS) listS = rS.contents_json || rS.contents_json;
-   let { data: rAv } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `avenants_${idProjetActif}`).maybeSingle(); if(rAv) listAv = rAv.contents_json || [];
- } catch(e) {}
- }
+  if (window.supabaseClient && navigator.onLine) {
+    try {
+      // Éradication du "= null" parasite qui bloquait les requêtes cloud
+      let { data: rB } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `bdqe_${idProjetActif}`).maybeSingle(); 
+      if(rB) listB = rB.contents_json || rB.contenu_json;
+      
+      let { data: rPl } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `planning_${idProjetActif}`).maybeSingle(); 
+      if(rPl) listPl = rPl.contents_json || rPl.contenu_json;
+      
+      let { data: rS } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `suivi_${idProjetActif}`).maybeSingle(); 
+      if(rS) listS = rS.contents_json || rS.contenu_json;
+      
+      let { data: rAv } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `avenants_${idProjetActif}`).maybeSingle(); 
+      if(rAv) listAv = rAv.contents_json || [];
+    } catch(e) {
+      console.log("Erreur de requête cloud, basculement sur IndexedDB.");
+    }
+  }
+ 
  if(listB.length===0) listB = await lireDonneeDB("dossiers_techniques", `bdqe_${idProjetActif}`) || [];
  if(listPl.length===0) listPl = await lireDonneeDB("dossiers_techniques", `planning_${idProjetActif}`) || [];
  if(listS.length===0) listS = await lireDonneeDB("dossiers_techniques", `suivi_${idProjetActif}`) || [];
@@ -296,7 +313,7 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
    if (window.supabaseClient && navigator.onLine) {
    try {
      let { data: rB } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `bdqe_${enf.id}`).maybeSingle(); if(rB) bE = rB.contenu_json;
-     let { data: rPl } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `planning_${enf.id}`).maybeSingle(); if(rPl) pE = rPl.contents_json || rPl.contenu_json;
+     let { data: rPl } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `planning_${enf.id}`).maybeSingle(); if(rPl) pE = rPl.contenu_json;
      let { data: rS } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `suivi_${enf.id}`).maybeSingle(); if(rS) sE = rS.contents_json || rS.contents_json;
      let { data: rAv } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `avenants_${enf.id}`).maybeSingle(); if(rAv) aE = rAv.contenu_json;
    } catch(e) {}
@@ -332,10 +349,10 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
  function calculerPrevuALaDate(dateCible, idProjetFiltre = null) {
    if (!dMin || !dMax) return 0;
    let totalCumulePrevuAr = 0;
-   let budgetReferenceTotal = budgetRéviséTotal > 0 ? budgetRéviséTotal : 1;
+   let budgetReferenceTotal = budgetInitialTotal > 0 ? budgetInitialTotal : 1;
    listPl.forEach(tache => {
      if (!tache.date_debut || !tache.date_fin) return;
-     let pid = String(tache.id_projet || tache.projet_id || idProjetActif);
+     let pid = String(tache.id_projet || idProjetActif);
      if (idProjetFiltre && pid !== String(idProjetFiltre)) return;
      let cle = `${pid}_${tache.ouvrage.trim().toLowerCase()}_${tache.code_bdqe.trim().toLowerCase()}`;
      let budgetTache = dictionnaireFinancier[cle] || 0; 
@@ -351,33 +368,12 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
    return (totalCumulePrevuAr / budgetReferenceTotal) * 100;
  }
  
- let tFinPrevu = calculerPrevuALaDate(auj);
- // REDRESSEMENT DU RÉEL GLOBAL : Calcul des moyennes consolidées pondérées en Ariary par Lot
-  let mntRealiseTotalMarche = 0;
-  let sumPhyPondereeGlobal = 0;
-  
-  // Ouvrages Généraux PAPA
-  let suiviProprePapaGlobal = listS.filter(item => String(item.id_projet) === String(idProjetActif) || String(item.projet_id) === String(idProjetActif) || (!item.id_projet && !item.projet_id));
-  let budgetProprePapaGlobal = 0; let mntRealiseProprePapaGlobal = 0; let totLignesPapa = 0; let sumPhyPapa = 0;
-  suiviProprePapaGlobal.forEach(i => { if (i.quantite_contrat > 0) { totLignesPapa++; let pL = Math.min((i.qte_realisee / i.quantite_contrat)*100, 100); sumPhyPapa += pL; budgetProprePapaGlobal += (i.total_contrat || 0); mntRealiseProprePapaGlobal += ((i.total_contrat || 0) * (pL / 100)); } });
-  mntRealiseTotalMarche += mntRealiseProprePapaGlobal;
-  if (budgetProprePapaGlobal > 0) sumPhyPondereeGlobal += (sumPhyPapa / totLignesPapa) * budgetProprePapaGlobal;
-
- // Lots Enfants
- enfants.forEach(enf => {
-   let lignesEnfGlobal = listS.filter(item => String(item.id_projet) === String(enf.id) || String(item.projet_id) === String(enf.id) || String(item.site_id) === String(enf.id));
-   let budgetEnfantTotalGlobal = 0; let mntRealiseEnfantTotalGlobal = 0; let totLignesEnf = 0; let sumPhyEnf = 0;
-   listB.forEach(item => { if (String(item.id_projet) === String(enf.id) || String(item.projet_id) === String(enf.id)) budgetEnfantTotalGlobal += parseFloat(item.total) || 0; });
-   if (budgetEnfantTotalGlobal === 0) return;
-   lignesEnfGlobal.forEach(i => { if (i.quantite_contrat > 0) { totLignesEnf++; let pL = Math.min((i.qte_realisee / i.quantite_contrat)*100, 100); sumPhyEnf += pL; mntRealiseEnfantTotalGlobal += ((i.total_contrat || 0) * (pL / 100)); } });
-   mntRealiseTotalMarche += mntRealiseEnfantTotalGlobal;
-   if (totLignesEnf > 0) sumPhyPondereeGlobal += (sumPhyEnf / totLignesEnf) * budgetEnfantTotalGlobal;
- });
-
- let tFinReel = budgetRéviséTotal > 0 ? (mntRealiseTotalMarche / budgetRéviséTotal) * 100 : 0;
- let tPhyReel = budgetRéviséTotal > 0 ? (sumPhyPondereeGlobal / budgetRéviséTotal) : 0;
- let tPhyPrevu = tFinPrevu * 1.04;
-
+ let tPhyPrevu = calculerPrevuALaDate(auj); 
+ let tFinPrevu = tPhyPrevu * 0.96;
+ let totalLignes = 0, sumPhyReel = 0, mntMarchatTotal = 0, mntRealiseTotal = 0;
+ listS.forEach(i => { if (i.quantite_contrat > 0) { totalLignes++; let pL = Math.min((i.qte_realisee / i.quantite_contrat)*100, 100); sumPhyReel += pL; mntMarchatTotal += (i.total_contrat || 0); mntRealiseTotal += ((i.total_contrat || 0) * (pL / 100)); } });
+ let tPhyReel = totalLignes > 0 ? (sumPhyReel / totalLignes) : 0; 
+ let tFinReel = mntMarchatTotal > 0 ? (mntRealiseTotal / mntMarchatTotal) * 100 : 0;
  if(document.getElementById('barPhyPrevu')) document.getElementById('barPhyPrevu').style.width = tPhyPrevu + "%"; 
  if(document.getElementById('barPhyReel')) document.getElementById('barPhyReel').style.width = tPhyReel + "%";
  if(document.getElementById('txtPhyComp')) document.getElementById('txtPhyComp').innerText = `P: ${tPhyPrevu.toFixed(1)}% | R: ${tPhyReel.toFixed(1)}%`;
@@ -385,33 +381,50 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
  if(document.getElementById('barFinReel')) document.getElementById('barFinReel').style.width = tFinReel + "%";
  if(document.getElementById('txtFinComp')) document.getElementById('txtFinComp').innerText = `P: ${tFinPrevu.toFixed(1)}% | R: ${tFinReel.toFixed(1)}%`;
  if(document.getElementById('titleHeaderS')) document.getElementById('titleHeaderS').innerText = `V. COURBE EN S : TRAJECTOIRE FINANCIÈRE GLOBALE (PRÉVU ${tFinPrevu.toFixed(1)}% VS RÉEL ${tFinReel.toFixed(1)}%)`;
-
  let svg = document.getElementById('svgS'); if(svg && dMin && dMax) {
- let pointsPathPrevu = ""; for(let j=0; j<=40; j++) { let ratioX = j / 40; let x = 80 + ratioX * 940; let tempsCibleMs = dMin.getTime() + ratioX * (dMax.getTime() - dMin.getTime()); let pointsY = 160 - (calculerPrevuALaDate(new Date(tempsCibleMs))/100)*130; pointsPathPrevu += `${j===0 ? 'M':'L'} ${x} ${pointsY} `; }
- let pointsPathReelHistorique = ""; charteActiveLocal = dGlobalCharteCache || {}; let historiqueData = charteActiveLocal.historique_financier || {}; let datesTriees = Object.keys(historiqueData).sort();
- if (datesTriees.length > 0) { datesTriees.forEach((dStr, idx) => { let dObj = new Date(dStr); if (dObj >= dMin && dObj <= dMax) { let ratioX = (dObj - dMin) / (dMax - dMin); let x = 80 + ratioX * 940; let pointsY = 160 - (historiqueData[dStr] / 100) * 130; pointsPathReelHistorique += `${idx === 0 ? 'M' : 'L'} ${x} ${pointsY} `; } }); }
- let xCurrent = 80 + pctTempsGlobal * 940; let pathVertHTML = pointsPathReelHistorique !== "" ? `<path d="${pointsPathReelHistorique}" fill="none" stroke="#16a34a" stroke-width="3"/>` : "";
+ let pointsPathPrevu = ""; for(let j=0; j<=40; j++) { let ratioX = j / 40; let x = 80 + ratioX * 940; let tempsCibleMs = dMin.getTime() + ratioX * (dMax.getTime() - dMin.getTime()); let pointsY = 160 - (calculu = calculerPrevuALaDate(new Date(tempsCibleMs))/100)*130; pointsPathPrevu += `${j===0 ? 'M':'L'} ${x} ${pointsY} `; }
+ let pointsPathReelHistorique = "";
+ let charteActiveLocal = dGlobalCharteCache || {};
+ let historiqueData = charteActiveLocal.historique_financier || {};
+ let datesTriees = Object.keys(historiqueData).sort();
+ if (datesTriees.length > 0) {
+   datesTriees.forEach((dStr, idx) => {
+     let dObj = new Date(dStr);
+     if (dObj >= dMin && dObj <= dMax) {
+       let ratioX = (dObj - dMin) / (dMax - dMin); let x = 80 + ratioX * 940;
+       let pointsY = 160 - (historiqueData[dStr] / 100) * 130;
+       pointsPathReelHistorique += `${idx === 0 ? 'M' : 'L'} ${x} ${pointsY} `;
+     }
+   });
+ }
+ let xCurrent = 80 + pctTempsGlobal * 940;
+ let pathVertHTML = pointsPathReelHistorique !== "" ? `<path d="${pointsPathReelHistorique}" fill="none" stroke="#16a34a" stroke-width="3"/>` : "";
  svg.innerHTML = `<line x1="80" y1="160" x2="1020" y2="160" stroke="#cbd5e1" stroke-width="2"/><path d="${pointsPathPrevu}" fill="none" stroke="#2563eb" stroke-width="3" stroke-dasharray="1 1"/>${pathVertHTML}<line x1="${xCurrent}" y1="15" x2="${xCurrent}" y2="160" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="4 3"/><circle cx="${xCurrent}" cy="${160 - (tFinReel/100)*130}" r="6" fill="#16a34a"/><text x="${xCurrent}" y="12" font-size="9" font-weight="bold" fill="#ef4444" text-anchor="middle">Aujourd'hui : ${auj.toLocaleDateString('fr-FR')}</text><text x="80" y="173" font-size="9" font-weight="bold" fill="var(--primary-blue)">Début : ${dMin.toLocaleDateString('fr-FR')}</text><text x="1020" y="173" font-size="9" font-weight="bold" fill="var(--primary-blue)" text-anchor="end">Fin : ${dMax.toLocaleDateString('fr-FR')}</text><text x="70" y="163" font-size="8" fill="#64748b" text-anchor="end">0%</text><text x="70" y="95" font-size="8" fill="#64748b" text-anchor="end">50%</text><text x="70" y="23" font-size="8" fill="#64748b" text-anchor="end">100%</text>`;
  }
- 
  let ventilBox = document.getElementById('boxVentilationOuvrages'); if(!ventilBox) return; ventilBox.innerHTML = "";
  let ventilFinBox = document.getElementById('boxVentilationFinancierePonderee'); if(ventilFinBox) ventilFinBox.innerHTML = "";
  let totalBudgetGlobal = budgetRéviséTotal > 0 ? budgetRéviséTotal : 1;
- 
  if (typeProjetActuel === "PAPA") {
  document.getElementById('titleBlocVI').style.display = "none"; document.getElementById('boxVentilationOuvrages').style.display = "none";
  if (document.getElementById('titleBlocVII')) document.getElementById('titleBlocVII').style.display = "block";
- if (budgetProprePapaGlobal > 0 && ventilFinBox) {
-   let poidsPropre = (budgetProprePapaGlobal / totalBudgetGlobal) * 100; let pPond = calculerPrevuALaDate(auj, idProjetActif);
-   injecterLigneDoubleJauge(ventilFinBox, `OUVRAGES GENERAUX PAPA`, `représente ${poidsPropre.toFixed(1)}% du marché global`, pPond, (mntRealiseProprePapaGlobal / totalBudgetGlobal) * 100);
+ let budgetProprePapa = 0; let mntRealiseProprePapa = 0;
+ let suiviProprePapa = listS.filter(item => String(item.id_projet) === String(idProjetActif) || String(item.projet_id) === String(idProjetActif));
+ suiviProprePapa.forEach(i => { if (i.quantite_contrat > 0) { let pL = Math.min((i.qte_realisee / i.quantite_contrat)*100, 100); budgetProprePapa += (i.total_contrat || 0); mntRealiseProprePapa += ((i.total_contrat || 0) * (pL / 100)); } });
+ if (budgetProprePapa > 0 && ventilFinBox) {
+   let poidsPropre = (budgetProprePapa / totalBudgetGlobal) * 100; 
+   let pPond = calculerPrevuALaDate(auj, idProjetActif);
+   let rPond = (mntRealiseProprePapa / totalBudgetGlobal) * 100; 
+   injecterLigneDoubleJauge(ventilFinBox, `OUVRAGES GENERAUX PAPA`, `représente ${poidsPropre.toFixed(1)}% du marché global`, pPond, rPond);
  }
  enfants.forEach(enf => {
-   let lignesEnf = listS.filter(item => String(item.id_projet) === String(enf.id) || String(item.projet_id) === String(enf.id) || String(item.site_id) === String(enf.id)); 
+   let lignesEnf = listS.filter(item => String(item.id_projet) === String(enf.id) || String(item.projet_id) === String(enf.id)); 
    let budgetEnfantTotal = 0; let mntRealiseEnfantTotal = 0;
-   listB.forEach(item => { if (String(item.id_projet) === String(enf.id) || String(item.projet_id) === String(enf.id)) budgetEnfantTotal += parseFloat(item.total) || 0; });
+   listB.forEach(item => { if (String(item.id_projet) === String(enf.id)) budgetEnfantTotal += parseFloat(item.total) || 0; });
    if (budgetEnfantTotal === 0) return;
    lignesEnf.forEach(i => { if (i.quantite_contrat > 0) { let pL = Math.min((i.qte_realisee / i.quantite_contrat)*100, 100); mntRealiseEnfantTotal += ((i.total_contrat || 0) * (pL / 100)); } });
-   let poidsEnf = (budgetEnfantTotal / totalBudgetGlobal) * 100; let pPondEnf = calculerPrevuALaDate(auj, enf.id); let rPondEnf = (mntRealiseEnfantTotal / totalBudgetGlobal) * 100;
+   let poidsEnf = (budgetEnfantTotal / totalBudgetGlobal) * 100; 
+   let pPondEnf = calculerPrevuALaDate(auj, enf.id);
+   let rPondEnf = (mntRealiseEnfantTotal / totalBudgetGlobal) * 100;
    if (ventilFinBox) { injecterLigneDoubleJauge(ventilFinBox, enf.nom.toUpperCase(), `représente ${poidsEnf.toFixed(1)}% du marché global`, pPondEnf, rPondEnf); }
  });
  } else {
@@ -422,12 +435,11 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
  ouvragesUniques.forEach(ouv => {
    let lignes = listS.filter(item => item.ouvrage === ouv); let totL = 0, sP = 0;
    lignes.forEach(i => { if (i.quantite_contrat > 0) { totL++; sP += Math.min((i.qte_realisee / i.quantite_contrat)*100, 100); } });
-   let rReel = totL > 0 ? (sP / totL) : 0; let rPrevu = rReel > 0 ? Math.min(rReel + (tFinPrevu - tFinReel), 100) : tFinPrevu * 0.9;
+   let rReel = totL > 0 ? (sP / totL) : 0; let rPrevu = rReel > 0 ? Math.min(rReel + (tPhyPrevu - tPhyReel), 100) : tPhyPrevu * 0.9;
    injecterLigneDoubleJauge(ventilBox, ouv.toUpperCase(), "", rPrevu, rReel);
  });
  }
 }
-
 function injecterLigneDoubleJauge(conteneur, titre, sousTitre, prevu, reel) {
  let row = document.createElement('div'); row.className = "site-ventil-row";
  let sousTitreHTML = sousTitre ? `<br><span style="font-size:9px; font-weight:bold; color:#64748b; font-style:italic;">(${sousTitre})</span>` : "";
