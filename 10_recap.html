@@ -345,28 +345,47 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
  let pctTempsGlobal = totalJrs > 0 ? (jrsEcoules / totalJrs) : 0;
  document.getElementById('valTempsPct').innerText = Math.round(pctTempsGlobal * 100) + " %";
  document.getElementById('valJrsRestants').innerText = Math.max(0, totalJrs - jrsEcoules) + " J";
- 
  function calculerPrevuALaDate(dateCible, idProjetFiltre = null) {
-   if (!dMin || !dMax) return 0;
-   let totalCumulePrevuAr = 0;
-   let budgetReferenceTotal = budgetInitialTotal > 0 ? budgetInitialTotal : 1;
-   listPl.forEach(tache => {
-     if (!tache.date_debut || !tache.date_fin) return;
-     let pid = String(tache.id_projet || idProjetActif);
-     if (idProjetFiltre && pid !== String(idProjetFiltre)) return;
-     let cle = `${pid}_${tache.ouvrage.trim().toLowerCase()}_${tache.code_bdqe.trim().toLowerCase()}`;
-     let budgetTache = dictionnaireFinancier[cle] || 0; 
-     let tDebut = new Date(tache.date_debut), tFin = new Date(tache.date_fin);
-     if (dateCible >= tFin) { totalCumulePrevuAr += budgetTache; } 
-     else if (dateCible >= tDebut) {
-       let dur = Math.round((tFin - tDebut) / (1000*60*60*24)) + 1; 
-       let eco = Math.round((dateCible - tDebut) / (1000*60*60*24)) + 1;
-       let x = (eco / dur) * 6 - 3; let sigmoide = 1 / (1 + Math.exp(-x)); 
-       totalCumulePrevuAr += budgetTache * sigmoide;
-     }
-   });
-   return (totalCumulePrevuAr / budgetReferenceTotal) * 100;
- }
+  if (!dMin || !dMax) return 0;
+  
+  let totalCumulePrevuAr = 0;
+  // Dénominateur fixe : Budget global contractuel révisé (Initial + Avenants) du projet PAPA
+  let budgetReferenceTotal = budgetRéviséTotal > 0 ? budgetRéviséTotal : 1;
+
+  listPl.forEach(tache => {
+    if (!tache.date_debut || !tache.date_fin) return;
+    
+    let pid = String(tache.id_projet || idProjetActif);
+    // Filtrage par site : si on analyse un sous-projet spécifique, on ignore les autres
+    if (idProjetFiltre && pid !== String(idProjetFiltre)) return;
+
+    // Récupération de la valeur financière exacte de la tâche depuis le BDQE
+    let cle = `${pid}_${tache.ouvrage.trim().toLowerCase()}_${tache.code_bdqe.trim().toLowerCase()}`;
+    let budgetTache = dictionnaireFinancier[cle] || 0; 
+    
+    let tDebut = new Date(tache.date_debut);
+    let tFin = new Date(tache.date_fin);
+
+    if (dateCible >= tFin) { 
+      // La tâche est planifiée comme terminée : sa valeur financière est entièrement acquise
+      totalCumulePrevuAr += budgetTache; 
+    } 
+    else if (dateCible >= tDebut) {
+      // La tâche est en cours : calcul de sa progression financière théorique via la sigmoïde
+      let dur = Math.round((tFin - tDebut) / (1000*60*60*24)) + 1; 
+      let eco = Math.round((dateCible - tDebut) / (1000*60*60*24)) + 1;
+      let x = (eco / dur) * 6 - 3; 
+      let sigmoide = 1 / (1 + Math.exp(-x)); 
+      
+      totalCumulePrevuAr += budgetTache * sigmoide;
+    }
+  });
+  
+  // Renvoie le pourcentage d'avancement planifié ramené à l'échelle financière du PAPA
+  return (totalCumulePrevuAr / budgetReferenceTotal) * 100;
+}
+
+
  
  let tPhyPrevu = calculerPrevuALaDate(auj); 
  let tFinPrevu = tPhyPrevu * 0.96;
