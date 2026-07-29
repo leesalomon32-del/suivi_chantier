@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+ <script src="https://jsdelivr.net"></script>
 <script src="config.js"></script>
  <meta charset="UTF-8">
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -31,7 +31,7 @@
  .entete-master-logos td { border: 1px solid #cbd5e1; padding: 3px 6px; font-size: 11px; vertical-align: middle; line-height: 1.2; }
  .lbl-gray-logo { background-color: #f8fafc; font-weight: bold; width: 140px; color: #334155; }
  .logo-box-recap { width: 95px; text-align: center; padding: 1px !important; height: 32px; border: 1px solid #cbd5e1; }
- .progress-double-wrapper { display: flex; flex-direction: column; gap: 3px; margin-top: 2px; font-size: 11px; }
+ progress-double-wrapper { display: flex; flex-direction: column; gap: 3px; margin-top: 2px; font-size: 11px; }
  .progress-double-line { display: flex; align-items: center; justify-content: space-between; }
  .progress-label-left { font-weight: bold; color: #334155; width: 140px; text-transform: uppercase; font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
  .progress-container-flat { background: #f1f5f9; border-radius: 4px; height: 9px; flex-grow: 1; margin: 0 10px; overflow: hidden; border: 1px solid #e2e8f0; position: relative; }
@@ -137,12 +137,6 @@ let dGlobalCharteCache = null;
 function initialiserLeMeubleDB() {
  return new Promise((resolve, reject) => {
  let requete = indexedDB.open(DB_NAME, DB_VERSION);
- requete.onupgradeneeded = function(e) {
-   let db = e.target.result;
-   if (!db.objectStoreNames.contains("projets")) { db.createObjectStore("projets", { keyPath: "id" }); }
-   if (!db.objectStoreNames.contains("utilisateurs")) { db.createObjectStore("utilisateurs", { keyPath: "id" }); }
-   if (!db.objectStoreNames.contains("dossiers_techniques")) { db.createObjectStore("dossiers_techniques"); }
- };
  requete.onsuccess = function(e) { dbInstance = e.target.result; resolve(dbInstance); };
  requete.onerror = function() { reject("Meuble bloqué."); };
  });
@@ -229,10 +223,10 @@ async function chargerRenseignementsEtLogosHerites(listeProjets) {
  if (window.supabaseClient && navigator.onLine) {
  try {
    let { data: rD } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `charte_administrative_${idProjetActif}`).maybeSingle(); 
-   if(rD) d = rD.contents_json || rD.contents_json;
+   if(rD) d = rD.contents_json || rD.contenu_json;
    if (pActuel && pActuel.type === 'ENFANT' && pActuel.parentId) {
      let { data: rM } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `charte_administrative_${pActuel.parentId}`).maybeSingle(); 
-     if(rM) m = rM.contents_json || rM.contenu_json;
+     if(rM) m = rM.contents_json;
    }
  } catch(e) {}
  }
@@ -266,7 +260,7 @@ async function extraire4PhotosCCPMS() {
  let container = document.getElementById('rowPhotosGED'); if(!container) return;
  container.innerHTML = ""; let ccpms = null;
  if (window.supabaseClient && navigator.onLine) {
- try { let { data: rC } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `ccpms_${idProjetActif}`).maybeSingle(); if(rC) ccpms = rC.contenu_json; } catch(e) {}
+ try { let { data: rC } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `ccpms_${idProjetActif}`).maybeSingle(); if(rC) ccpms = rC.contents_json || rC.contenu_json; } catch(e) {}
  }
  if(!ccpms) ccpms = await lireDonneeDB("dossiers_techniques", `ccpms_${idProjetActif}`) || [];
  let photosOnly = ccpms.filter(i => i.categorie === "Photos").slice(0, 4);
@@ -282,7 +276,7 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
  if (window.supabaseClient && navigator.onLine) {
  try {
    let { data: rB } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `bdqe_${idProjetActif}`).maybeSingle(); if(rB) listB = rB.contents_json || rB.contenu_json;
-   let { data: rPl } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `planning_${idProjetActif}`).maybeSingle(); if(rPl) listPl = rPl.contents_json || rPl.contents_json;
+   let { data: rPl } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `planning_${idProjetActif}`).maybeSingle(); if(rPl) listPl = rPl.contents_json || rPl.contenu_json;
    let { data: rS } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `suivi_${idProjetActif}`).maybeSingle(); if(rS) listS = rS.contents_json || rS.contents_json;
    let { data: rAv } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `avenants_${idProjetActif}`).maybeSingle(); if(rAv) listAv = rAv.contents_json || [];
  } catch(e) {}
@@ -393,7 +387,7 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
  if(document.getElementById('titleHeaderS')) document.getElementById('titleHeaderS').innerText = `V. COURBE EN S : TRAJECTOIRE FINANCIÈRE GLOBALE (PRÉVU ${tFinPrevu.toFixed(1)}% VS RÉEL ${tFinReel.toFixed(1)}%)`;
 
  let svg = document.getElementById('svgS'); if(svg && dMin && dMax) {
- let pointsPathPrevu = ""; for(let j=0; j<=40; j++) { let ratioX = j / 40; let x = 80 + ratioX * 940; let tempsCibleMs = dMin.getTime() + ratioX * (dMax.getTime() - dMin.getTime()); let pointsY = 160 - (calculerPrevuALaDate(new Date(tempsCibleMs))/100)*130; ; pointsPathPrevu += `${j===0 ? 'M':'L'} ${x} ${pointsY} `; }
+ let pointsPathPrevu = ""; for(let j=0; j<=40; j++) { let ratioX = j / 40; let x = 80 + ratioX * 940; let tempsCibleMs = dMin.getTime() + ratioX * (dMax.getTime() - dMin.getTime()); let pointsY = 160 - (calculerPrevuALaDate(new Date(tempsCibleMs))/100)*130; pointsPathPrevu += `${j===0 ? 'M':'L'} ${x} ${pointsY} `; }
  let pointsPathReelHistorique = ""; charteActiveLocal = dGlobalCharteCache || {}; let historiqueData = charteActiveLocal.historique_financier || {}; let datesTriees = Object.keys(historiqueData).sort();
  if (datesTriees.length > 0) { datesTriees.forEach((dStr, idx) => { let dObj = new Date(dStr); if (dObj >= dMin && dObj <= dMax) { let ratioX = (dObj - dMin) / (dMax - dMin); let x = 80 + ratioX * 940; let pointsY = 160 - (historiqueData[dStr] / 100) * 130; pointsPathReelHistorique += `${idx === 0 ? 'M' : 'L'} ${x} ${pointsY} `; } }); }
  let xCurrent = 80 + pctTempsGlobal * 940; let pathVertHTML = pointsPathReelHistorique !== "" ? `<path d="${pointsPathReelHistorique}" fill="none" stroke="#16a34a" stroke-width="3"/>` : "";
@@ -402,6 +396,7 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
  
  let ventilBox = document.getElementById('boxVentilationOuvrages'); if(!ventilBox) return; ventilBox.innerHTML = "";
  let ventilFinBox = document.getElementById('boxVentilationFinancierePonderee'); if(ventilFinBox) ventilFinBox.innerHTML = "";
+ let totalBudgetGlobal = budgetRéviséTotal > 0 ? budgetRéviséTotal : 1;
  
  if (typeProjetActuel === "PAPA") {
  document.getElementById('titleBlocVI').style.display = "none"; document.getElementById('boxVentilationOuvrages').style.display = "none";
@@ -432,6 +427,7 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
  });
  }
 }
+
 function injecterLigneDoubleJauge(conteneur, titre, sousTitre, prevu, reel) {
  let row = document.createElement('div'); row.className = "site-ventil-row";
  let sousTitreHTML = sousTitre ? `<br><span style="font-size:9px; font-weight:bold; color:#64748b; font-style:italic;">(${sousTitre})</span>` : "";
