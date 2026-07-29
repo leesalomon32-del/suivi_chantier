@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
- <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
  <meta charset="UTF-8">
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -78,7 +78,7 @@
  <tr><td class="lbl-gray-logo">Bailleur / Financement :</td><td id="lblBailleur">-</td><td class="logo-box-recap" id="logoFin_box"></td></tr>
  <tr><td class="lbl-gray-logo">Maître d'Ouvrage (Client) :</td><td id="lblMO">-</td><td class="logo-box-recap" id="logoMO_box"></td></tr>
  <tr><td class="lbl-gray-logo">Mission de Contrôle / MOE :</td><td id="lblMOE">-</td><td class="logo-box-recap" id="logoMOE_box"></td></tr>
- <tr><td class="lbl-gray-logo">Entreprise Titulaire :</td><td id="lblEntreprise">-</td><td class="logo-box-recap" id="logoEntreprise_box"></td></tr>
+ <tr><td class="lbl-gray-logo">Entreprise Titulaire :</td><td id="lblEntreprise">-</td><td class="logo-box-recap" id="logoEnterprise_box"></td></tr>
  <tr><td class="lbl-gray-logo">N° de Contrat / Marché :</td><td id="lblNumContrat" style="font-family:monospace; color:var(--accent-blue);" colspan="2">-</td></tr>
  </table>
  <div style="display:grid; grid-template-columns: 1fr 1.1fr; gap:20px; margin-top:2px;">
@@ -117,8 +117,8 @@
 </div>
 <div class="page-pdf-paysage auto-height">
  <div class="header-main-title">
- <h1>Analyses Géoplanning & Trajectoires Contraignantes</h1>
- <div class="status-badge" style="font-size:11px;">Graphiques</div>
+  <h1 style="font-size:18px;">Analyses Géoplanning & Trajectoires Contraignantes</h1>
+  <div class="status-badge" style="font-size:11px;">Graphiques</div>
  </div>
  <div class="market-sub" id="page2MarketLabel">Suivi d'avancement graphique consolidé du marché — Projet : -</div>
  <div class="section-title" id="titleHeaderS">V. Courbe en S : Trajectoire Financière Globale</div>
@@ -133,13 +133,21 @@ const DB_NAME = "GenieCivilPro_DB";
 const DB_VERSION = 1;
 let dbInstance = null;
 let dGlobalCharteCache = null; 
+
 function initialiserLeMeubleDB() {
  return new Promise((resolve, reject) => {
  let requete = indexedDB.open(DB_NAME, DB_VERSION);
+ requete.onupgradeneeded = function(e) {
+   let db = e.target.result;
+   if (!db.objectStoreNames.contains("projets")) { db.createObjectStore("projets", { keyPath: "id" }); }
+   if (!db.objectStoreNames.contains("utilisateurs")) { db.createObjectStore("utilisateurs", { keyPath: "id" }); }
+   if (!db.objectStoreNames.contains("dossiers_techniques")) { db.createObjectStore("dossiers_techniques"); }
+ };
  requete.onsuccess = function(e) { dbInstance = e.target.result; resolve(dbInstance); };
  requete.onerror = function() { reject("Meuble bloqué."); };
  });
 }
+
 function lireDonneeDB(tiroir, cle) {
  return new Promise((resolve) => {
  if(!dbInstance) return resolve(null);
@@ -149,6 +157,7 @@ function lireDonneeDB(tiroir, cle) {
  req.onerror = () => resolve(null);
  });
 }
+
 function lireToutesLesDonneesDB(tiroir) {
  return new Promise((resolve) => {
  if(!dbInstance) return resolve([]);
@@ -158,6 +167,7 @@ function lireToutesLesDonneesDB(tiroir) {
  req.onerror = () => resolve([]);
  });
 }
+
 function ecrireDonneeDB(tiroir, objet, cleOptionnelle) {
  return new Promise((resolve) => {
  if(!dbInstance) return resolve(false);
@@ -167,8 +177,10 @@ function ecrireDonneeDB(tiroir, objet, cleOptionnelle) {
  req.onerror = () => resolve(false);
  });
 }
+
 let idProjetActif = localStorage.getItem("id_projet_en_cours_de_saisie_temporaire") || "101";
 let typeProjetActuel = "ENFANT";
+
 window.onload = function() {
  initialiserLeMeubleDB().then(async () => {
  let listeProjets = await lireToutesLesDonneesDB("projets");
@@ -189,6 +201,7 @@ window.onload = function() {
  setTimeout(() => document.getElementById('loaderSupabase').style.display = 'none', 400);
  });
 };
+
 async function executerImpressionEtSauvegardeHistorique() {
  let aujStr = new Date().toISOString().substring(0, 10);
  let txtFinElement = document.getElementById('txtFinComp');
@@ -215,12 +228,12 @@ async function chargerRenseignementsEtLogosHerites(listeProjets) {
  let d = null; let m = null;
  if (window.supabaseClient && navigator.onLine) {
  try {
-   let { data: rD } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `charte_administrative_${idProjetActif}`).maybeSingle(); 
-   if(rD) d = rD.contents_json || rD.contents_json;
-   if (pActuel && pActuel.type === 'ENFANT' && pActuel.parentId) {
-     let { data: rM } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `charte_administrative_${pActuel.parentId}`).maybeSingle(); 
-     if(rM) m = rM.contents_json || rM.contenu_json;
-   }
+ let { data: rD } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `charte_administrative_${idProjetActif}`).maybeSingle(); 
+ if(rD) d = rD.contents_json || rD.contenu_json;
+ if (pActuel && pActuel.type === 'ENFANT' && pActuel.parentId) {
+ let { data: rM } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `charte_administrative_${pActuel.parentId}`).maybeSingle(); 
+ if(rM) m = rM.contents_json || rM.contenu_json;
+ }
  } catch(e) {}
  }
  if(!d) d = await lireDonneeDB("dossiers_techniques", `charte_administrative_${idProjetActif}`) || {};
@@ -244,7 +257,7 @@ async function chargerRenseignementsEtLogosHerites(listeProjets) {
  if(sourceLogos.logoFin_html && document.getElementById('logoFin_box')) { document.getElementById('logoFin_box').innerHTML = sourceLogos.logoFin_html.replace('<img', `<img ${styleStyle}`); }
  if(sourceLogos.logoMO_html && document.getElementById('logoMO_box')) { document.getElementById('logoMO_box').innerHTML = sourceLogos.logoMO_html.replace('<img', `<img ${styleStyle}`); }
  if(sourceLogos.logoMOE_html && document.getElementById('logoMOE_box')) { document.getElementById('logoMOE_box').innerHTML = sourceLogos.logoMOE_html.replace('<img', `<img ${styleStyle}`); }
- if(sourceLogos.logoEnterprise_html && document.getElementById('logoEntreprise_box')) { document.getElementById('logoEntreprise_box').innerHTML = sourceLogos.logoEnterprise_html.replace('<img', `<img ${styleStyle}`); }
+ if(sourceLogos.logoEnterprise_html && document.getElementById('logoEnterprise_box')) { document.getElementById('logoEnterprise_box').innerHTML = sourceLogos.logoEnterprise_html.replace('<img', `<img ${styleStyle}`); }
  if(document.getElementById('txtRemarquesExécutives')) { document.getElementById('txtRemarquesExécutives').value = localStorage.getItem(`remarques_rapport_${idProjetActif}`) || ""; }
  await calculerEtTracerCourbeSMathématiqueSVG(listeProjets);
 }
@@ -269,8 +282,8 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
  if (window.supabaseClient && navigator.onLine) {
  try {
    let { data: rB } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `bdqe_${idProjetActif}`).maybeSingle(); if(rB) listB = rB.contents_json || rB.contenu_json;
-   let { data: rPl } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `planning_${idProjetActif}`).maybeSingle(); if(rPl) listPl = rPl.contents_json || rPl.contenu_json;
-   let { data: rS } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `suivi_${idProjetActif}`).maybeSingle(); if(rS) listS = rS.contents_json || rS.contenu_json;
+   let { data: rPl } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `planning_${idProjetActif}`).maybeSingle(); if(rPl) listPl = rPl.contents_json || rPl.contents_json;
+   let { data: rS } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `suivi_${idProjetActif}`).maybeSingle(); if(rS) listS = rS.contents_json || rS.contents_json;
    let { data: rAv } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `avenants_${idProjetActif}`).maybeSingle(); if(rAv) listAv = rAv.contents_json || [];
  } catch(e) {}
  }
@@ -289,9 +302,9 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
    if (window.supabaseClient && navigator.onLine) {
    try {
      let { data: rB } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `bdqe_${enf.id}`).maybeSingle(); if(rB) bE = rB.contenu_json;
-     let { data: rPl = null } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `planning_${enf.id}`).maybeSingle(); if(rPl) pE = rPl.contenu_json;
-     let { data: rS = null } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `suivi_${enf.id}`).maybeSingle(); if(rS) sE = rS.contents_json || rS.contenu_json;
-     let { data: rAv = null } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `avenants_${enf.id}`).maybeSingle(); if(rAv) aE = rAv.contenu_json;
+     let { data: rPl } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `planning_${enf.id}`).maybeSingle(); if(rPl) pE = rPl.contenu_json;
+     let { data: rS } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `suivi_${enf.id}`).maybeSingle(); if(rS) sE = rS.contents_json || rS.contents_json;
+     let { data: rAv } = await window.supabaseClient.from('dossiers_techniques').select('contenu_json').eq('id', `avenants_${enf.id}`).maybeSingle(); if(rAv) aE = rAv.contenu_json;
    } catch(e) {}
    }
    if(!bE) bE = await lireDonneeDB("dossiers_techniques", `bdqe_${enf.id}`) || [];
@@ -358,7 +371,7 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
  if(document.getElementById('txtFinComp')) document.getElementById('txtFinComp').innerText = `P: ${tFinPrevu.toFixed(1)}% | R: ${tFinReel.toFixed(1)}%`;
  if(document.getElementById('titleHeaderS')) document.getElementById('titleHeaderS').innerText = `V. COURBE EN S : TRAJECTOIRE FINANCIÈRE GLOBALE (PRÉVU ${tFinPrevu.toFixed(1)}% VS RÉEL ${tFinReel.toFixed(1)}%)`;
  let svg = document.getElementById('svgS'); if(svg && dMin && dMax) {
- let pointsPathPrevu = ""; for(let j=0; j<=40; j++) { let ratioX = j / 40; let x = 80 + ratioX * 940; let tempsCibleMs = dMin.getTime() + ratioX * (dMax.getTime() - dMin.getTime()); let pointsY = 160 - (calculerPrevuALaDate(new Date(tempsCibleMs))/100)*130; pointsPathPrevu += `${j===0 ? 'M':'L'} ${x} ${pointsY} `; }
+ let pointsPathPrevu = ""; for(let j=0; j<=40; j++) { let ratioX = j / 40; let x = 80 + ratioX * 940; let tempsCibleMs = dMin.getTime() + ratioX * (dMax.getTime() - dMin.getTime()); let pointsY = 160 - (calculu = calculerPrevuALaDate(new Date(tempsCibleMs))/100)*130; pointsPathPrevu += `${j===0 ? 'M':'L'} ${x} ${pointsY} `; }
  let pointsPathReelHistorique = "";
  let charteActiveLocal = dGlobalCharteCache || {};
  let historiqueData = charteActiveLocal.historique_financier || {};
@@ -388,7 +401,7 @@ async function calculerEtTracerCourbeSMathématiqueSVG(listeProjets) {
  suiviProprePapa.forEach(i => { if (i.quantite_contrat > 0) { let pL = Math.min((i.qte_realisee / i.quantite_contrat)*100, 100); budgetProprePapa += (i.total_contrat || 0); mntRealiseProprePapa += ((i.total_contrat || 0) * (pL / 100)); } });
  if (budgetProprePapa > 0 && ventilFinBox) {
    let poidsPropre = (budgetProprePapa / totalBudgetGlobal) * 100; 
-   let pPond = ajouterNouvelUtilisateurRbac ? calculerPrevuALaDate(auj, idProjetActif) : poidsPropre * 0.9;
+   let pPond = calculerPrevuALaDate(auj, idProjetActif);
    let rPond = (mntRealiseProprePapa / totalBudgetGlobal) * 100; 
    injecterLigneDoubleJauge(ventilFinBox, `OUVRAGES GENERAUX PAPA`, `représente ${poidsPropre.toFixed(1)}% du marché global`, pPond, rPond);
  }
